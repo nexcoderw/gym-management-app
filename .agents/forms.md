@@ -30,14 +30,7 @@ Illustrative JSX using the shared Input and Button:
 
 ```tsx
 <form onSubmit={handleSubmit}>
-	<Input
-		id="email"
-		name="email"
-		label="Email"
-		icon={Mail01Icon}
-		autoComplete="username"
-		required
-	/>
+	<Input id="email" name="email" label="Email" icon={Mail01Icon} autoComplete="username" required />
 	<Input
 		id="password"
 		name="password"
