@@ -6,6 +6,7 @@ import { ZodError, type z } from 'zod';
 import { environment } from './environment';
 
 const MAXIMUM_RESPONSE_BYTES = 64 * 1024;
+const UPSTREAM_TIMEOUT_MS = 20_000;
 const ALLOWED_COOKIE_NAMES = new Set([
 	'nexcode-owner-session',
 	'nexcode-owner-csrf',
@@ -14,7 +15,7 @@ const ALLOWED_COOKIE_NAMES = new Set([
 ]);
 
 export async function upstreamJson<T>(
-	path: string,
+	path: `/owner/${string}`,
 	init: { readonly method?: 'GET' | 'POST'; readonly body?: unknown; readonly csrfToken?: string },
 	schema: z.ZodType<T>,
 ): Promise<{ readonly data: T; readonly response: Response }> {
@@ -28,19 +29,30 @@ export async function upstreamJson<T>(
 	if (cookieHeader !== '') headers.set('Cookie', cookieHeader);
 	if (init.body !== undefined) headers.set('Content-Type', 'application/json');
 	if (init.csrfToken !== undefined) headers.set('x-owner-csrf-token', init.csrfToken);
-	const response = await fetch(`${environment.GYM_API_BASE_URL}/api/v1${path}`, {
-		method: init.method ?? 'GET',
-		headers,
-		body: init.body === undefined ? undefined : JSON.stringify(init.body),
-		cache: 'no-store',
-		signal: AbortSignal.timeout(15_000),
-	});
-	const text = await response.text();
-	if (Buffer.byteLength(text, 'utf8') > MAXIMUM_RESPONSE_BYTES) {
-		throw new Error('The upstream response exceeded the safe size limit.');
+	let response: Response;
+	try {
+		response = await fetch(`${environment.GYM_API_BASE_URL}/api/v1${path}`, {
+			method: init.method ?? 'GET',
+			headers,
+			body: init.body === undefined ? undefined : JSON.stringify(init.body),
+			cache: 'no-store',
+			redirect: 'error',
+			signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+		});
+	} catch {
+		throw new UpstreamError(503, 'The service is temporarily unavailable.');
 	}
 	if (!response.ok) throw new UpstreamError(response.status, safeMessage(response.status));
-	return { data: schema.parse(text === '' ? undefined : (JSON.parse(text) as unknown)), response };
+	if (
+		response.status !== 204 &&
+		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !==
+			'application/json'
+	) {
+		await response.body?.cancel();
+		throw new UpstreamError(502, 'The service returned an incompatible response.');
+	}
+	const value = response.status === 204 ? undefined : await boundedJson(response.body);
+	return { data: schema.parse(value), response };
 }
 
 export class UpstreamError extends Error {
@@ -82,4 +94,31 @@ function safeMessage(status: number): string {
 	if (status === 409) return 'This invitation can no longer be accepted.';
 	if (status === 429) return 'Too many attempts. Wait before trying again.';
 	return 'The service is temporarily unavailable.';
+}
+
+async function boundedJson(body: ReadableStream<Uint8Array> | null): Promise<unknown> {
+	if (body === null) throw new UpstreamError(502, 'The service returned an incompatible response.');
+	const reader = body.getReader();
+	const decoder = new TextDecoder();
+	let size = 0;
+	let text = '';
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			size += value.byteLength;
+			if (size > MAXIMUM_RESPONSE_BYTES) {
+				await reader.cancel();
+				throw new UpstreamError(502, 'The service returned an incompatible response.');
+			}
+			text += decoder.decode(value, { stream: true });
+		}
+		text += decoder.decode();
+		return JSON.parse(text) as unknown;
+	} catch (error) {
+		if (error instanceof UpstreamError) throw error;
+		throw new UpstreamError(502, 'The service returned an incompatible response.');
+	} finally {
+		reader.releaseLock();
+	}
 }
