@@ -1,0 +1,38 @@
+.shell {
+	min-height: 100svh;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+}
+.shell > header,
+.shell > footer {
+	width: min(68rem, calc(100% - 2rem));
+	margin-inline: auto;
+}
+.shell > header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-block: 1.2rem;
+	border-bottom: 1px solid var(--line);
+}
+.shell > header > span,
+.shell > footer {
+	color: var(--muted);
+	font-size: 0.76rem;
+}
+.shell main {
+	width: min(62rem, calc(100% - 2rem));
+	margin: auto;
+	padding-block: 2rem;
+}
+.shell > footer {
+	padding-block: 1rem 1.4rem;
+}
+@media (max-width: 40rem) {
+	.shell main {
+		padding-block: 1.25rem;
+	}
+	.shell > header > span {
+		display: none;
+	}
+}
