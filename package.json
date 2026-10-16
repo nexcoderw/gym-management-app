@@ -1,0 +1,32 @@
+{
+	"name": "@nexcoderw/gym-manager",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev --port 4001",
+		"build": "next build",
+		"start": "next start --port 4001",
+		"lint": "eslint .",
+		"typecheck": "next typegen && tsc --noEmit",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
+	},
+	"engines": {
+		"node": ">=22.14.0",
+		"npm": ">=10.0.0"
+	},
+	"dependencies": {
+		"next": "16.4.0",
+		"react": "19.3.0",
+		"react-dom": "19.3.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"eslint": "^9",
+		"eslint-config-next": "16.4.0",
+		"prettier": "3.9.10",
+		"typescript": "^5"
+	}
+}
