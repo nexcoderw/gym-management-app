@@ -34,12 +34,7 @@ export function InvitationFlow() {
 		started.current = true;
 		const token = new URLSearchParams(window.location.hash.slice(1)).get('token');
 		window.history.replaceState(null, '', window.location.pathname);
-		if (!token) {
-			setMessage('This invitation link is incomplete or no longer valid.');
-			setStage('error');
-			return;
-		}
-		void post<Challenge>('/api/enrollment/start', { invitationToken: token })
+		void beginEnrollment(token)
 			.then((data) => {
 				setChallenge(data);
 				setStage('identity');
@@ -214,6 +209,12 @@ function Panel({ eyebrow, children }: { eyebrow: string; children: React.ReactNo
 }
 function Loading() {
 	return <span className={styles.loader} aria-hidden="true" />;
+}
+function beginEnrollment(token: string | null): Promise<Challenge> {
+	if (token === null) {
+		return Promise.reject(new Error('This invitation link is incomplete or no longer valid.'));
+	}
+	return post<Challenge>('/api/enrollment/start', { invitationToken: token });
 }
 async function post<T = unknown>(url: string, body: unknown): Promise<T> {
 	const response = await fetch(url, {
