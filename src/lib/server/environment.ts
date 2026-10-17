@@ -21,15 +21,16 @@ const baseDomain = z
 	.max(253)
 	.regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/u)
 	.refine(
-		(value) =>
-			value !== 'localhost' && !value.endsWith('.invalid') && !value.endsWith('.test'),
+		(value) => value !== 'localhost' && !value.endsWith('.invalid') && !value.endsWith('.test'),
 		'Must be a production DNS base domain.',
 	);
 
 const production = process.env.NODE_ENV === 'production';
 const apiOrigin = exactOrigin.parse(process.env.GYM_API_BASE_URL);
 if (production && !apiOrigin.startsWith('https://')) {
-	throw new Error('GYM_API_BASE_URL must use HTTPS in production.');
+	throw new Error(
+		'GYM_API_BASE_URL must use HTTPS in production. Local values belong in .env.development.local because .env.local overrides .env.production during next build.',
+	);
 }
 if (!production && apiOrigin.startsWith('http://') && !isLoopbackOrigin(apiOrigin)) {
 	throw new Error('GYM_API_BASE_URL may use HTTP only on a loopback host.');
