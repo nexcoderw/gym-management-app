@@ -7,8 +7,10 @@ general proxy, authentication authority or tenant resolver.
 
 ## Mandatory requirements
 
-1. Validate the exact configured manager Origin before mutation bodies are processed or Nest is
-   contacted. Missing/foreign Origin fails closed where required.
+1. Validate the exact configured local manager Origin before mutation bodies are processed or Nest
+   is contacted. In production, derive the exact origin only from a single valid organization slug
+   beneath the configured base domain and require the browser Origin to match it. Missing, reserved,
+   nested or foreign hosts and origins fail closed.
 2. Apply the Nest contract's reviewed CSRF protocol for cookie-authenticated mutations. If that
    contract is not implemented yet, stop and obtain it; CORS, SameSite or a cookie alone is not the
    complete defense.
