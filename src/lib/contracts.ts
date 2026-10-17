@@ -8,6 +8,8 @@ export const enrollmentChallengeSchema = z.object({
 	organizationStatus: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'ARCHIVED']),
 });
 
+export type EnrollmentChallenge = z.infer<typeof enrollmentChallengeSchema>;
+
 export const authenticatedSchema = z.object({
 	status: z.enum(['authenticated', 'verified']),
 	expiresAt: z.iso.datetime(),
