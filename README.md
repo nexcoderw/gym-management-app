@@ -49,9 +49,19 @@ see `.agents/agent-workflow.md`.
 
 ## Configuration boundary
 
-The BFF adapters use server-only `GYM_API_BASE_URL` and `MANAGER_ORIGIN` configuration.
-Real `.env.local` files remain ignored. Never expose the upstream API URL through `NEXT_PUBLIC_`, add
-a database URL to this frontend, or trust browser-selected organization/branch context.
+The BFF adapters use server-only `GYM_API_BASE_URL` configuration. Local development uses the exact
+`MANAGER_ORIGIN=http://localhost:4001`; production uses `MANAGER_BASE_DOMAIN=mucyora.rw` and accepts
+only one-label organization hosts such as `soho.mucyora.rw`. The validated hostname is routing
+context only—Nest still authorizes the authenticated membership for the matching stored slug.
+
+Real environment files remain ignored. Never expose the upstream API URL through `NEXT_PUBLIC_`, add
+a database URL to this frontend, use a wildcard Origin value, or trust browser-selected
+organization/branch context.
+
+Production infrastructure must route `*.mucyora.rw` to this application with a matching wildcard
+TLS certificate and preserve the original `Host` header. Wildcard DNS and TLS only deliver traffic;
+the BFF still rejects reserved, nested and foreign hosts, and Nest still proves live organization
+membership for the stored slug.
 
 Rendered pages use a fresh Content Security Policy nonce per request so Next.js can hydrate without
 allowing arbitrary inline scripts. Keep this policy in `src/proxy.ts`; a static `script-src 'self'`
