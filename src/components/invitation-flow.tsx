@@ -25,10 +25,12 @@ const BROWSER_COMMAND_TIMEOUT_MS = 55_000;
 export function InvitationFlow() {
 	const router = useRouter();
 	const invitationToken = useRef<string | null | undefined>(undefined);
+	const enrollmentRequest = useRef<Promise<EnrollmentChallenge> | null>(null);
 	const [stage, setStage] = useState<Stage>('reading');
 	const [challenge, setChallenge] = useState<EnrollmentChallenge | null>(null);
 	const [message, setMessage] = useState('Verifying your secure invitation…');
 	const [busy, setBusy] = useState(false);
+	const [retryAvailable, setRetryAvailable] = useState(false);
 
 	useEffect(() => {
 		let token = invitationToken.current;
@@ -37,20 +39,45 @@ export function InvitationFlow() {
 			invitationToken.current = token;
 			window.history.replaceState(null, '', window.location.pathname);
 		}
-		const controller = new AbortController();
-		void beginEnrollment(token, controller.signal)
+		enrollmentRequest.current ??= beginEnrollment(token);
+		let active = true;
+		void enrollmentRequest.current
 			.then((data) => {
-				if (controller.signal.aborted) return;
+				if (!active) return;
 				setChallenge(data);
 				setStage('identity');
 			})
 			.catch((error: unknown) => {
-				if (controller.signal.aborted) return;
+				if (!active) return;
 				setMessage(toMessage(error));
+				setRetryAvailable(token !== null);
 				setStage('error');
 			});
-		return () => controller.abort();
+		return () => {
+			active = false;
+		};
 	}, []);
+
+	async function retryEnrollment() {
+		const token = invitationToken.current;
+		if (token === undefined) return;
+		setStage('reading');
+		setMessage('Verifying your secure invitation…');
+		setRetryAvailable(false);
+		const request = beginEnrollment(token);
+		enrollmentRequest.current = request;
+		try {
+			const data = await request;
+			if (enrollmentRequest.current !== request) return;
+			setChallenge(data);
+			setStage('identity');
+		} catch (error: unknown) {
+			if (enrollmentRequest.current !== request) return;
+			setMessage(toMessage(error));
+			setRetryAvailable(token !== null);
+			setStage('error');
+		}
+	}
 
 	async function authenticate(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -109,6 +136,11 @@ export function InvitationFlow() {
 			<Panel eyebrow="Invitation unavailable">
 				<h1>We couldn’t verify this invitation</h1>
 				<p>{message}</p>
+				{retryAvailable ? (
+					<button type="button" className={styles.primary} onClick={retryEnrollment}>
+						Try invitation again
+					</button>
+				) : null}
 				<a className={styles.secondary} href="/login">
 					Open owner sign in
 				</a>
@@ -221,20 +253,16 @@ function Panel({ eyebrow, children }: { eyebrow: string; children: React.ReactNo
 function Loading() {
 	return <span className={styles.loader} aria-hidden="true" />;
 }
-function beginEnrollment(
-	token: string | null,
-	signal: AbortSignal,
-): Promise<EnrollmentChallenge> {
+function beginEnrollment(token: string | null): Promise<EnrollmentChallenge> {
 	if (token === null) {
 		return Promise.reject(new Error('This invitation link is incomplete or no longer valid.'));
 	}
-	return post('/api/enrollment/start', { invitationToken: token }, enrollmentChallengeSchema, signal);
+	return post('/api/enrollment/start', { invitationToken: token }, enrollmentChallengeSchema);
 }
 async function post<T>(
 	url: `/api/enrollment/${'accept' | 'register' | 'start' | 'verify'}`,
 	body: unknown,
 	schema: z.ZodType<T>,
-	externalSignal?: AbortSignal,
 ): Promise<T> {
 	let response: Response;
 	try {
@@ -244,7 +272,7 @@ async function post<T>(
 			credentials: 'same-origin',
 			cache: 'no-store',
 			redirect: 'error',
-			signal: externalSignal ? AbortSignal.any([deadline, externalSignal]) : deadline,
+			signal: deadline,
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body),
 		});
