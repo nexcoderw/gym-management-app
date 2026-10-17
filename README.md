@@ -54,6 +54,10 @@ The BFF adapters use server-only `GYM_API_BASE_URL` configuration. Local develop
 only one-label organization hosts such as `soho.mucyora.rw`. The validated hostname is routing
 context only—Nest still authorizes the authenticated membership for the matching stored slug.
 
+Keep local values in `.env.development.local` and production values in `.env.production`. Do not use
+`.env.local` for local URLs: Next loads it ahead of `.env.production` during `next build`, so an
+`http://127.0.0.1:3000` API value would correctly fail the production HTTPS validation.
+
 Real environment files remain ignored. Never expose the upstream API URL through `NEXT_PUBLIC_`, add
 a database URL to this frontend, use a wildcard Origin value, or trust browser-selected
 organization/branch context.
