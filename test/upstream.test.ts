@@ -52,4 +52,18 @@ describe('owner portal upstream resilience', () => {
 			message: 'The service returned an incompatible response.',
 		});
 	});
+
+	it('gives enrollment commands a bounded deadline without replaying them', async () => {
+		const deadline = vi.spyOn(AbortSignal, 'timeout');
+		fetchMock.mockResolvedValueOnce(Response.json({ status: 'ok' }));
+
+		await upstreamJson(
+			'/owner-enrollment/challenges',
+			{ method: 'POST', body: { invitationToken: 'a'.repeat(43) } },
+			z.object({ status: z.string() }),
+		);
+
+		expect(deadline).toHaveBeenCalledWith(45_000);
+		expect(fetchMock).toHaveBeenCalledOnce();
+	});
 });
