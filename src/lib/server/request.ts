@@ -1,11 +1,14 @@
 import 'server-only';
 
-import { environment } from './environment';
+import { ManagerOriginError, resolveManagerOrigin } from './manager-origin';
 
 const MAXIMUM_BODY_BYTES = 16 * 1024;
 
-export function requireSameOrigin(request: Request): void {
-	if (request.headers.get('origin') !== environment.MANAGER_ORIGIN) {
+export function requireSameOrigin(request: Request): string {
+	try {
+		return resolveManagerOrigin(request.headers, true);
+	} catch (error: unknown) {
+		if (!(error instanceof ManagerOriginError)) throw error;
 		throw new RequestError(403, 'This request is not allowed.');
 	}
 }
