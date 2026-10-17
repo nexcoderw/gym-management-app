@@ -13,9 +13,7 @@ describe('production manager tenant hosts', () => {
 	);
 
 	it('normalizes DNS host casing before deriving the origin', () => {
-		expect(tenantOriginFromHost('SOHO.MUCYORA.RW', 'MUCYORA.RW')).toBe(
-			'https://soho.mucyora.rw',
-		);
+		expect(tenantOriginFromHost('SOHO.MUCYORA.RW', 'MUCYORA.RW')).toBe('https://soho.mucyora.rw');
 	});
 
 	it.each([
