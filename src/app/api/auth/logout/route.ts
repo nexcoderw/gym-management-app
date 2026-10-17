@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 export async function POST(request: Request): Promise<Response> {
 	try {
-		requireSameOrigin(request);
+		const origin = requireSameOrigin(request);
 		const store = await cookies();
 		const csrfToken =
 			store.get('__Host-nexcode-owner-csrf')?.value ?? store.get('nexcode-owner-csrf')?.value;
@@ -14,7 +14,7 @@ export async function POST(request: Request): Promise<Response> {
 			throw new RequestError(403, 'The secure session could not be verified.');
 		const result = await upstreamJson(
 			'/owner/auth/logout',
-			{ method: 'POST', csrfToken },
+			{ method: 'POST', csrfToken, origin },
 			z.unknown(),
 		);
 		const headers = new Headers({ 'Cache-Control': 'no-store' });
