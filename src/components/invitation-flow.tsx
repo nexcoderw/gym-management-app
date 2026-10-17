@@ -9,40 +9,47 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import type { z } from 'zod';
 
+import {
+	acceptedSchema,
+	authenticatedSchema,
+	enrollmentChallengeSchema,
+	type EnrollmentChallenge,
+} from '@/lib/contracts';
 import styles from './invitation-flow.module.css';
 
-type Challenge = {
-	nextStep: 'sign_in' | 'register';
-	challengeToken: string;
-	expiresAt: string;
-	organizationName: string;
-	organizationStatus: string;
-};
 type Stage = 'reading' | 'identity' | 'accept' | 'complete' | 'error';
+const BROWSER_COMMAND_TIMEOUT_MS = 55_000;
 
 export function InvitationFlow() {
 	const router = useRouter();
-	const started = useRef(false);
+	const invitationToken = useRef<string | null | undefined>(undefined);
 	const [stage, setStage] = useState<Stage>('reading');
-	const [challenge, setChallenge] = useState<Challenge | null>(null);
+	const [challenge, setChallenge] = useState<EnrollmentChallenge | null>(null);
 	const [message, setMessage] = useState('Verifying your secure invitation…');
 	const [busy, setBusy] = useState(false);
 
 	useEffect(() => {
-		if (started.current) return;
-		started.current = true;
-		const token = new URLSearchParams(window.location.hash.slice(1)).get('token');
-		window.history.replaceState(null, '', window.location.pathname);
-		void beginEnrollment(token)
+		let token = invitationToken.current;
+		if (token === undefined) {
+			token = new URLSearchParams(window.location.hash.slice(1)).get('token');
+			invitationToken.current = token;
+			window.history.replaceState(null, '', window.location.pathname);
+		}
+		const controller = new AbortController();
+		void beginEnrollment(token, controller.signal)
 			.then((data) => {
+				if (controller.signal.aborted) return;
 				setChallenge(data);
 				setStage('identity');
 			})
 			.catch((error: unknown) => {
+				if (controller.signal.aborted) return;
 				setMessage(toMessage(error));
 				setStage('error');
 			});
+		return () => controller.abort();
 	}, []);
 
 	async function authenticate(event: FormEvent<HTMLFormElement>) {
@@ -62,7 +69,7 @@ export function InvitationFlow() {
 							password: form.get('password'),
 						}
 					: { challengeToken: challenge.challengeToken, password: form.get('password') };
-			await post(endpoint, body);
+			await post(endpoint, body, authenticatedSchema);
 			setStage('accept');
 		} catch (error: unknown) {
 			setMessage(toMessage(error));
@@ -76,7 +83,11 @@ export function InvitationFlow() {
 		setBusy(true);
 		setMessage('');
 		try {
-			await post('/api/enrollment/accept', { challengeToken: challenge.challengeToken });
+			await post(
+				'/api/enrollment/accept',
+				{ challengeToken: challenge.challengeToken },
+				acceptedSchema,
+			);
 			setStage('complete');
 		} catch (error: unknown) {
 			setMessage(toMessage(error));
@@ -149,8 +160,8 @@ export function InvitationFlow() {
 							<input
 								name="displayName"
 								autoComplete="name"
-								minLength={2}
-								maxLength={120}
+								minLength={1}
+								maxLength={160}
 								required
 							/>
 						</label>
@@ -163,7 +174,7 @@ export function InvitationFlow() {
 							autoComplete={
 								challenge?.nextStep === 'register' ? 'new-password' : 'current-password'
 							}
-							minLength={challenge?.nextStep === 'register' ? 12 : 1}
+							minLength={12}
 							maxLength={1024}
 							required
 						/>
@@ -210,21 +221,55 @@ function Panel({ eyebrow, children }: { eyebrow: string; children: React.ReactNo
 function Loading() {
 	return <span className={styles.loader} aria-hidden="true" />;
 }
-function beginEnrollment(token: string | null): Promise<Challenge> {
+function beginEnrollment(
+	token: string | null,
+	signal: AbortSignal,
+): Promise<EnrollmentChallenge> {
 	if (token === null) {
 		return Promise.reject(new Error('This invitation link is incomplete or no longer valid.'));
 	}
-	return post<Challenge>('/api/enrollment/start', { invitationToken: token });
+	return post('/api/enrollment/start', { invitationToken: token }, enrollmentChallengeSchema, signal);
 }
-async function post<T = unknown>(url: string, body: unknown): Promise<T> {
-	const response = await fetch(url, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(body),
-	});
-	const data = (await response.json()) as { message?: string };
-	if (!response.ok) throw new Error(data.message ?? 'The request could not be completed.');
-	return data as T;
+async function post<T>(
+	url: `/api/enrollment/${'accept' | 'register' | 'start' | 'verify'}`,
+	body: unknown,
+	schema: z.ZodType<T>,
+	externalSignal?: AbortSignal,
+): Promise<T> {
+	let response: Response;
+	try {
+		const deadline = AbortSignal.timeout(BROWSER_COMMAND_TIMEOUT_MS);
+		response = await fetch(url, {
+			method: 'POST',
+			credentials: 'same-origin',
+			cache: 'no-store',
+			redirect: 'error',
+			signal: externalSignal ? AbortSignal.any([deadline, externalSignal]) : deadline,
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		});
+	} catch {
+		throw new Error('The service could not be reached. Try again.');
+	}
+	let data: unknown;
+	try {
+		data = await response.json();
+	} catch {
+		throw new Error('The service returned an unexpected response. Try again.');
+	}
+	if (!response.ok) {
+		const message =
+			typeof data === 'object' &&
+			data !== null &&
+			'message' in data &&
+			typeof data.message === 'string'
+				? data.message
+				: 'The request could not be completed.';
+		throw new Error(message);
+	}
+	const parsed = schema.safeParse(data);
+	if (!parsed.success) throw new Error('The service returned an unexpected response. Try again.');
+	return parsed.data;
 }
 function toMessage(error: unknown) {
 	return error instanceof Error ? error.message : 'The request could not be completed.';
