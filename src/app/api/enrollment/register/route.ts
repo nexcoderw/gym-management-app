@@ -7,7 +7,7 @@ import { copyOwnerCookies, errorResponse, upstreamJson } from '@/lib/server/upst
 const inputSchema = z
 	.object({
 		challengeToken: z.string().min(32).max(256),
-		displayName: z.string().trim().min(2).max(120),
+		displayName: z.string().trim().min(1).max(160),
 		password: z.string().min(12).max(1024),
 	})
 	.strict();
