@@ -22,6 +22,30 @@ afterEach(() => {
 });
 
 describe('owner invitation handoff', () => {
+	it('rejects mismatched registration passwords before sending credentials', async () => {
+		fetchMock.mockResolvedValueOnce(
+			Response.json({
+				nextStep: 'register',
+				challengeToken: 'b'.repeat(43),
+				expiresAt: '2030-01-01T00:10:00.000Z',
+				organizationName: 'Kigali Strength Club',
+				organizationStatus: 'PENDING',
+			}),
+		);
+		render(<InvitationFlow />);
+		const confirm = await screen.findByLabelText('Confirm password');
+		fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Test Owner' } });
+		fireEvent.change(screen.getByLabelText('Password'), {
+			target: { value: 'fictional-password-one' },
+		});
+		fireEvent.change(confirm, { target: { value: 'fictional-password-two' } });
+		fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+		expect(await screen.findByRole('alert')).toHaveProperty(
+			'textContent',
+			'Passwords do not match. Enter the same password in both fields.',
+		);
+		expect(fetchMock).toHaveBeenCalledOnce();
+	});
 	it('retains the fragment token across strict effect replay and leaves loading', async () => {
 		fetchMock.mockImplementation(async () =>
 			Response.json({
