@@ -7,12 +7,14 @@ hostnames and slugs never establish authorization.
 
 ## Mandatory requirements
 
-1. Read `GYM_API_BASE_URL` and `MANAGER_ORIGIN` only through a `server-only` environment module.
+1. Read `GYM_API_BASE_URL`, local `MANAGER_ORIGIN`, and production `MANAGER_BASE_DOMAIN` only through
+   a `server-only` environment module.
    Never expose upstream configuration through `NEXT_PUBLIC_` or client props.
-2. Validate exact origins: approved scheme, no credentials, wildcard, path, query or fragment.
-   Production requires HTTPS; local HTTP is limited to reviewed loopback development.
-3. `MANAGER_ORIGIN` must match the corresponding Nest CORS/Origin and cookie configuration exactly.
-   Do not reuse `PLATFORM_ADMIN_ORIGIN` as an assumed manager contract.
+2. Local development validates one exact origin: approved scheme, no credentials, wildcard, path,
+   query or fragment. Production validates an HTTPS origin derived from exactly one organization
+   slug label beneath the configured base domain; the base domain is never an Origin wildcard.
+3. `MANAGER_ORIGIN` must match Nest locally. `MANAGER_BASE_DOMAIN` must match Nest's production
+   organization portal base domain. Do not reuse `PLATFORM_ADMIN_ORIGIN` as a manager contract.
 4. Cookie mode follows the deployment environment and must agree with Nest. Never silently downgrade
    Secure cookies or accept a browser-controlled override.
 5. Track only fictional example values. Real `.env.local`, credentials and deployment secrets remain
@@ -29,6 +31,13 @@ MANAGER_ORIGIN=http://localhost:4001
 
 The local port map is API 3000, admin 4000 and manager 4001.
 
+Production uses a DNS base domain rather than one tenant-specific origin:
+
+```dotenv
+GYM_API_BASE_URL=https://api.example.com
+MANAGER_BASE_DOMAIN=example.com
+```
+
 ## Do not
 
 ```dotenv
@@ -38,6 +47,6 @@ DATABASE_URL=postgresql://example
 
 ## Prevented failures and review checklist
 
-- Validated fixed origins prevent SSRF and cross-environment mistakes.
+- Validated local origins and production tenant hosts prevent SSRF and cross-environment mistakes.
 - Confirm ignored secrets, production HTTPS and exact Nest agreement.
 - See [security.md](security.md), [authentication.md](authentication.md) and [dependencies.md](dependencies.md).
