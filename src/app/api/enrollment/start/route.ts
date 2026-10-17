@@ -8,11 +8,11 @@ const inputSchema = z.object({ invitationToken: z.string().min(32).max(512) }).s
 
 export async function POST(request: Request): Promise<Response> {
 	try {
-		requireSameOrigin(request);
+		const origin = requireSameOrigin(request);
 		const body = inputSchema.parse(await readJson(request));
 		const { data } = await upstreamJson(
 			'/owner-enrollment/challenges',
-			{ method: 'POST', body },
+			{ method: 'POST', body, origin },
 			enrollmentChallengeSchema,
 		);
 		return Response.json(data, {
