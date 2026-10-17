@@ -1,9 +1,10 @@
 import 'server-only';
 
-import { cookies } from 'next/headers';
+import { cookies, headers as requestHeaders } from 'next/headers';
 import { ZodError, type z } from 'zod';
 
 import { environment } from './environment';
+import { resolveManagerOrigin } from './manager-origin';
 
 const MAXIMUM_RESPONSE_BYTES = 64 * 1024;
 const READ_TIMEOUT_MS = 30_000;
@@ -18,7 +19,12 @@ const ALLOWED_COOKIE_NAMES = new Set([
 
 export async function upstreamJson<T>(
 	path: OwnerUpstreamPath,
-	init: { readonly method?: 'GET' | 'POST'; readonly body?: unknown; readonly csrfToken?: string },
+	init: {
+		readonly method?: 'GET' | 'POST';
+		readonly body?: unknown;
+		readonly csrfToken?: string;
+		readonly origin?: string;
+	},
 	schema: z.ZodType<T>,
 ): Promise<{ readonly data: T; readonly response: Response }> {
 	const cookieStore = await cookies();
@@ -27,7 +33,11 @@ export async function upstreamJson<T>(
 		.filter(({ name }) => ALLOWED_COOKIE_NAMES.has(name))
 		.map(({ name, value }) => `${name}=${value}`)
 		.join('; ');
-	const headers = new Headers({ Accept: 'application/json', Origin: environment.MANAGER_ORIGIN });
+	const origin =
+		init.origin ??
+		environment.MANAGER_ORIGIN ??
+		resolveManagerOrigin(await requestHeaders(), false);
+	const headers = new Headers({ Accept: 'application/json', Origin: origin });
 	if (cookieHeader !== '') headers.set('Cookie', cookieHeader);
 	if (init.body !== undefined) headers.set('Content-Type', 'application/json');
 	if (init.csrfToken !== undefined) headers.set('x-owner-csrf-token', init.csrfToken);
