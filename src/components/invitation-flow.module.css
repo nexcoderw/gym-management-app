@@ -72,7 +72,7 @@
 	gap: 0.55rem;
 	padding: 0.7rem 1rem;
 	border: 1px solid var(--navy);
-	border-radius: 0.68rem;
+	border-radius: 9999px;
 	font-weight: 750;
 	text-decoration: none;
 	cursor: pointer;
