@@ -43,8 +43,9 @@ Then open `http://localhost:4001`. Invitation links use
 `http://localhost:4001/invitations/accept#token=<opaque-token>` locally. The portal transfers the
 fragment into a short-lived server challenge and removes it from the address bar. If the page is
 closed or reloaded before that transfer succeeds, reopen the original email link; the cleaned URL
-intentionally cannot reconstruct the secret. Agents do not execute these commands; see
-`.agents/agent-workflow.md`.
+intentionally cannot reconstruct the secret. A temporary API outage can be retried from the same
+open page because the token remains only in that page's memory. Agents do not execute these commands;
+see `.agents/agent-workflow.md`.
 
 ## Configuration boundary
 
