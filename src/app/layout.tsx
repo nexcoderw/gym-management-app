@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 
 import { bodyFont, headingFont } from './fonts';
 import './globals.css';
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 	referrer: 'no-referrer',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+	// Nonce-bearing framework scripts require request-time rendering.
+	await connection();
 	return (
 		<html lang="en" className={`${headingFont.variable} ${bodyFont.variable}`}>
 			<body>
