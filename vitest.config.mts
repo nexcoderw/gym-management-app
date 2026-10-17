@@ -8,5 +8,13 @@ export default defineConfig({
 			'server-only': fileURLToPath(new URL('./test/server-only.ts', import.meta.url)),
 		},
 	},
-	test: { environment: 'node', include: ['test/**/*.test.{ts,tsx}'], restoreMocks: true },
+	test: {
+		env: {
+			GYM_API_BASE_URL: 'https://api.manager.test',
+			MANAGER_ORIGIN: 'https://manager.test',
+		},
+		environment: 'node',
+		include: ['test/**/*.test.{ts,tsx}'],
+		restoreMocks: true,
+	},
 });
