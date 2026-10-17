@@ -9,7 +9,7 @@ const inputSchema = z.object({ challengeToken: z.string().min(32).max(256) }).st
 
 export async function POST(request: Request): Promise<Response> {
 	try {
-		requireSameOrigin(request);
+		const origin = requireSameOrigin(request);
 		const body = inputSchema.parse(await readJson(request));
 		const store = await cookies();
 		const csrfToken =
@@ -18,7 +18,7 @@ export async function POST(request: Request): Promise<Response> {
 			throw new RequestError(403, 'The secure session could not be verified.');
 		const { data } = await upstreamJson(
 			'/owner-enrollment/acceptances',
-			{ method: 'POST', body, csrfToken },
+			{ method: 'POST', body, csrfToken, origin },
 			acceptedSchema,
 		);
 		return Response.json(data, { headers: { 'Cache-Control': 'no-store' } });
