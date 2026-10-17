@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 vi.mock('next/headers', () => ({
 	cookies: vi.fn(async () => ({ getAll: () => [] })),
+	headers: vi.fn(async () => new Headers({ host: 'soho.example.com' })),
 }));
 
 import { errorResponse, upstreamJson } from '@/lib/server/upstream';
