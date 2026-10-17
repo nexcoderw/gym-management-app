@@ -8,6 +8,7 @@ import { environment } from './environment';
 const MAXIMUM_RESPONSE_BYTES = 64 * 1024;
 const READ_TIMEOUT_MS = 30_000;
 const COMMAND_TIMEOUT_MS = 45_000;
+type OwnerUpstreamPath = `/owner/${string}` | `/owner-enrollment/${string}`;
 const ALLOWED_COOKIE_NAMES = new Set([
 	'nexcode-owner-session',
 	'nexcode-owner-csrf',
@@ -16,7 +17,7 @@ const ALLOWED_COOKIE_NAMES = new Set([
 ]);
 
 export async function upstreamJson<T>(
-	path: `/owner/${string}`,
+	path: OwnerUpstreamPath,
 	init: { readonly method?: 'GET' | 'POST'; readonly body?: unknown; readonly csrfToken?: string },
 	schema: z.ZodType<T>,
 ): Promise<{ readonly data: T; readonly response: Response }> {
@@ -47,8 +48,7 @@ export async function upstreamJson<T>(
 	if (!response.ok) throw new UpstreamError(response.status, safeMessage(response.status));
 	if (
 		response.status !== 204 &&
-		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !==
-			'application/json'
+		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json'
 	) {
 		await response.body?.cancel();
 		throw new UpstreamError(502, 'The service returned an incompatible response.');
