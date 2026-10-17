@@ -30,6 +30,7 @@ export function InvitationFlow() {
 	const [challenge, setChallenge] = useState<EnrollmentChallenge | null>(null);
 	const [message, setMessage] = useState('Verifying your secure invitation…');
 	const [busy, setBusy] = useState(false);
+	const [passwordMismatch, setPasswordMismatch] = useState(false);
 	const [retryAvailable, setRetryAvailable] = useState(false);
 
 	useEffect(() => {
@@ -81,10 +82,16 @@ export function InvitationFlow() {
 
 	async function authenticate(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		if (!challenge) return;
+		if (!challenge || busy) return;
+		const form = new FormData(event.currentTarget);
+		if (challenge.nextStep === 'register' && form.get('password') !== form.get('confirmPassword')) {
+			setPasswordMismatch(true);
+			setMessage('Passwords do not match. Enter the same password in both fields.');
+			return;
+		}
+		setPasswordMismatch(false);
 		setBusy(true);
 		setMessage('');
-		const form = new FormData(event.currentTarget);
 		try {
 			const endpoint =
 				challenge.nextStep === 'register' ? '/api/enrollment/register' : '/api/enrollment/verify';
@@ -211,12 +218,28 @@ export function InvitationFlow() {
 							required
 						/>
 					</label>
+					{challenge?.nextStep === 'register' && (
+						<label>
+							Confirm password
+							<input
+								name="confirmPassword"
+								type="password"
+								autoComplete="new-password"
+								minLength={12}
+								maxLength={1024}
+								required
+								aria-invalid={passwordMismatch || undefined}
+								aria-describedby={passwordMismatch ? 'owner-identity-error' : undefined}
+								onChange={() => setPasswordMismatch(false)}
+							/>
+						</label>
+					)}
 					{message && (
-						<p role="alert" className={styles.error}>
+						<p id="owner-identity-error" role="alert" className={styles.error}>
 							{message}
 						</p>
 					)}
-					<button className={styles.primary} disabled={busy}>
+					<button type="submit" className={styles.primary} disabled={busy} aria-busy={busy}>
 						{busy ? 'Verifying…' : 'Continue'} <HugeiconsIcon icon={ArrowRight01Icon} size={17} />
 					</button>
 				</form>
