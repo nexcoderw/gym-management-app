@@ -14,11 +14,11 @@ const inputSchema = z
 
 export async function POST(request: Request): Promise<Response> {
 	try {
-		requireSameOrigin(request);
+		const origin = requireSameOrigin(request);
 		const body = inputSchema.parse(await readJson(request));
 		const result = await upstreamJson(
 			'/owner-enrollment/registrations',
-			{ method: 'POST', body },
+			{ method: 'POST', body, origin },
 			authenticatedSchema,
 		);
 		const headers = new Headers({ 'Cache-Control': 'no-store' });
