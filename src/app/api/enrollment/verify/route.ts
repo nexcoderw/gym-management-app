@@ -5,7 +5,7 @@ import { readJson, RequestError, requireSameOrigin } from '@/lib/server/request'
 import { copyOwnerCookies, errorResponse, upstreamJson } from '@/lib/server/upstream';
 
 const inputSchema = z
-	.object({ challengeToken: z.string().min(32).max(256), password: z.string().min(1).max(1024) })
+	.object({ challengeToken: z.string().min(32).max(256), password: z.string().min(12).max(1024) })
 	.strict();
 
 export async function POST(request: Request): Promise<Response> {
