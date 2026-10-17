@@ -6,7 +6,8 @@ import { ZodError, type z } from 'zod';
 import { environment } from './environment';
 
 const MAXIMUM_RESPONSE_BYTES = 64 * 1024;
-const UPSTREAM_TIMEOUT_MS = 20_000;
+const READ_TIMEOUT_MS = 30_000;
+const COMMAND_TIMEOUT_MS = 45_000;
 const ALLOWED_COOKIE_NAMES = new Set([
 	'nexcode-owner-session',
 	'nexcode-owner-csrf',
@@ -31,13 +32,14 @@ export async function upstreamJson<T>(
 	if (init.csrfToken !== undefined) headers.set('x-owner-csrf-token', init.csrfToken);
 	let response: Response;
 	try {
+		const timeoutMs = (init.method ?? 'GET') === 'POST' ? COMMAND_TIMEOUT_MS : READ_TIMEOUT_MS;
 		response = await fetch(`${environment.GYM_API_BASE_URL}/api/v1${path}`, {
 			method: init.method ?? 'GET',
 			headers,
 			body: init.body === undefined ? undefined : JSON.stringify(init.body),
 			cache: 'no-store',
 			redirect: 'error',
-			signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+			signal: AbortSignal.timeout(timeoutMs),
 		});
 	} catch {
 		throw new UpstreamError(503, 'The service is temporarily unavailable.');
