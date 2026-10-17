@@ -17,8 +17,10 @@ hostnames and slugs never establish authorization.
    organization portal base domain. Do not reuse `PLATFORM_ADMIN_ORIGIN` as a manager contract.
 4. Cookie mode follows the deployment environment and must agree with Nest. Never silently downgrade
    Secure cookies or accept a browser-controlled override.
-5. Track only fictional example values. Real `.env.local`, credentials and deployment secrets remain
-   ignored and uncommitted.
+5. Keep development values in `.env.development.local` and production values in `.env.production`.
+   `.env.local` has higher precedence than `.env.production` during `next build` and must not carry
+   local HTTP values. Track only fictional example values; real environment files, credentials and
+   deployment secrets remain ignored and uncommitted.
 6. Missing/malformed configuration fails safely; never fall back to production or another app.
 7. This frontend never receives a Prisma or database URL.
 
