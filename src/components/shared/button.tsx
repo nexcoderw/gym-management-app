@@ -10,6 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	readonly children: ReactNode;
 	readonly icon: IconSvgElement;
 	readonly pending?: boolean;
+	readonly iconOnly?: boolean;
 	readonly variant?: ButtonVariant;
 	readonly width?: ButtonWidth;
 }
@@ -27,6 +28,7 @@ export function Button({
 	className,
 	disabled,
 	icon,
+	iconOnly = false,
 	pending = false,
 	type = 'button',
 	variant = 'primary',
@@ -40,6 +42,11 @@ export function Button({
 			className={joinClassNames(styles.control, className)}
 			data-variant={variant}
 			data-width={width}
+			data-icon-only={iconOnly || undefined}
+			aria-label={
+				props['aria-label'] ?? (iconOnly && typeof children === 'string' ? children : undefined)
+			}
+			title={props.title ?? (iconOnly && typeof children === 'string' ? children : undefined)}
 			disabled={disabled || pending}
 			aria-busy={pending || undefined}
 		>
@@ -50,7 +57,7 @@ export function Button({
 					<HugeiconsIcon icon={icon} size={18} strokeWidth={1.8} />
 				)}
 			</span>
-			<span>{children}</span>
+			{iconOnly ? null : <span>{children}</span>}
 		</button>
 	);
 }
