@@ -4,13 +4,18 @@ import {
 	ArrowRight01Icon,
 	CheckmarkCircle01Icon,
 	LockPasswordIcon,
+	RefreshIcon,
+	Shield01Icon,
 	UserAdd01Icon,
+	UserIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { z } from 'zod';
 
+import { Button, ButtonLink } from '@/components/shared/button';
+import { Input } from '@/components/shared/input';
 import {
 	acceptedSchema,
 	authenticatedSchema,
@@ -143,25 +148,29 @@ export function InvitationFlow() {
 			<Panel eyebrow="Invitation unavailable">
 				<h1>We couldn’t verify this invitation</h1>
 				<p>{message}</p>
-				{retryAvailable ? (
-					<button type="button" className={styles.primary} onClick={retryEnrollment}>
-						Try invitation again
-					</button>
-				) : null}
-				<a className={styles.secondary} href="/login">
-					Open owner sign in
-				</a>
+				<div className={styles.actions}>
+					{retryAvailable ? (
+						<Button icon={RefreshIcon} width="full" onClick={retryEnrollment}>
+							Try invitation again
+						</Button>
+					) : null}
+					<ButtonLink href="/login" icon={LockPasswordIcon} width="full">
+						Open owner sign in
+					</ButtonLink>
+				</div>
 			</Panel>
 		);
 	if (stage === 'complete')
 		return (
 			<Panel eyebrow="Ownership confirmed">
-				<HugeiconsIcon icon={CheckmarkCircle01Icon} size={38} color="var(--success)" />
+				<span className={styles.successIcon} aria-hidden="true">
+					<HugeiconsIcon icon={CheckmarkCircle01Icon} size={36} />
+				</span>
 				<h1>Your gym ownership invitation has been accepted.</h1>
 				<p>Your organization access is ready. Continue to the portal using your owner account.</p>
-				<button className={styles.primary} onClick={() => router.replace('/dashboard')}>
-					Open gym portal <HugeiconsIcon icon={ArrowRight01Icon} size={17} />
-				</button>
+				<Button icon={ArrowRight01Icon} width="full" onClick={() => router.replace('/dashboard')}>
+					Open gym portal
+				</Button>
 			</Panel>
 		);
 
@@ -178,87 +187,94 @@ export function InvitationFlow() {
 			</div>
 			{stage === 'identity' ? (
 				<form onSubmit={authenticate} className={styles.form}>
-					<HugeiconsIcon
-						icon={challenge?.nextStep === 'register' ? UserAdd01Icon : LockPasswordIcon}
-						size={28}
-						color="var(--navy)"
-					/>
-					<h1>
-						{challenge?.nextStep === 'register'
-							? 'Create your owner account'
-							: 'Confirm your account'}
-					</h1>
-					<p>
-						{challenge?.nextStep === 'register'
-							? 'Set up the identity you will use to manage this gym.'
-							: 'Enter your password to prove this invitation belongs to you.'}
-					</p>
-					{challenge?.nextStep === 'register' && (
-						<label>
-							Full name
-							<input
-								name="displayName"
-								autoComplete="name"
-								minLength={1}
-								maxLength={160}
-								required
+					<div className={styles.heading}>
+						<span className={styles.headingIcon} aria-hidden="true">
+							<HugeiconsIcon
+								icon={challenge?.nextStep === 'register' ? UserAdd01Icon : LockPasswordIcon}
+								size={24}
 							/>
-						</label>
+						</span>
+						<h1>
+							{challenge?.nextStep === 'register'
+								? 'Create your owner account'
+								: 'Confirm your account'}
+						</h1>
+						<p>
+							{challenge?.nextStep === 'register'
+								? 'Set up the identity you will use to manage this gym.'
+								: 'Enter your password to prove this invitation belongs to you.'}
+						</p>
+					</div>
+					{challenge?.nextStep === 'register' && (
+						<Input
+							id="owner-display-name"
+							name="displayName"
+							label="Full name"
+							icon={UserIcon}
+							autoComplete="name"
+							placeholder="Your full name"
+							minLength={1}
+							maxLength={160}
+							required
+						/>
 					)}
-					<label>
-						Password
-						<input
-							name="password"
+					<Input
+						id="owner-identity-password"
+						name="password"
+						label="Password"
+						icon={LockPasswordIcon}
+						type="password"
+						autoComplete={challenge?.nextStep === 'register' ? 'new-password' : 'current-password'}
+						placeholder="Enter your password"
+						minLength={12}
+						maxLength={1024}
+						required
+					/>
+					{challenge?.nextStep === 'register' && (
+						<Input
+							id="owner-confirm-password"
+							name="confirmPassword"
+							label="Confirm password"
+							icon={LockPasswordIcon}
 							type="password"
-							autoComplete={
-								challenge?.nextStep === 'register' ? 'new-password' : 'current-password'
-							}
+							autoComplete="new-password"
+							placeholder="Enter your password again"
 							minLength={12}
 							maxLength={1024}
 							required
+							error={passwordMismatch ? message : undefined}
+							onChange={() => setPasswordMismatch(false)}
 						/>
-					</label>
-					{challenge?.nextStep === 'register' && (
-						<label>
-							Confirm password
-							<input
-								name="confirmPassword"
-								type="password"
-								autoComplete="new-password"
-								minLength={12}
-								maxLength={1024}
-								required
-								aria-invalid={passwordMismatch || undefined}
-								aria-describedby={passwordMismatch ? 'owner-identity-error' : undefined}
-								onChange={() => setPasswordMismatch(false)}
-							/>
-						</label>
 					)}
-					{message && (
+					{message && !passwordMismatch && (
 						<p id="owner-identity-error" role="alert" className={styles.error}>
 							{message}
 						</p>
 					)}
-					<button type="submit" className={styles.primary} disabled={busy} aria-busy={busy}>
-						{busy ? 'Verifying…' : 'Continue'} <HugeiconsIcon icon={ArrowRight01Icon} size={17} />
-					</button>
+					<Button type="submit" icon={ArrowRight01Icon} width="full" pending={busy}>
+						Continue
+					</Button>
 				</form>
 			) : (
 				<div className={styles.form}>
-					<h1>Accept owner access</h1>
-					<p>
-						You will become an owner of <strong>{challenge?.organizationName}</strong>. Organization
-						operations remain limited until NEXCODE activates a pending gym.
-					</p>
+					<div className={styles.heading}>
+						<span className={styles.headingIcon} aria-hidden="true">
+							<HugeiconsIcon icon={Shield01Icon} size={24} />
+						</span>
+						<h1>Accept owner access</h1>
+						<p>
+							You will become an owner of <strong>{challenge?.organizationName}</strong>.
+							Organization operations remain limited until NEXCODE activates a pending gym.
+						</p>
+					</div>
 					{message && (
 						<p role="alert" className={styles.error}>
 							{message}
 						</p>
 					)}
-					<button className={styles.primary} disabled={busy} onClick={accept}>
-						{busy ? 'Accepting…' : 'Accept invitation'}{' '}
-						<HugeiconsIcon icon={ArrowRight01Icon} size={17} />
-					</button>
+					<Button icon={ArrowRight01Icon} width="full" pending={busy} onClick={accept}>
+						Accept invitation
+					</Button>
 				</div>
 			)}
 		</Panel>
