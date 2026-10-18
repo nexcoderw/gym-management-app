@@ -9,4 +9,5 @@ export const routes = {
 	report: '/report',
 	membershipPlansApi: '/api/membership-plans',
 	membershipPlanApi: (planId: string) => `/api/membership-plans/${encodeURIComponent(planId)}`,
+	membersApi: '/api/members',
 } as const;
