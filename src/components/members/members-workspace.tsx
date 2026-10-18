@@ -294,7 +294,7 @@ export function MembersWorkspace({
 
 						<p>
 							{view.status === 'ACTIVE'
-								? 'Use New payment to add a member, choose a plan and record payment together.'
+								? 'Add their contact details and choose the membership plan they are joining.'
 								: 'Archived member profiles will appear here.'}
 						</p>
 					</div>
