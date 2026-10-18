@@ -237,7 +237,7 @@ export function MembersWorkspace({
 				title="Members"
 				description="Review registered members, contact details and profile status."
 				actions={
-					<>
+					view.items.length > 0 ? (
 						<Button
 							icon={Add01Icon}
 							disabled={busy || view.errorStatus === 401 || view.errorStatus === 403}
@@ -245,16 +245,7 @@ export function MembersWorkspace({
 						>
 							Add member
 						</Button>
-						<Button
-							icon={RefreshIcon}
-							variant="secondary"
-							pending={view.loading === 'page'}
-							disabled={busy}
-							onClick={() => void loadMembers(view.status)}
-						>
-							Refresh
-						</Button>
-					</>
+					) : undefined
 				}
 			/>
 
@@ -307,15 +298,19 @@ export function MembersWorkspace({
 							<HugeiconsIcon icon={UserGroupIcon} size={28} strokeWidth={1.7} />
 						</span>
 
-						<h2>{view.status === 'ACTIVE' ? 'No active members yet' : 'No archived members'}</h2>
+						<h2>
+							{view.status === 'ACTIVE'
+								? 'Register your first member'
+								: 'No archived members found'}
+						</h2>
 
 						<p>
 							{view.status === 'ACTIVE'
-								? 'Registered member profiles will appear here.'
+								? 'Add their contact details and choose the membership plan they are joining.'
 								: 'Archived member profiles will appear here.'}
 						</p>
 						{view.status === 'ACTIVE' ? (
-							<Button icon={Add01Icon} onClick={() => setDialog({ kind: 'create' })}>
+							<Button icon={Add01Icon} width="medium" onClick={() => setDialog({ kind: 'create' })}>
 								Add member
 							</Button>
 						) : null}
