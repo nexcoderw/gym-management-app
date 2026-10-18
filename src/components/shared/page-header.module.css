@@ -1,0 +1,41 @@
+.header {
+	min-width: 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: var(--space-4);
+	margin-block-end: var(--space-6);
+}
+
+.text {
+	min-width: 0;
+	flex: 1 1 20rem;
+	display: grid;
+	gap: var(--space-2);
+}
+
+.text h1,
+.text p {
+	margin: 0;
+}
+
+.text h1 {
+	color: var(--text-primary);
+	font-family: var(--font-heading), sans-serif;
+	font-size: var(--text-title);
+	line-height: 1.2;
+}
+
+.text p {
+	max-width: 65ch;
+	color: var(--text-secondary);
+	font-size: var(--text-small);
+}
+
+.actions {
+	min-width: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-3);
+}
