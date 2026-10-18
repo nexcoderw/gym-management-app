@@ -15,7 +15,7 @@ export function MemberPlanSelect({
 	error,
 }: {
 	readonly value: string;
-	readonly onChange: (id: string) => void;
+	readonly onChange: (id: string, plan: MembershipPlan | undefined) => void;
 	readonly error?: string;
 }) {
 	const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -81,11 +81,14 @@ export function MemberPlanSelect({
 				label="Membership plan"
 				icon={Package01Icon}
 				value={value}
-				onChange={(event) => onChange(event.target.value)}
+				onChange={(event) => {
+					const id = event.target.value;
+					onChange(id, plans.find((plan) => plan.id === id));
+				}}
 				error={error ?? failure ?? undefined}
 				hint={
 					plans.length === 0 && !pending
-						? 'Create an active membership plan before registering a member.'
+						? 'Create an active membership plan first.'
 						: 'The selected price is recorded with this registration.'
 				}
 				required
