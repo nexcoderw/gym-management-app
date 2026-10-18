@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: 'Reports' };
 const metrics = [
 	{
 		label: 'Monthly revenue',
-		value: '18.4M',
+		value: '130k',
 		unit: 'RWF',
 		note: '+12.2% versus September',
 		icon: CreditCardIcon,
@@ -46,21 +46,21 @@ const metrics = [
 ] as const;
 
 const revenueTrend = [
-	{ month: 'May', value: '10,800,000', x: 80, y: 128 },
-	{ month: 'Jun', value: '12,300,000', x: 200, y: 113 },
-	{ month: 'Jul', value: '14,100,000', x: 320, y: 96 },
-	{ month: 'Aug', value: '13,200,000', x: 440, y: 105 },
-	{ month: 'Sep', value: '16,400,000', x: 560, y: 74 },
-	{ month: 'Oct', value: '18,400,000', x: 680, y: 55 },
+	{ month: 'May', value: '80,000', x: 80, y: 128 },
+	{ month: 'Jun', value: '92,000', x: 200, y: 113 },
+	{ month: 'Jul', value: '108,000', x: 320, y: 96 },
+	{ month: 'Aug', value: '101,000', x: 440, y: 105 },
+	{ month: 'Sep', value: '118,000', x: 560, y: 74 },
+	{ month: 'Oct', value: '130,000', x: 680, y: 55 },
 ] as const;
 
 const monthlyPerformance = [
 	{ month: 'May 2026', revenue: '10,800,000', payments: 208, growth: '—', tone: 'neutral' },
-	{ month: 'Jun 2026', revenue: '12,300,000', payments: 226, growth: '+13.9%', tone: 'up' },
-	{ month: 'Jul 2026', revenue: '14,100,000', payments: 251, growth: '+14.6%', tone: 'up' },
-	{ month: 'Aug 2026', revenue: '13,200,000', payments: 243, growth: '−6.4%', tone: 'down' },
-	{ month: 'Sep 2026', revenue: '16,400,000', payments: 284, growth: '+24.2%', tone: 'up' },
-	{ month: 'Oct 2026', revenue: '18,400,000', payments: 312, growth: '+12.2%', tone: 'up' },
+	{ month: 'Jun 2026', revenue: '92,000', payments: 226, growth: '+15.0%', tone: 'up' },
+	{ month: 'Jul 2026', revenue: '108,000', payments: 251, growth: '+17.4%', tone: 'up' },
+	{ month: 'Aug 2026', revenue: '101,000', payments: 243, growth: '−6.5%', tone: 'down' },
+	{ month: 'Sep 2026', revenue: '118,000', payments: 284, growth: '+16.8%', tone: 'up' },
+	{ month: 'Oct 2026', revenue: '130,000', payments: 312, growth: '+10.2%', tone: 'up' },
 ] as const;
 
 const membershipPlans = [
@@ -173,7 +173,7 @@ export default async function ReportPage() {
 						<div>
 							<span>October sample revenue</span>
 							<strong>
-								18,400,000 <small>RWF</small>
+								130,000 <small>RWF</small>
 							</strong>
 						</div>
 						<span className={styles.growthBadge}>+12.2%</span>
@@ -188,15 +188,15 @@ export default async function ReportPage() {
 						>
 							<title id="report-revenue-title">Sample monthly revenue trend</title>
 							<desc id="report-revenue-desc">
-								Revenue increases from 10.8 million RWF in May to 18.4 million RWF in October,
-								including a small decrease in August.
+								Revenue increases from 80,000 RWF in May to 130,000 RWF in October, including a
+								small decrease in August.
 							</desc>
 
 							{[
-								{ value: '20M', y: 40 },
-								{ value: '15M', y: 88 },
-								{ value: '10M', y: 136 },
-								{ value: '5M', y: 183 },
+								{ value: '140k', y: 40 },
+								{ value: '105k', y: 88 },
+								{ value: '70k', y: 136 },
+								{ value: '35k', y: 183 },
 								{ value: '0', y: 230 },
 							].map((tick) => (
 								<g key={tick.value}>
@@ -227,7 +227,7 @@ export default async function ReportPage() {
 						</svg>
 						<figcaption className={styles.chartCaption}>
 							<span className={styles.legendMark} />
-							Example monthly revenue · RWF millions
+							Example monthly revenue · RWF
 						</figcaption>
 					</figure>
 				</article>
