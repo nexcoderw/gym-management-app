@@ -67,4 +67,39 @@ describe('owner portal upstream resilience', () => {
 		expect(deadline).toHaveBeenCalledWith(45_000);
 		expect(fetchMock).toHaveBeenCalledOnce();
 	});
+
+	it('forwards only the membership command precondition and CSRF token', async () => {
+		fetchMock.mockResolvedValueOnce(
+			Response.json({
+				id: '44444444-4444-4444-8444-444444444444',
+				name: 'Monthly strength',
+				price: 35_000,
+				currency: 'RWF',
+				description: null,
+				status: 'ACTIVE',
+				createdAt: '2030-01-01T08:00:00.000Z',
+				updatedAt: '2030-01-01T08:00:00.000Z',
+				archivedAt: null,
+			}),
+		);
+
+		await upstreamJson(
+			'/owner/membership-plans/44444444-4444-4444-8444-444444444444',
+			{
+				method: 'PATCH',
+				body: { name: 'Monthly strength', price: 35_000, description: null },
+				csrfToken: 'csrf-token',
+				ifMatch: '"2030-01-01T08:00:00.000Z"',
+				origin: 'https://soho.example.com',
+			},
+			z.object({ id: z.uuid() }).passthrough(),
+		);
+
+		const [, init] = fetchMock.mock.calls[0] ?? [];
+		const headers = new Headers(init?.headers);
+		expect(init?.method).toBe('PATCH');
+		expect(headers.get('if-match')).toBe('"2030-01-01T08:00:00.000Z"');
+		expect(headers.get('x-owner-csrf-token')).toBe('csrf-token');
+		expect(headers.get('origin')).toBe('https://soho.example.com');
+	});
 });
