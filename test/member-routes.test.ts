@@ -126,7 +126,9 @@ describe('member BFF operations', () => {
 	});
 
 	it('reads details and forwards the edit version without changing tenant context', async () => {
-		fetchMock.mockResolvedValue(Response.json(member));
+		fetchMock
+			.mockResolvedValueOnce(Response.json(member))
+			.mockResolvedValueOnce(Response.json(member));
 		expect((await GET(new Request('https://manager.test'), context)).status).toBe(200);
 		expect((await PATCH(request('PATCH', { ...profile, updatedAt: date }), context)).status).toBe(
 			200,
