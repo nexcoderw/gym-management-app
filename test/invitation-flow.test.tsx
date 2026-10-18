@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { InvitationFlow } from '@/components/invitation-flow';
+import { InvitationFlow } from '@/components/auth/invitation-flow';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 
