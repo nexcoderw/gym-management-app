@@ -80,6 +80,7 @@ export function ButtonLink({
 	);
 }
 
-function joinClassNames(base: string, additional?: string) {
+function joinClassNames(base: string | undefined, additional?: string) {
+	if (!base) return additional;
 	return additional ? `${base} ${additional}` : base;
 }
