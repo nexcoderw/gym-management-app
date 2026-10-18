@@ -7,9 +7,10 @@ presentation and native behavior; they do not own authentication policy or backe
 
 ## Mandatory requirements
 
-1. Establish one Button, Input, Card and shell implementation, then reuse it instead of introducing
-   competing primitives. Put shared primitives in `src/components/shared`; keep feature UI in its
-   feature directory. The current scaffold does not yet provide these primitives.
+1. Reuse the established Button and Input before introducing another primitive. Put generic UI and
+   cross-feature branding in `src/components/shared`; put login, invitation, enrollment, session
+   and logout UI in `src/components/auth`; put dashboard-only UI in `src/components/dashboard`.
+   Never leave authored component files directly in `src/components`.
 2. Use native HTML semantics and type props from the corresponding React HTML attribute interface.
    Preserve caller attributes, accessible names, input associations and expected button behavior.
 3. Default ordinary buttons to `type="button"`; use explicit `type="submit"` inside forms. Pending
@@ -29,19 +30,19 @@ presentation and native behavior; they do not own authentication policy or backe
 9. Only the shared Button owns loading presentation. Set `pending`; it disables the button, sets
    aria-busy and replaces the icon with the same 18px spinner in a fixed slot. Keep the action text
    unchanged. Do not add caller-specific spinners, changing pending labels or different animations.
+10. Shared text inputs use the pill shape and compact desktop text from the reviewed design system.
+    Preserve 16px input text on compact screens to prevent disruptive mobile browser zoom. Button
+    labels use the compact control scale without reducing the 48px minimum target height.
 
 ## Do
 
 ```tsx
-<>
+<form onSubmit={submit}>
+	<Input id="email" name="email" label="Email" icon={Mail01Icon} />
 	<Button type="submit" icon={ArrowRight01Icon} width="full" pending={pending}>
 		Sign in
 	</Button>
-	<Card>
-		<h2>Organization staff</h2>
-		<p>{activeStaffCount}</p>
-	</Card>
-</>
+</form>
 ```
 
 The feature owns the meaning of the count and submission; the primitive owns visual treatment.
