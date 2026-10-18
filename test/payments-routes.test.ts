@@ -134,4 +134,15 @@ describe('payment BFF routes', () => {
 			occurredAt: date,
 		});
 	});
+
+	it('accepts an already normalized optional member email', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json(payment, { status: 201 }));
+		const normalized = {
+			...registrationInput,
+			member: { ...registrationInput.member, email: null },
+		};
+		const result = await registerPayment(post(normalized));
+		expect(result.status).toBe(201);
+		expect(fetchMock).toHaveBeenCalledOnce();
+	});
 });
