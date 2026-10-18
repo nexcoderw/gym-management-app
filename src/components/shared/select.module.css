@@ -1,0 +1,99 @@
+.field {
+	display: grid;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
+.field label {
+	color: var(--text-primary);
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+.control {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	min-width: 0;
+	min-height: 3rem;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-pill);
+	background: var(--surface-primary);
+	color: var(--text-secondary);
+	transition:
+		border-color var(--motion-fast),
+		box-shadow var(--motion-fast);
+}
+
+.control:focus-within {
+	border-color: var(--action-primary);
+	box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.control[data-invalid='true'] {
+	border-color: var(--text-danger);
+}
+
+.control:has(select:disabled) {
+	opacity: 0.62;
+}
+
+.control select {
+	width: 100%;
+	min-width: 0;
+	min-height: 2.875rem;
+	padding: var(--space-3) var(--space-2);
+	border: 0;
+	outline: 0;
+	appearance: none;
+	background: transparent;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	cursor: pointer;
+}
+
+.control select:disabled {
+	cursor: not-allowed;
+}
+
+.leadingIcon,
+.trailingIcon {
+	display: grid;
+	width: 2.75rem;
+	height: 2.875rem;
+	place-items: center;
+	color: var(--action-primary);
+	pointer-events: none;
+}
+
+.trailingIcon {
+	width: 2.5rem;
+	color: var(--text-secondary);
+}
+
+.error,
+.hint {
+	margin: 0;
+	font-size: 0.75rem;
+	line-height: 1.45;
+}
+
+.error {
+	color: var(--text-danger);
+}
+
+.hint {
+	color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.control {
+		transition: none;
+	}
+}
+
+@media (max-width: 40rem) {
+	.control select {
+		font-size: 1rem;
+	}
+}
