@@ -35,6 +35,9 @@ yarn-error.log*
 !.env.local.example
 !.env.production.example
 
+# Local manager values belong in .env.development.local. Next also loads
+# .env.local during production builds, which can override the HTTPS API origin.
+
 # vercel
 .vercel
 
