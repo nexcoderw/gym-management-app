@@ -1,4 +1,3 @@
-
 import {
 	ArrowRight01Icon,
 	Calendar03Icon,
@@ -132,8 +131,8 @@ export default async function RemindersPage() {
 					<span className={styles.eyebrow}>MEMBER COMMUNICATIONS</span>
 					<h1>Reminders</h1>
 					<p>
-						Preview how membership renewals, payment follow-ups and message
-						delivery could be monitored for {organization.name}.
+						Preview how membership renewals, payment follow-ups and message delivery could be
+						monitored for {organization.name}.
 					</p>
 				</div>
 				<div className={styles.headerMeta}>
@@ -149,9 +148,8 @@ export default async function RemindersPage() {
 				<div>
 					<strong>Communication dashboard preview</strong>
 					<p>
-						All reminders, recipients, phone numbers, statuses and delivery
-						results on this page are fictional. No messages have been scheduled
-						or sent by this interface.
+						All reminders, recipients, phone numbers, statuses and delivery results on this page are
+						fictional. No messages have been scheduled or sent by this interface.
 					</p>
 				</div>
 			</aside>
@@ -214,26 +212,15 @@ export default async function RemindersPage() {
 						>
 							<title id="reminder-chart-title">Example weekly reminder activity</title>
 							<desc id="reminder-chart-desc">
-								39 attempts Monday, 44 Tuesday, 50 Wednesday,
-								47 Thursday, 43 Friday, 54 Saturday and 46 Sunday.
+								39 attempts Monday, 44 Tuesday, 50 Wednesday, 47 Thursday, 43 Friday, 54 Saturday
+								and 46 Sunday.
 							</desc>
 							{[60, 40, 20, 0].map((value) => {
 								const y = 208 - value * 2;
 								return (
 									<g key={value}>
-										<line
-											x1="46"
-											x2="538"
-											y1={y}
-											y2={y}
-											className={styles.gridLine}
-										/>
-										<text
-											x="36"
-											y={y + 4}
-											textAnchor="end"
-											className={styles.axisText}
-										>
+										<line x1="46" x2="538" y1={y} y2={y} className={styles.gridLine} />
+										<text x="36" y={y + 4} textAnchor="end" className={styles.axisText}>
 											{value}
 										</text>
 									</g>
@@ -297,13 +284,7 @@ export default async function RemindersPage() {
 									312 of 323 message attempts succeeded. Eleven failed.
 								</desc>
 								<circle className={styles.ringTrack} cx="90" cy="90" r="69" />
-								<circle
-									className={styles.ringProgress}
-									cx="90"
-									cy="90"
-									r="69"
-									pathLength={100}
-								/>
+								<circle className={styles.ringProgress} cx="90" cy="90" r="69" pathLength={100} />
 								<text x="90" y="86" textAnchor="middle" className={styles.ringValue}>
 									96.6%
 								</text>
@@ -388,10 +369,7 @@ export default async function RemindersPage() {
 											<span className={styles.channelBadge}>{reminder.channel}</span>
 										</td>
 										<td>
-											<span
-												className={styles.statusBadge}
-												data-status={reminder.status}
-											>
+											<span className={styles.statusBadge} data-status={reminder.status}>
 												<span aria-hidden="true" />
 												{reminder.status}
 											</span>
@@ -448,9 +426,8 @@ export default async function RemindersPage() {
 							<span>Preview only</span>
 						</div>
 						<blockquote>
-							Muraho Aline Uwase! This is a friendly reminder from your gym.
-							Your membership is due for renewal on 19 October 2026.
-							Please contact reception for assistance. Murakoze!
+							Muraho Aline Uwase! This is a friendly reminder from your gym. Your membership is due
+							for renewal on 19 October 2026. Please contact reception for assistance. Murakoze!
 						</blockquote>
 						<p>No message will be sent.</p>
 					</div>
