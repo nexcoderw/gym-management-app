@@ -53,6 +53,15 @@
 	background: var(--surface-subtle);
 }
 
+.control[data-variant='danger'] {
+	background: var(--text-danger);
+	color: var(--text-on-action);
+}
+
+.control[data-variant='danger']:hover:not(:disabled) {
+	background: #8f1c13;
+}
+
 .control:active:not(:disabled) {
 	transform: translateY(1px);
 }
