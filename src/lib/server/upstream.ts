@@ -20,9 +20,10 @@ const ALLOWED_COOKIE_NAMES = new Set([
 export async function upstreamJson<T>(
 	path: OwnerUpstreamPath,
 	init: {
-		readonly method?: 'GET' | 'POST';
+		readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
 		readonly body?: unknown;
 		readonly csrfToken?: string;
+		readonly ifMatch?: string;
 		readonly origin?: string;
 	},
 	schema: z.ZodType<T>,
@@ -41,9 +42,10 @@ export async function upstreamJson<T>(
 	if (cookieHeader !== '') headers.set('Cookie', cookieHeader);
 	if (init.body !== undefined) headers.set('Content-Type', 'application/json');
 	if (init.csrfToken !== undefined) headers.set('x-owner-csrf-token', init.csrfToken);
+	if (init.ifMatch !== undefined) headers.set('If-Match', init.ifMatch);
 	let response: Response;
 	try {
-		const timeoutMs = (init.method ?? 'GET') === 'POST' ? COMMAND_TIMEOUT_MS : READ_TIMEOUT_MS;
+		const timeoutMs = (init.method ?? 'GET') === 'GET' ? READ_TIMEOUT_MS : COMMAND_TIMEOUT_MS;
 		response = await fetch(`${environment.GYM_API_BASE_URL}/api/v1${path}`, {
 			method: init.method ?? 'GET',
 			headers,
@@ -101,9 +103,12 @@ export function errorResponse(error: unknown): Response {
 }
 
 function safeMessage(status: number): string {
+	if (status === 400) return 'Review the request details and try again.';
 	if (status === 401) return 'The credentials or invitation could not be verified.';
 	if (status === 403) return 'This request is not allowed.';
-	if (status === 409) return 'This invitation can no longer be accepted.';
+	if (status === 404) return 'The requested record is no longer available.';
+	if (status === 409) return 'This request conflicts with the current record.';
+	if (status === 412) return 'This membership changed elsewhere. Reload it and try again.';
 	if (status === 429) return 'Too many attempts. Wait before trying again.';
 	return 'The service is temporarily unavailable.';
 }
