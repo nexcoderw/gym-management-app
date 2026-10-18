@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowDown01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/shared/button';
 import { routes } from '@/constants/routes';
 import { memberSubscriptionListSchema, type MemberSubscriptionList } from '@/lib/contracts';
@@ -14,50 +14,27 @@ export function MemberHistory({ memberId }: { readonly memberId: string }) {
 	const [error, setError] = useState<string | null>(null);
 	const controller = useRef<AbortController | null>(null);
 
-	const load = useCallback(
-		async (cursor: string | null, signal: AbortSignal) => {
-			try {
-				const suffix = cursor === null ? '' : `?cursor=${encodeURIComponent(cursor)}`;
-				const result = await memberRequest(
-					`${routes.memberSubscriptionsApi(memberId)}${suffix}`,
-					memberSubscriptionListSchema,
-					{ signal },
-				);
-				if (signal.aborted) return;
-				setPage((current) => {
-					const known = new Set(current?.items.map((item) => item.id));
-					return {
-						...result,
-						items:
-							cursor === null
-								? result.items
-								: [
-										...(current?.items ?? []),
-										...result.items.filter((item) => !known.has(item.id)),
-									],
-					};
-				});
-			} catch (failure: unknown) {
-				if (!signal.aborted)
-					setError(
-						failure instanceof Error ? failure.message : 'Plan history could not be loaded.',
-					);
-			} finally {
-				if (!signal.aborted) setPending(false);
-			}
-		},
-		[memberId],
-	);
-
 	useEffect(() => {
 		const request = new AbortController();
 		controller.current = request;
-		void load(null, request.signal);
+		void requestHistory(memberId, null, request.signal)
+			.then((result) => {
+				if (request.signal.aborted) return;
+				setPage(result);
+				setError(null);
+			})
+			.catch((failure: unknown) => {
+				if (request.signal.aborted) return;
+				setError(failure instanceof Error ? failure.message : 'Plan history could not be loaded.');
+			})
+			.finally(() => {
+				if (!request.signal.aborted) setPending(false);
+			});
 		return () => {
 			request.abort();
 			controller.current?.abort();
 		};
-	}, [load]);
+	}, [memberId]);
 
 	function more() {
 		setPending(true);
@@ -65,7 +42,28 @@ export function MemberHistory({ memberId }: { readonly memberId: string }) {
 		controller.current?.abort();
 		const request = new AbortController();
 		controller.current = request;
-		void load(page?.nextCursor ?? null, request.signal);
+		const nextCursor = page?.nextCursor ?? null;
+		void requestHistory(memberId, nextCursor, request.signal)
+			.then((result) => {
+				if (request.signal.aborted) return;
+				setPage((current) => {
+					const known = new Set(current?.items.map((item) => item.id));
+					return {
+						...result,
+						items: [
+							...(current?.items ?? []),
+							...result.items.filter((item) => !known.has(item.id)),
+						],
+					};
+				});
+			})
+			.catch((failure: unknown) => {
+				if (request.signal.aborted) return;
+				setError(failure instanceof Error ? failure.message : 'Plan history could not be loaded.');
+			})
+			.finally(() => {
+				if (!request.signal.aborted) setPending(false);
+			});
 	}
 
 	return (
@@ -103,5 +101,18 @@ export function MemberHistory({ memberId }: { readonly memberId: string }) {
 				</Button>
 			) : null}
 		</section>
+	);
+}
+
+async function requestHistory(
+	memberId: string,
+	cursor: string | null,
+	signal: AbortSignal,
+): Promise<MemberSubscriptionList> {
+	const suffix = cursor === null ? '' : `?cursor=${encodeURIComponent(cursor)}`;
+	return memberRequest(
+		`${routes.memberSubscriptionsApi(memberId)}${suffix}`,
+		memberSubscriptionListSchema,
+		{ signal },
 	);
 }
