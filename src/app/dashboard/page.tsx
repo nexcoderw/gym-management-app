@@ -2,8 +2,8 @@ import { Building03Icon, UserIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { Brand } from '@/components/brand';
-import { LogoutButton } from '@/components/logout-button';
+import { LogoutButton } from '@/components/auth/logout-button';
+import { Brand } from '@/components/shared/brand';
 import { getOwnerSession } from '@/lib/server/session';
 import styles from './page.module.css';
 
