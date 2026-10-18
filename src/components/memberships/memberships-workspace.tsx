@@ -1,0 +1,359 @@
+'use client';
+
+import {
+	Add01Icon,
+	Archive02Icon,
+	ArrowDown01Icon,
+	PackageIcon,
+	PencilEdit02Icon,
+	ViewIcon,
+} from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { useCallback, useMemo, useState } from 'react';
+
+import {
+	ArchiveMembershipDialog,
+	MembershipDetailsDialog,
+	MembershipEditorDialog,
+} from '@/components/memberships/membership-dialogs';
+import { Button } from '@/components/shared/button';
+import { PageHeader } from '@/components/shared/page-header';
+import { Toast, type ToastNotice } from '@/components/shared/toast';
+import { routes } from '@/constants/routes';
+import {
+	membershipPlanListSchema,
+	membershipPlanSchema,
+	type MembershipPlan,
+	type MembershipPlanInput,
+} from '@/lib/contracts';
+import styles from './memberships-workspace.module.css';
+
+type Filter = 'ALL' | 'ACTIVE' | 'ARCHIVED';
+type DialogState =
+	| { readonly kind: 'create' }
+	| { readonly kind: 'details' | 'edit' | 'archive'; readonly plan: MembershipPlan }
+	| null;
+
+export function MembershipsWorkspace({
+	initialItems,
+	initialNextCursor,
+	initialError,
+}: {
+	readonly initialItems: MembershipPlan[];
+	readonly initialNextCursor: string | null;
+	readonly initialError?: string;
+}) {
+	const [plans, setPlans] = useState(initialItems);
+	const [nextCursor, setNextCursor] = useState(initialNextCursor);
+	const [filter, setFilter] = useState<Filter>('ALL');
+	const [dialog, setDialog] = useState<DialogState>(null);
+	const [pending, setPending] = useState(false);
+	const [loadingAction, setLoadingAction] = useState('');
+	const [notice, setNotice] = useState<ToastNotice | null>(
+		initialError === undefined ? null : { id: 1, message: initialError, tone: 'error' },
+	);
+
+	const visiblePlans = useMemo(
+		() => (filter === 'ALL' ? plans : plans.filter((plan) => plan.status === filter)),
+		[filter, plans],
+	);
+	const dismissToast = useCallback(() => setNotice(null), []);
+
+	function notify(message: string, tone: ToastNotice['tone']) {
+		setNotice({ id: Date.now(), message, tone });
+	}
+
+	async function openPlan(kind: 'details' | 'edit' | 'archive', plan: MembershipPlan) {
+		if (loadingAction !== '') return;
+		setLoadingAction(`${kind}:${plan.id}`);
+		try {
+			const latest = await requestMembershipPlan(routes.membershipPlanApi(plan.id));
+			if (kind !== 'details' && latest.status === 'ARCHIVED') {
+				throw new Error('This membership has already been archived.');
+			}
+			setPlans((current) => current.map((item) => (item.id === latest.id ? latest : item)));
+			setDialog({ kind, plan: latest });
+		} catch (error: unknown) {
+			notify(errorMessage(error), 'error');
+		} finally {
+			setLoadingAction('');
+		}
+	}
+
+	async function create(input: MembershipPlanInput) {
+		setPending(true);
+		try {
+			const created = await requestMembershipPlan(routes.membershipPlansApi, {
+				method: 'POST',
+				body: JSON.stringify(input),
+			});
+			setPlans((current) => [created, ...current.filter((plan) => plan.id !== created.id)]);
+			setDialog(null);
+			notify(`${created.name} was created.`, 'success');
+		} catch (error: unknown) {
+			notify(errorMessage(error), 'error');
+		} finally {
+			setPending(false);
+		}
+	}
+
+	async function update(input: MembershipPlanInput) {
+		if (dialog?.kind !== 'edit') return;
+		setPending(true);
+		try {
+			const updated = await requestMembershipPlan(routes.membershipPlanApi(dialog.plan.id), {
+				method: 'PATCH',
+				body: JSON.stringify({ ...input, updatedAt: dialog.plan.updatedAt }),
+			});
+			setPlans((current) => current.map((plan) => (plan.id === updated.id ? updated : plan)));
+			setDialog(null);
+			notify(`${updated.name} was updated.`, 'success');
+		} catch (error: unknown) {
+			notify(errorMessage(error), 'error');
+		} finally {
+			setPending(false);
+		}
+	}
+
+	async function archive() {
+		if (dialog?.kind !== 'archive') return;
+		setPending(true);
+		try {
+			await requestEmpty(routes.membershipPlanApi(dialog.plan.id), {
+				method: 'DELETE',
+				body: JSON.stringify({ updatedAt: dialog.plan.updatedAt }),
+			});
+			const archivedAt = new Date().toISOString();
+			setPlans((current) =>
+				current.map((plan) =>
+					plan.id === dialog.plan.id
+						? { ...plan, status: 'ARCHIVED', archivedAt, updatedAt: archivedAt }
+						: plan,
+				),
+			);
+			setDialog(null);
+			notify(`${dialog.plan.name} was archived.`, 'success');
+		} catch (error: unknown) {
+			notify(errorMessage(error), 'error');
+		} finally {
+			setPending(false);
+		}
+	}
+
+	async function loadMore() {
+		if (nextCursor === null || loadingAction !== '') return;
+		setLoadingAction('load-more');
+		try {
+			const response = await fetch(
+				`${routes.membershipPlansApi}?status=ALL&limit=50&cursor=${encodeURIComponent(nextCursor)}`,
+				{ cache: 'no-store' },
+			);
+			const page = membershipPlanListSchema.parse(await readJsonResponse(response));
+			setPlans((current) => {
+				const known = new Set(current.map((plan) => plan.id));
+				return [...current, ...page.items.filter((plan) => !known.has(plan.id))];
+			});
+			setNextCursor(page.nextCursor);
+		} catch (error: unknown) {
+			notify(errorMessage(error), 'error');
+		} finally {
+			setLoadingAction('');
+		}
+	}
+
+	return (
+		<div className={styles.page}>
+			<PageHeader
+				title="Memberships"
+				description="Create clear offers with a name, whole-RWF price and optional included activities."
+				actions={
+					<Button icon={Add01Icon} width="medium" onClick={() => setDialog({ kind: 'create' })}>
+						Add membership
+					</Button>
+				}
+			/>
+
+			<section className={styles.workspace} aria-labelledby="membership-list-title">
+				<header className={styles.toolbar}>
+					<div>
+						<h2 id="membership-list-title">Membership offers</h2>
+						<p>{plans.length} loaded</p>
+					</div>
+					<div className={styles.filters} aria-label="Filter memberships">
+						{(['ALL', 'ACTIVE', 'ARCHIVED'] as const).map((value) => (
+							<button
+								key={value}
+								type="button"
+								aria-pressed={filter === value}
+								onClick={() => setFilter(value)}
+							>
+								{value === 'ALL' ? 'All' : value.toLowerCase()}
+							</button>
+						))}
+					</div>
+				</header>
+
+				{visiblePlans.length === 0 ? (
+					<div className={styles.empty}>
+						<span>
+							<HugeiconsIcon icon={Add01Icon} size={22} strokeWidth={1.8} aria-hidden="true" />
+						</span>
+						<h3>
+							{plans.length === 0
+								? 'Create your first membership'
+								: 'No memberships match this filter'}
+						</h3>
+						<p>
+							{plans.length === 0
+								? 'Start with a simple name and price. Activities can be added now or later.'
+								: 'Choose another status to see the rest of your offers.'}
+						</p>
+					</div>
+				) : (
+					<div className={styles.list}>
+						{visiblePlans.map((plan) => (
+							<article key={plan.id} className={styles.plan}>
+								<div className={styles.identity}>
+									<span className={styles.planIcon} aria-hidden="true">
+										<HugeiconsIcon icon={PackageIcon} size={20} strokeWidth={1.8} />
+									</span>
+									<div>
+										<h3>{plan.name}</h3>
+										<p>{plan.description ?? 'No activities added'}</p>
+									</div>
+								</div>
+								<div className={styles.price}>
+									<span>Price</span>
+									<strong>{formatPrice(plan.price)}</strong>
+								</div>
+								<span className={styles.status} data-status={plan.status}>
+									{plan.status.toLowerCase()}
+								</span>
+								<div className={styles.actions}>
+									<Button
+										variant="secondary"
+										width="small"
+										icon={ViewIcon}
+										aria-label={`View ${plan.name} details`}
+										pending={loadingAction === `details:${plan.id}`}
+										onClick={() => openPlan('details', plan)}
+									>
+										Details
+									</Button>
+									{plan.status === 'ACTIVE' ? (
+										<>
+											<Button
+												variant="secondary"
+												width="small"
+												icon={PencilEdit02Icon}
+												aria-label={`Edit ${plan.name}`}
+												pending={loadingAction === `edit:${plan.id}`}
+												onClick={() => openPlan('edit', plan)}
+											>
+												Edit
+											</Button>
+											<Button
+												variant="secondary"
+												width="small"
+												icon={Archive02Icon}
+												aria-label={`Archive ${plan.name}`}
+												pending={loadingAction === `archive:${plan.id}`}
+												onClick={() => openPlan('archive', plan)}
+											>
+												Archive
+											</Button>
+										</>
+									) : null}
+								</div>
+							</article>
+						))}
+					</div>
+				)}
+				{nextCursor !== null ? (
+					<div className={styles.more}>
+						<Button
+							variant="secondary"
+							width="medium"
+							icon={ArrowDown01Icon}
+							pending={loadingAction === 'load-more'}
+							onClick={loadMore}
+						>
+							Load more
+						</Button>
+					</div>
+				) : null}
+			</section>
+
+			{dialog?.kind === 'create' ? (
+				<MembershipEditorDialog
+					open
+					onClose={() => setDialog(null)}
+					onSubmit={create}
+					pending={pending}
+				/>
+			) : null}
+			{dialog?.kind === 'edit' ? (
+				<MembershipEditorDialog
+					open
+					plan={dialog.plan}
+					onClose={() => setDialog(null)}
+					onSubmit={update}
+					pending={pending}
+				/>
+			) : null}
+			{dialog?.kind === 'details' ? (
+				<MembershipDetailsDialog open plan={dialog.plan} onClose={() => setDialog(null)} />
+			) : null}
+			{dialog?.kind === 'archive' ? (
+				<ArchiveMembershipDialog
+					open
+					plan={dialog.plan}
+					onClose={() => setDialog(null)}
+					onArchive={archive}
+					pending={pending}
+				/>
+			) : null}
+			{notice ? <Toast key={notice.id} notice={notice} onDismiss={dismissToast} /> : null}
+		</div>
+	);
+}
+
+async function requestMembershipPlan(url: string, init?: RequestInit): Promise<MembershipPlan> {
+	const response = await fetch(url, {
+		...init,
+		headers: { 'Content-Type': 'application/json' },
+		cache: 'no-store',
+	});
+	return membershipPlanSchema.parse(await readJsonResponse(response));
+}
+
+async function requestEmpty(url: string, init: RequestInit): Promise<void> {
+	const response = await fetch(url, {
+		...init,
+		headers: { 'Content-Type': 'application/json' },
+		cache: 'no-store',
+	});
+	if (!response.ok) await readJsonResponse(response);
+}
+
+async function readJsonResponse(response: Response): Promise<unknown> {
+	const body = (await response.json().catch(() => null)) as { message?: unknown } | null;
+	if (!response.ok) {
+		throw new Error(
+			typeof body?.message === 'string' ? body.message : 'The request could not be completed.',
+		);
+	}
+	return body;
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : 'The request could not be completed.';
+}
+
+function formatPrice(price: number): string {
+	return new Intl.NumberFormat('en-RW', {
+		style: 'currency',
+		currency: 'RWF',
+		maximumFractionDigits: 0,
+	}).format(price);
+}
