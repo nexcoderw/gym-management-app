@@ -21,8 +21,9 @@ Keep all manager actions and information usable across small screens, desktop, z
 7. Below 40rem, secondary descriptions and redundant shell metadata may be hidden to reduce noise.
    Keep metric labels/counts, permission errors, form labels, MFA choices, navigation and logout
    available. Never hide core actions or fabricate replacement data to make a layout fit.
-8. Follow the compact type tokens from globals.css. Keep form inputs at 16px, touch controls at
-   least 44px high, and natural text wrapping; do not shrink everything to fit a desktop layout.
+8. Follow the compact type tokens from globals.css. Shared inputs use 14px text on wider screens and
+   restore 16px text below 40rem to prevent mobile browser zoom. Keep touch controls at least 44px
+   high and preserve natural text wrapping; do not shrink everything to fit a desktop layout.
 
 ## Do
 
