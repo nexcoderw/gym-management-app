@@ -22,27 +22,27 @@ export const metadata: Metadata = { title: 'Reminders' };
 // Fictional UI examples. These are not actual scheduled or sent messages.
 const statistics = [
 	{
-		label: 'Planned reminders',
-		value: '84',
-		detail: 'Example upcoming notifications',
+		label: 'Expiring soon',
+		value: '12',
+		detail: 'Memberships ending within 7 days',
 		icon: Calendar03Icon,
 	},
 	{
-		label: 'Delivered',
-		value: '312',
-		detail: 'Illustrative delivery count',
+		label: 'Due tomorrow',
+		value: '3',
+		detail: 'Members needing prompt follow-up',
 		icon: Tick02Icon,
 	},
 	{
-		label: 'Failed',
-		value: '11',
-		detail: 'Example delivery failures',
+		label: 'Due this week',
+		value: '9',
+		detail: 'Additional upcoming expiries',
 		icon: Notification01Icon,
 	},
 	{
-		label: 'Delivery rate',
-		value: '96.6%',
-		detail: '312 of 323 sample attempts',
+		label: 'Renewal rate',
+		value: '78%',
+		detail: 'Illustrative recent renewals',
 		icon: ChartLineData01Icon,
 	},
 ] as const;
@@ -62,8 +62,9 @@ const upcomingReminders = [
 		name: 'Aline Uwase',
 		initials: 'AU',
 		phone: '+250 788 123 456',
-		type: 'Membership renewal',
+		type: 'Membership expires',
 		date: '19 Oct 2026',
+		days: 'Tomorrow',
 		channel: 'SMS',
 		status: 'Planned',
 	},
@@ -71,8 +72,9 @@ const upcomingReminders = [
 		name: 'Eric Niyonsenga',
 		initials: 'EN',
 		phone: '+250 783 456 781',
-		type: 'Outstanding balance',
+		type: 'Membership expires',
 		date: '20 Oct 2026',
+		days: '2 days',
 		channel: 'SMS',
 		status: 'Needs review',
 	},
@@ -80,8 +82,9 @@ const upcomingReminders = [
 		name: 'Claudine Mukamana',
 		initials: 'CM',
 		phone: '+250 722 310 849',
-		type: 'Membership expiry',
+		type: 'Membership expires',
 		date: '21 Oct 2026',
+		days: '3 days',
 		channel: 'Email',
 		status: 'Planned',
 	},
@@ -89,8 +92,9 @@ const upcomingReminders = [
 		name: 'Jean Claude Habimana',
 		initials: 'JH',
 		phone: '+250 789 665 420',
-		type: 'Payment reminder',
+		type: 'Membership expires',
 		date: '22 Oct 2026',
+		days: '4 days',
 		channel: 'SMS',
 		status: 'Planned',
 	},
@@ -98,8 +102,9 @@ const upcomingReminders = [
 		name: 'Sandrine Uwamahoro',
 		initials: 'SU',
 		phone: '+250 781 234 908',
-		type: 'Membership renewal',
+		type: 'Membership expires',
 		date: '23 Oct 2026',
+		days: '5 days',
 		channel: 'Email',
 		status: 'Needs review',
 	},
@@ -322,10 +327,10 @@ export default async function RemindersPage() {
 			<section className={styles.scheduleSection} aria-labelledby="schedule-heading">
 				<div className={styles.sectionHeading}>
 					<div>
-						<span className={styles.eyebrow}>UPCOMING COMMUNICATIONS</span>
-						<h2 id="schedule-heading">Reminder schedule preview</h2>
+						<span className={styles.eyebrow}>MEMBERSHIP EXPIRY WATCH</span>
+						<h2 id="schedule-heading">Subscriptions expiring soon</h2>
 						<p className={styles.sectionDescription}>
-							Example recipients and upcoming dates in Kigali local time.
+							Members whose subscriptions are approaching their end date.
 						</p>
 					</div>
 					<Link href={routes.members} className={styles.textLink}>
@@ -344,7 +349,8 @@ export default async function RemindersPage() {
 								<tr>
 									<th scope="col">Recipient</th>
 									<th scope="col">Reminder</th>
-									<th scope="col">Example date</th>
+									<th scope="col">Expires</th>
+									<th scope="col">Time left</th>
 									<th scope="col">Channel</th>
 									<th scope="col">Preview status</th>
 								</tr>
@@ -365,6 +371,7 @@ export default async function RemindersPage() {
 										</td>
 										<td>{reminder.type}</td>
 										<td className={styles.tableMuted}>{reminder.date}</td>
+										<td className={styles.tableMuted}>{reminder.days}</td>
 										<td>
 											<span className={styles.channelBadge}>{reminder.channel}</span>
 										</td>
@@ -380,7 +387,7 @@ export default async function RemindersPage() {
 						</table>
 					</div>
 					<div className={styles.tableFooter}>
-						<span>5 fictional recipients · no real sending activity</span>
+						<span>5 example members · no real reminders are sent</span>
 						<Link href={routes.memberships}>Review memberships</Link>
 					</div>
 				</div>
