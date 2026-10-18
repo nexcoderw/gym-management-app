@@ -24,6 +24,7 @@ export async function upstreamJson<T>(
 		readonly body?: unknown;
 		readonly csrfToken?: string;
 		readonly ifMatch?: string;
+		readonly idempotencyKey?: string;
 		readonly origin?: string;
 	},
 	schema: z.ZodType<T>,
@@ -43,6 +44,9 @@ export async function upstreamJson<T>(
 	if (init.body !== undefined) headers.set('Content-Type', 'application/json');
 	if (init.csrfToken !== undefined) headers.set('x-owner-csrf-token', init.csrfToken);
 	if (init.ifMatch !== undefined) headers.set('If-Match', init.ifMatch);
+	if (init.idempotencyKey !== undefined) {
+		headers.set('Idempotency-Key', init.idempotencyKey);
+	}
 	let response: Response;
 	try {
 		const timeoutMs = (init.method ?? 'GET') === 'GET' ? READ_TIMEOUT_MS : COMMAND_TIMEOUT_MS;
