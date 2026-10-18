@@ -78,7 +78,21 @@ describe('members registry UI', () => {
 		expect(screen.getByText('Active')).toBeTruthy();
 		expect(screen.getByText('+250 700 000 001')).toBeTruthy();
 		expect(screen.getByText('1 loaded active profile')).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
 		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('invites the owner to add the first member without a refresh action', () => {
+		render(<MembersWorkspace initialItems={[]} initialNextCursor={null} />);
+
+		expect(screen.getByRole('heading', { name: 'Register your first member' })).toBeTruthy();
+		expect(
+			screen.getByText(
+				'Add their contact details and choose the membership plan they are joining.',
+			),
+		).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Add member' })).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
 	});
 
 	it('searches only loaded member records', () => {
@@ -130,7 +144,7 @@ describe('members registry UI', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
 
-		fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
+		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
 
 		expect(await screen.findByRole('heading', { name: 'Example Archived Member' })).toBeTruthy();
 
@@ -183,7 +197,7 @@ describe('members registry UI', () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 		fireEvent.click(screen.getByRole('button', { name: `Archive ${activeMember.name}` }));
-		const confirm = await screen.findByRole('button', { name: 'Archive member', exact: true });
+		const confirm = await screen.findByRole('button', { name: /^Archive member$/ });
 		fireEvent.click(confirm);
 		expect(await screen.findByText('Member archived.')).toBeTruthy();
 		await waitFor(() => expect(screen.queryByRole('article')).toBeNull());
@@ -195,7 +209,7 @@ describe('members registry UI', () => {
 		fetchMock.mockResolvedValueOnce(Response.json({}, { status: 409 }));
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 		fireEvent.click(screen.getByRole('button', { name: `Archive ${activeMember.name}` }));
-		fireEvent.click(await screen.findByRole('button', { name: 'Archive member', exact: true }));
+		fireEvent.click(await screen.findByRole('button', { name: /^Archive member$/ }));
 		await waitFor(() =>
 			expect(
 				screen.getAllByText('Cancel current and future registrations before archiving this member.')
@@ -235,7 +249,7 @@ describe('members registry UI', () => {
 		);
 
 		expect(screen.getByText('Members unavailable')).toBeTruthy();
-		expect(screen.queryByText('No active members yet')).toBeNull();
+		expect(screen.queryByText('Register your first member')).toBeNull();
 		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
 	});
 
@@ -244,14 +258,15 @@ describe('members registry UI', () => {
 
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
+		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
 
 		await waitFor(() => {
 			expect(screen.getByText('Access denied')).toBeTruthy();
 		});
 
 		expect(screen.queryByRole('article')).toBeNull();
-		expect(screen.queryByText('No active members yet')).toBeNull();
+		expect(screen.queryByText('Register your first member')).toBeNull();
 	});
 
 	it('does not overwrite newer results with stale responses', async () => {
@@ -266,30 +281,31 @@ describe('members registry UI', () => {
 			)
 			.mockResolvedValueOnce(
 				Response.json({
-					items: [archivedMember],
+					items: [activeMember],
 					nextCursor: null,
 				}),
 			);
 
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-
 		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
+		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
 
-		fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Archived' }));
 
-		expect(await screen.findByRole('heading', { name: 'Example Archived Member' })).toBeTruthy();
+		fireEvent.click(screen.getByRole('button', { name: /^Active$/ }));
+
+		expect(await screen.findByRole('heading', { name: 'Example Active Member' })).toBeTruthy();
 
 		finishFirstRequest?.(
 			Response.json({
-				items: [activeMember],
+				items: [archivedMember],
 				nextCursor: null,
 			}),
 		);
 
 		await waitFor(() => {
-			expect(screen.queryByRole('heading', { name: 'Example Active Member' })).toBeNull();
+			expect(screen.queryByRole('heading', { name: 'Example Archived Member' })).toBeNull();
 		});
 	});
 });
