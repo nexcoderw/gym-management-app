@@ -1,8 +1,9 @@
 'use client';
 
-import { RefreshIcon, ArrowDown01Icon } from '@hugeicons/core-free-icons';
-import { useEffect, useId, useRef, useState } from 'react';
+import { ArrowDown01Icon, Package01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/shared/button';
+import { Select } from '@/components/shared/select';
 import { routes } from '@/constants/routes';
 import { membershipPlanListSchema, type MembershipPlan } from '@/lib/contracts';
 import { memberRequest } from './member-requests';
@@ -17,7 +18,6 @@ export function MemberPlanSelect({
 	readonly onChange: (id: string) => void;
 	readonly error?: string;
 }) {
-	const id = useId();
 	const [plans, setPlans] = useState<MembershipPlan[]>([]);
 	const [cursor, setCursor] = useState<string | null>(null);
 	const [pending, setPending] = useState(true);
@@ -77,17 +77,21 @@ export function MemberPlanSelect({
 
 	return (
 		<div className={styles.field}>
-			<label htmlFor={id}>Membership plan</label>
-			<select
-				id={id}
+			<Select
+				label="Membership plan"
+				icon={Package01Icon}
 				value={value}
 				onChange={(event) => onChange(event.target.value)}
+				error={error ?? failure ?? undefined}
+				hint={
+					plans.length === 0 && !pending
+						? 'Create an active membership plan before registering a member.'
+						: 'The selected price is recorded with this registration.'
+				}
 				required
-				aria-invalid={Boolean(error)}
-				aria-describedby={`${id}-hint`}
 				disabled={pending}
 			>
-				<option value="">{pending ? 'Loading plans…' : 'Choose an active plan'}</option>
+				<option value="">{pending ? 'Loading plans…' : 'Choose a membership plan'}</option>
 				{plans
 					.filter((plan) => plan.status === 'ACTIVE')
 					.map((plan) => (
@@ -95,18 +99,7 @@ export function MemberPlanSelect({
 							{plan.name} — {new Intl.NumberFormat('en-RW').format(plan.price)} RWF
 						</option>
 					))}
-			</select>
-			<p
-				id={`${id}-hint`}
-				className={error || failure ? styles.error : styles.hint}
-				role={error || failure ? 'alert' : undefined}
-			>
-				{error ??
-					failure ??
-					(plans.length === 0 && !pending
-						? 'Create an active membership plan before registering a member.'
-						: 'The server records the current plan price and calculates the end date.')}
-			</p>
+			</Select>
 			{failure || cursor !== null ? (
 				<Button
 					icon={failure ? RefreshIcon : ArrowDown01Icon}
