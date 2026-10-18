@@ -9,7 +9,7 @@ import { Dialog } from '@/components/shared/dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
-import { paymentListSchema, paymentSchema, type Payment, type PaymentInput, type PaymentOrder } from '@/lib/contracts';
+import { paymentListSchema, paymentSchema, type Payment, type PaymentOrder, type RegisterPaymentInput } from '@/lib/contracts';
 import { PaymentForm } from './payment-form';
 import { paymentErrorMessage, paymentRequest, PaymentRequestError } from './payment-requests';
 import { PaymentToolbar, type PaymentMethodFilter, type PaymentStatusFilter } from './payment-toolbar';
@@ -109,11 +109,11 @@ export function PaymentsWorkspace({ initialItems, initialNextCursor, initialErro
 		void load({ status, method, order: value });
 	}
 
-	async function create(input: PaymentInput) {
+	async function create(input: RegisterPaymentInput) {
 		setCreating(true);
 		setCreateError(null);
 		try {
-			const created = await paymentRequest(routes.paymentsApi, paymentSchema, {
+			const created = await paymentRequest(routes.paymentRegistrationsApi, paymentSchema, {
 				method: 'POST', body: JSON.stringify(input),
 			});
 			setDialogOpen(false);
@@ -154,8 +154,8 @@ export function PaymentsWorkspace({ initialItems, initialNextCursor, initialErro
 	const failure = errorStatus !== null;
 	return (
 		<div className={styles.page}>
-			<PageHeader title="Payments" description="Record member payments and review this gym’s payment ledger."
-				actions={items.length > 0 ? <Button icon={Add01Icon} onClick={() => setDialogOpen(true)}>Record payment</Button> : undefined} />
+			<PageHeader title="Payments" description="Register members, record plan payments and review this gym’s ledger."
+				actions={items.length > 0 ? <Button icon={Add01Icon} onClick={() => setDialogOpen(true)}>New payment</Button> : undefined} />
 			<section className={styles.workspace} aria-label="Payments ledger">
 				{showToolbar ? <PaymentToolbar count={visible.length} hasMore={nextCursor !== null} term={term}
 					status={status} method={method} order={order} onTermChange={setTerm}
@@ -168,10 +168,10 @@ export function PaymentsWorkspace({ initialItems, initialNextCursor, initialErro
 				</div> : visible.length === 0 ? <div className={styles.empty}>
 					<span className={styles.emptyIcon}><HugeiconsIcon icon={Invoice01Icon} size={28} aria-hidden="true" /></span>
 					<h2>{filteredEmpty ? 'No matching payments' : 'Record your first payment'}</h2>
-					<p>{filteredEmpty ? 'Change your search or filters to see more of the ledger.' : 'Choose a member and registration, then enter the amount received.'}</p>
+					<p>{filteredEmpty ? 'Change your search or filters to see more of the ledger.' : 'Add a member or choose an existing one, select a plan and record its payment.'}</p>
 					{filteredEmpty ? <Button icon={Cancel01Icon} variant="secondary" onClick={() => {
 						setTerm(''); setStatus('ALL'); setMethod('ALL'); void load({ status: 'ALL', method: 'ALL', order });
-					}}>Clear filters</Button> : <Button icon={Add01Icon} onClick={() => setDialogOpen(true)}>Record payment</Button>}
+					}}>Clear filters</Button> : <Button icon={Add01Icon} onClick={() => setDialogOpen(true)}>New payment</Button>}
 				</div> : <div className={styles.tableScroll}>
 					<table className={styles.table}>
 						<caption className={styles.srOnly}>Payments for the current gym</caption>
@@ -192,7 +192,7 @@ export function PaymentsWorkspace({ initialItems, initialNextCursor, initialErro
 				</div>}
 				{nextCursor !== null && !failure ? <div className={styles.more}><Button icon={ArrowDown01Icon} variant="secondary" pending={loading === 'more'} onClick={() => void load({ status, method, order }, true)}>Load more</Button></div> : null}
 			</section>
-			{dialogOpen ? <Dialog open title="Record payment" description="Allocate a received payment to one member registration."
+			{dialogOpen ? <Dialog open title="New payment" description="Register a membership and record its full plan price."
 				onClose={() => { if (!creating) { setDialogOpen(false); setCreateError(null); } }}>
 				<PaymentForm pending={creating} submissionError={createError} onSubmit={create} onCancel={() => setDialogOpen(false)} />
 			</Dialog> : null}
