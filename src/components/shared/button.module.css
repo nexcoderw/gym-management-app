@@ -1,0 +1,97 @@
+.control {
+	min-width: 0;
+	min-height: 3rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-5);
+	border: 1px solid transparent;
+	border-radius: var(--radius-pill);
+	font-size: 0.875rem;
+	font-weight: 700;
+	line-height: 1.2;
+	text-align: center;
+	text-decoration: none;
+	cursor: pointer;
+	transition:
+		background-color var(--motion-fast),
+		border-color var(--motion-fast),
+		color var(--motion-fast),
+		transform var(--motion-fast);
+}
+
+.control[data-width='full'] {
+	width: 100%;
+}
+
+.control[data-width='medium'] {
+	width: min(12rem, 100%);
+}
+
+.control[data-width='small'] {
+	width: min(8rem, 100%);
+}
+
+.control[data-variant='primary'] {
+	background: var(--action-primary);
+	color: var(--text-on-action);
+}
+
+.control[data-variant='primary']:hover:not(:disabled) {
+	background: var(--action-primary-hover);
+}
+
+.control[data-variant='secondary'] {
+	border-color: var(--border-strong);
+	background: var(--surface-primary);
+	color: var(--action-primary);
+}
+
+.control[data-variant='secondary']:hover:not(:disabled) {
+	border-color: var(--action-primary);
+	background: var(--surface-subtle);
+}
+
+.control:active:not(:disabled) {
+	transform: translateY(1px);
+}
+
+.control:disabled {
+	cursor: wait;
+	opacity: 0.62;
+}
+
+.icon {
+	width: 1.125rem;
+	height: 1.125rem;
+	display: grid;
+	flex: 0 0 1.125rem;
+	place-items: center;
+}
+
+.spinner {
+	width: 1rem;
+	height: 1rem;
+	border: 2px solid color-mix(in srgb, currentColor 32%, transparent);
+	border-top-color: currentColor;
+	border-radius: 50%;
+	animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.control {
+		transition: none;
+	}
+
+	.spinner {
+		animation: none;
+		border-color: currentColor;
+	}
+}
