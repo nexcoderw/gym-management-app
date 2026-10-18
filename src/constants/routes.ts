@@ -10,4 +10,6 @@ export const routes = {
 	membershipPlansApi: '/api/membership-plans',
 	membershipPlanApi: (planId: string) => `/api/membership-plans/${encodeURIComponent(planId)}`,
 	membersApi: '/api/members',
+	memberApi: (id: string) => `/api/members/${encodeURIComponent(id)}`,
+	memberSubscriptionsApi: (id: string) => `/api/members/${encodeURIComponent(id)}/subscriptions`,
 } as const;
