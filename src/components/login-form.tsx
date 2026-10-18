@@ -1,25 +1,30 @@
 'use client';
 
-import { ArrowRight01Icon, LockPasswordIcon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowRight01Icon, LockPasswordIcon, Mail01Icon } from '@hugeicons/core-free-icons';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
+
+import { Button } from '@/components/shared/button';
+import { Input } from '@/components/shared/input';
 import styles from './login-form.module.css';
 
 export function LoginForm() {
 	const router = useRouter();
 	const [busy, setBusy] = useState(false);
 	const [message, setMessage] = useState('');
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
+
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+		if (busy) return;
 		setBusy(true);
 		setMessage('');
-		const form = new FormData(event.currentTarget);
 		try {
 			const response = await fetch('/api/auth/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email: form.get('email'), password: form.get('password') }),
+				body: JSON.stringify({ email, password }),
 			});
 			const body = (await response.json()) as { message?: string };
 			if (!response.ok) throw new Error(body.message ?? 'Sign-in could not be completed.');
@@ -28,38 +33,54 @@ export function LoginForm() {
 		} catch (error: unknown) {
 			setMessage(error instanceof Error ? error.message : 'Sign-in could not be completed.');
 		} finally {
+			setPassword('');
 			setBusy(false);
 		}
 	}
+
 	return (
 		<form className={styles.form} onSubmit={submit}>
-			<HugeiconsIcon icon={LockPasswordIcon} size={30} color="var(--navy)" />
-			<span>OWNER SIGN IN</span>
-			<h1>Welcome back</h1>
-			<p>Use the owner identity connected to your gym membership.</p>
-			<label>
-				Email address
-				<input name="email" type="email" autoComplete="email" maxLength={254} required />
-			</label>
-			<label>
-				Password
-				<input
-					name="password"
-					type="password"
-					autoComplete="current-password"
-					maxLength={1024}
+			<div className={styles.heading}>
+				<span>Owner access</span>
+				<h1>Welcome back</h1>
+				<p>Sign in with the owner account connected to your gym.</p>
+			</div>
+			<div className={styles.fields}>
+				<Input
+					id="owner-email"
+					name="email"
+					label="Email address"
+					icon={Mail01Icon}
+					type="email"
+					autoComplete="username"
+					placeholder="owner@example.com"
+					maxLength={254}
+					value={email}
+					onChange={(event) => setEmail(event.currentTarget.value)}
 					required
 				/>
-			</label>
+				<Input
+					id="owner-password"
+					name="password"
+					label="Password"
+					icon={LockPasswordIcon}
+					type="password"
+					autoComplete="current-password"
+					placeholder="Enter your password"
+					maxLength={1024}
+					value={password}
+					onChange={(event) => setPassword(event.currentTarget.value)}
+					required
+				/>
+			</div>
 			{message && (
 				<p className={styles.error} role="alert">
 					{message}
 				</p>
 			)}
-			<button disabled={busy}>
-				{busy ? 'Signing in…' : 'Sign in'}
-				<HugeiconsIcon icon={ArrowRight01Icon} size={17} />
-			</button>
+			<Button type="submit" icon={ArrowRight01Icon} width="full" pending={busy}>
+				Sign in securely
+			</Button>
 		</form>
 	);
 }
