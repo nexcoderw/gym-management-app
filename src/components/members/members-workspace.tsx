@@ -1,7 +1,6 @@
 'use client';
 
 import {
-	Add01Icon,
 	ArrowDown01Icon,
 	Cancel01Icon,
 	RefreshIcon,
@@ -236,17 +235,6 @@ export function MembersWorkspace({
 			<PageHeader
 				title="Members"
 				description="Review registered members, contact details and profile status."
-				actions={
-					view.items.length > 0 ? (
-						<Button
-							icon={Add01Icon}
-							disabled={busy || view.errorStatus === 401 || view.errorStatus === 403}
-							onClick={() => setDialog({ kind: 'create' })}
-						>
-							Add member
-						</Button>
-					) : undefined
-				}
 			/>
 
 			<section className={styles.registry} aria-label="Member registry" aria-busy={busy}>
@@ -300,20 +288,15 @@ export function MembersWorkspace({
 
 						<h2>
 							{view.status === 'ACTIVE'
-								? 'Register your first member'
+								? 'No members yet'
 								: 'No archived members found'}
 						</h2>
 
 						<p>
 							{view.status === 'ACTIVE'
-								? 'Add their contact details and choose the membership plan they are joining.'
+								? 'Use New payment to add a member, choose a plan and record payment together.'
 								: 'Archived member profiles will appear here.'}
 						</p>
-						{view.status === 'ACTIVE' ? (
-							<Button icon={Add01Icon} width="medium" onClick={() => setDialog({ kind: 'create' })}>
-								Add member
-							</Button>
-						) : null}
 					</div>
 				) : null}
 
