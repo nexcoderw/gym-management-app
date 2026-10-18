@@ -24,6 +24,15 @@ history are snapshots, not payment receipts or period-multiplied charges.
 The browser talks only to same-origin BFF routes; it never receives the
 upstream API origin or stores invitation/session tokens in Web Storage.
 
+The Payments workspace lists gym-scoped ledger entries with status, method and order filters,
+searches the loaded rows by member, receipt or provider reference, and opens read-only details.
+It records a payment against an active member registration through `GET/POST /api/payments` and
+`GET /api/payments/:paymentId`. The POST route validates Origin and owner CSRF, sends a UUID
+`Idempotency-Key` header and never accepts a browser-selected organization ID. Unchanged retries
+within the open dialog reuse the same key and payment time. Cash records are confirmed immediately;
+external methods remain pending until a verified provider workflow confirms them. Void and refund
+controls are not part of this frontend slice.
+
 ## Local ports
 
 | Service    | Port |
