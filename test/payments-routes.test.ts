@@ -128,7 +128,7 @@ describe('payment BFF routes', () => {
 		const options = fetchMock.mock.calls[0]?.[1];
 		expect(new Headers(options?.headers).get('Idempotency-Key')).toBe(id);
 		expect(JSON.parse(String(options?.body))).toEqual({
-			member: { name: 'Example Member', phoneNumber: '+250700000001', email: null },
+			member: { name: 'Example Member', phoneNumber: '+250700000001' },
 			subscription: registrationInput.subscription,
 			method: 'CASH',
 			occurredAt: date,
