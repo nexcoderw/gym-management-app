@@ -9,8 +9,11 @@ browser. Do not create folders merely because a template contains them.
 
 1. Put App Router pages, layouts, framework boundaries and BFF `route.ts` files in `src/app`.
    Keep orchestration there; move reusable transport or validation logic to its owning module.
-2. Put reusable UI in `src/components/shared`, with feature components under `auth`, `dashboard`
-   or the existing feature folder. Shared primitives must not import feature services.
+2. Put reusable UI in `src/components/shared` and feature UI in a named feature directory. Do not
+   place authored component files directly in `src/components`. Authentication, invitation,
+   enrollment, session and logout UI belongs in `src/components/auth`; dashboard-only UI belongs
+   in `src/components/dashboard`. Shared primitives and cross-feature branding belong in
+   `src/components/shared` and must not import feature services.
 3. Put browser-safe Zod schemas/types in `src/lib/contracts`. These modules must not import secrets,
    Node-only transport, Next server APIs or Prisma.
 4. Put fixed upstream operations in `src/lib/server/endpoints` and common transport/security
@@ -19,14 +22,24 @@ browser. Do not create folders merely because a template contains them.
    reusable browser lifecycle hook in `src/hooks`, not a server data fetch disguised as a hook.
 6. Colocate component CSS Modules and follow existing test directories. Add new folders only when
    a real responsibility needs them. Do not edit sibling API/DB projects without explicit scope.
+7. Keep route pages thin. A `page.tsx` composes route-owned server data and feature components; it
+   must not become the permanent home of reusable forms, panels or client-side workflows. Keep
+   route-only styles beside the page and move reusable presentation with its owning component.
+8. Group files by responsibility rather than file type. Do not create project-wide `forms`,
+   `styles`, `types` or `utils` dumping grounds. Contracts, server transport, constants, hooks and
+   components stay in their dedicated ownership paths described above.
 
 ## Do
 
 ```text
 src/
   app/api/auth/login/route.ts
+  app/invitations/accept/page.tsx
   components/auth/login-form.tsx
+  components/auth/invitation-flow.tsx
+  components/auth/logout-button.tsx
   components/auth/login-form.module.css
+  components/shared/brand.tsx
   components/shared/button.tsx
   constants/routes.ts
   lib/contracts/auth.ts
@@ -46,7 +59,8 @@ import { getSummary } from '@/lib/server/endpoints/dashboard/get-summary';
 import { PrismaClient } from '@nexcoderw/gym-db';
 ```
 
-Avoid dumping-ground `utils.ts` files, duplicate route registries and empty speculative modules.
+Avoid files directly under `src/components`, dumping-ground `utils.ts` files, duplicate route
+registries and empty speculative modules.
 
 ## Prevented failures and review checklist
 
