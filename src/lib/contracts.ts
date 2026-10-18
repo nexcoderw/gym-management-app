@@ -1,5 +1,19 @@
 import { z } from 'zod';
 
+export const memberPeriodUnitSchema = z.enum([
+	'DAYS',
+	'WEEKS',
+	'MONTHS',
+	'YEARS',
+]);
+
+const periodLimits = {
+	DAYS: 3650,
+	WEEKS: 520,
+	MONTHS: 120,
+	YEARS: 10,
+} as const;
+
 export const enrollmentChallengeSchema = z.object({
 	nextStep: z.enum(['sign_in', 'register']),
 	challengeToken: z.string().min(32).max(256),
@@ -95,8 +109,109 @@ export const memberListSchema = z.strictObject({
 	nextCursor: z.uuid().nullable(),
 });
 
+const memberStartDateSchema = z
+	.string()
+	.regex(/^20\d{2}-\d{2}-\d{2}$/u, 'Enter a valid start date.')
+	.refine((value) => {
+		const parsed = new Date(`${value}T00:00:00.000Z`);
+		return Number.isFinite(parsed.getTime()) &&
+			parsed.toISOString().slice(0, 10) === value;
+	}, 'Enter a real calendar date.');
+
+const memberPhoneSchema = z
+	.string()
+	.trim()
+	.min(1, 'Enter a phone number.')
+	.max(40, 'Phone number is too long.')
+	.refine((value) => {
+		const normalized = value.replace(/[\s()-]/gu, '');
+		return /^07\d{8}$/u.test(normalized) ||
+			/^\+[1-9]\d{7,14}$/u.test(normalized);
+	}, 'Use a Rwandan 07 number or an international number.');
+
+export const memberSubscriptionInputSchema = z
+	.strictObject({
+		membershipPlanId: z.uuid('Choose a membership plan.'),
+		startDate: memberStartDateSchema,
+		periodUnit: memberPeriodUnitSchema,
+		periodCount: z.coerce.number<number>().int().min(1).max(3650),
+	})
+	.superRefine((value, context) => {
+		if (value.periodCount > periodLimits[value.periodUnit]) {
+			context.addIssue({
+				code: 'custom',
+				path: ['periodCount'],
+				message: `Maximum for this duration is ${periodLimits[value.periodUnit]}.`,
+			});
+		}
+	});
+
+export const memberRegistrationInputSchema = z.strictObject({
+	name: z
+		.string()
+		.transform((value) => value.normalize('NFKC').replace(/[\s\u0085]+/gu, ' ').trim())
+		.pipe(z.string().min(1, 'Enter the member name.').max(160)),
+	phoneNumber: memberPhoneSchema,
+	email: z
+		.string()
+		.trim()
+		.max(254)
+		.refine(
+			(value) => value === '' || z.email().safeParse(value).success,
+			'Enter a valid email address.',
+		)
+		.transform((value) => value === '' ? null : value.toLocaleLowerCase('en-US')),
+	subscription: memberSubscriptionInputSchema,
+	idempotencyKey: z.uuid(),
+});
+
+export const memberSubscriptionSchema = z.strictObject({
+	id: z.uuid(),
+	memberId: z.uuid(),
+	membershipPlanId: z.uuid(),
+	planName: z.string().min(1),
+	price: z.number().int().min(0),
+	currency: z.literal('RWF'),
+	periodUnit: memberPeriodUnitSchema,
+	periodCount: z.number().int().min(1),
+	startDate: memberStartDateSchema,
+	endDate: z.iso.date(),
+	status: z.enum(['SCHEDULED', 'ACTIVE', 'EXPIRED', 'CANCELLED']),
+	createdAt: z.iso.datetime(),
+	cancelledAt: z.iso.datetime().nullable(),
+});
+
+export const memberRegistrationResponseSchema = z.strictObject({
+	member: memberSchema,
+	subscription: memberSubscriptionSchema,
+});
+
+export const memberProfileInputSchema = memberRegistrationInputSchema.pick({
+	name: true,
+	phoneNumber: true,
+	email: true,
+});
+
+export const memberUpdateInputSchema = memberProfileInputSchema.extend({
+	updatedAt: z.iso.datetime(),
+});
+
+export const memberArchiveInputSchema = z.strictObject({ updatedAt: z.iso.datetime() });
+
+export const memberSubscriptionListSchema = z.strictObject({
+	items: z.array(memberSubscriptionSchema).max(50),
+	nextCursor: z.uuid().nullable(),
+});
+
+export type MemberProfileInput = z.output<typeof memberProfileInputSchema>;
+export type MemberSubscriptionList = z.infer<typeof memberSubscriptionListSchema>;
+
 export type MembershipPlan = z.infer<typeof membershipPlanSchema>;
 export type MembershipPlanInput = z.infer<typeof membershipPlanInputSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type MemberStatus = z.infer<typeof memberStatusSchema>;
 export type MemberList = z.infer<typeof memberListSchema>;
+export type MemberRegistrationInput = z.output<typeof memberRegistrationInputSchema>;
+export type MemberRegistrationDraft = z.input<typeof memberRegistrationInputSchema>;
+export type MemberRegistrationResponse = z.infer<typeof memberRegistrationResponseSchema>;
+export type MemberPeriodUnit = z.infer<typeof memberPeriodUnitSchema>;
