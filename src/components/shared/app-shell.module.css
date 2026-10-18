@@ -1,0 +1,33 @@
+.shell {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-rows: auto 1fr;
+	grid-template-areas:
+		'sidebar navbar'
+		'main main';
+	min-height: 100svh;
+	background: var(--surface-raised);
+}
+
+.sidebar {
+	grid-area: sidebar;
+}
+
+.navbar {
+	grid-area: navbar;
+}
+
+.main {
+	grid-area: main;
+	min-width: 0;
+	padding: var(--space-6) var(--gutter);
+}
+
+@media (min-width: 60rem) {
+	.shell {
+		grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+		grid-template-areas:
+			'sidebar navbar'
+			'sidebar main';
+	}
+}
