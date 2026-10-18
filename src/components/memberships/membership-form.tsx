@@ -109,7 +109,7 @@ export function MembershipForm({
 					Cancel
 				</Button>
 				<Button type="submit" width="medium" icon={Tick02Icon} pending={pending}>
-					{initialPlan === undefined ? 'Create membership' : 'Save changes'}
+					{initialPlan === undefined ? 'Add membership' : 'Save changes'}
 				</Button>
 			</div>
 		</form>
