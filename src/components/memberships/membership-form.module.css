@@ -1,0 +1,68 @@
+.form {
+	display: grid;
+	gap: var(--space-5);
+}
+
+.field {
+	display: grid;
+	gap: var(--space-2);
+}
+
+.field label {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-3);
+	font-size: var(--text-small);
+	font-weight: 650;
+}
+
+.field label span,
+.hint {
+	color: var(--text-secondary);
+	font-weight: 500;
+}
+
+.field textarea {
+	width: 100%;
+	min-height: 7.5rem;
+	resize: vertical;
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-control);
+	background: var(--surface-primary);
+	color: var(--text-primary);
+	font: inherit;
+	font-size: var(--text-small);
+}
+
+.field textarea::placeholder {
+	color: var(--text-placeholder);
+}
+
+.field textarea[aria-invalid='true'] {
+	border-color: var(--text-danger);
+}
+
+.hint,
+.error {
+	margin: 0;
+	font-size: var(--text-caption);
+}
+
+.error {
+	color: var(--text-danger);
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--space-3);
+	padding-block-start: var(--space-2);
+}
+
+@media (max-width: 30rem) {
+	.actions > * {
+		width: 100%;
+	}
+}
