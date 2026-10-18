@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { acceptedSchema, enrollmentChallengeSchema, sessionSchema } from '@/lib/contracts';
+import {
+	acceptedSchema,
+	enrollmentChallengeSchema,
+	membershipPlanInputSchema,
+	membershipPlanSchema,
+	sessionSchema,
+} from '@/lib/contracts';
 
 describe('owner portal contracts', () => {
 	it('accepts a bounded invitation challenge without an invitation token', () => {
@@ -36,5 +42,30 @@ describe('owner portal contracts', () => {
 			],
 		});
 		expect(result.organizations[0]?.roles).toEqual(['owner']);
+	});
+
+	it('accepts a tenant membership plan with an optional description', () => {
+		const result = membershipPlanSchema.parse({
+			id: '44444444-4444-4444-8444-444444444444',
+			name: 'Monthly strength',
+			price: 35_000,
+			currency: 'RWF',
+			description: null,
+			status: 'ACTIVE',
+			createdAt: '2030-01-01T08:00:00.000Z',
+			updatedAt: '2030-01-01T08:00:00.000Z',
+			archivedAt: null,
+		});
+		expect(result.description).toBeNull();
+	});
+
+	it('rejects decimal and formatted membership prices before submission', () => {
+		expect(() =>
+			membershipPlanInputSchema.parse({
+				name: 'Monthly strength',
+				price: '35,000.50',
+				description: '',
+			}),
+		).toThrow();
 	});
 });
