@@ -1,17 +1,13 @@
-.button {
-	min-height: 2.35rem;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45rem;
-	padding: 0.55rem 0.78rem;
-	border: 1px solid var(--line);
-	border-radius: 0.6rem;
-	background: white;
-	color: var(--navy);
-	font-size: 0.78rem;
-	font-weight: 750;
-	cursor: pointer;
+.container {
+	display: grid;
+	justify-items: end;
+	gap: var(--space-2);
 }
-.button:disabled {
-	opacity: 0.55;
+
+.error {
+	max-width: 28ch;
+	margin: 0;
+	color: var(--text-danger);
+	font-size: var(--text-caption);
+	text-align: end;
 }
