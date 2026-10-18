@@ -278,6 +278,8 @@ export function PaymentsWorkspace({
 									<th scope="col">Receipt</th>
 									<th scope="col">Member</th>
 									<th scope="col">Plan</th>
+									<th scope="col">Start date</th>
+									<th scope="col">End date</th>
 									<th scope="col">Date</th>
 									<th scope="col">Method</th>
 									<th scope="col">Status</th>
@@ -302,6 +304,20 @@ export function PaymentsWorkspace({
 										</td>
 										<td>{payment.memberName}</td>
 										<td>{payment.allocations.map((item) => item.planName).join(', ')}</td>
+										<td>
+											{payment.allocations.map((item) => (
+												<time key={`${item.subscriptionId}-start`} dateTime={item.startDate}>
+													{item.startDate}
+												</time>
+											))}
+										</td>
+										<td>
+											{payment.allocations.map((item) => (
+												<time key={`${item.subscriptionId}-end`} dateTime={item.endDate}>
+													{item.endDate}
+												</time>
+											))}
+										</td>
 										<td>
 											<time dateTime={payment.occurredAt}>
 												{new Intl.DateTimeFormat('en-RW', {
