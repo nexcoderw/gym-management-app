@@ -11,6 +11,7 @@ vi.mock('next/headers', () => ({
 
 import { GET as listPayments, POST } from '@/app/api/payments/route';
 import { GET as getPayment } from '@/app/api/payments/[paymentId]/route';
+import { POST as registerPayment } from '@/app/api/payments/registrations/route';
 
 const id = '11111111-1111-4111-8111-111111111111';
 const date = '2030-01-01T00:00:00.000Z';
@@ -24,6 +25,20 @@ const payment = {
 const input = {
 	memberId: id, subscriptionId: id, amount: 30_000, method: 'CASH',
 	occurredAt: date, providerReference: '', note: '', idempotencyKey: id,
+};
+const registrationInput = {
+	member: { name: 'Example Member', phoneNumber: '+250700000001', email: '' },
+	subscription: {
+		membershipPlanId: id,
+		startDate: '2030-01-01',
+		periodUnit: 'MONTHS',
+		periodCount: 1,
+	},
+	method: 'CASH',
+	occurredAt: date,
+	providerReference: '',
+	note: '',
+	idempotencyKey: id,
 };
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -88,5 +103,35 @@ describe('payment BFF routes', () => {
 		});
 		expect(invalid.status).toBe(400);
 		expect(fetchMock).toHaveBeenCalledOnce();
+	});
+
+	it('rejects unsafe registration payments before reaching Nest', async () => {
+		expect((await registerPayment(post(registrationInput, 'https://foreign.test'))).status)
+			.toBe(403);
+		session.csrf = false;
+		expect((await registerPayment(post(registrationInput))).status).toBe(403);
+		session.csrf = true;
+		expect((await registerPayment(post({ ...registrationInput, organizationId: id }))).status)
+			.toBe(400);
+		expect((await registerPayment(post({ ...registrationInput, memberId: id }))).status)
+			.toBe(400);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('forwards only new registration fields and its idempotency key', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json(payment, { status: 201 }));
+		const result = await registerPayment(post(registrationInput));
+		expect(result.status).toBe(201);
+		expect(result.headers.get('cache-control')).toBe('no-store');
+		expect(fetchMock.mock.calls[0]?.[0])
+			.toBe('https://api.manager.test/api/v1/owner/payments/registrations');
+		const options = fetchMock.mock.calls[0]?.[1];
+		expect(new Headers(options?.headers).get('Idempotency-Key')).toBe(id);
+		expect(JSON.parse(String(options?.body))).toEqual({
+			member: { name: 'Example Member', phoneNumber: '+250700000001', email: null },
+			subscription: registrationInput.subscription,
+			method: 'CASH',
+			occurredAt: date,
+		});
 	});
 });
