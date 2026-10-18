@@ -8,11 +8,10 @@ The first owner-portal slice provides fragment-only invitation handoff, purpose-
 existing-owner authentication, atomic invitation acceptance, separate owner sessions, and a minimal
 organization dashboard. The memberships workspace adds tenant-scoped plan listing, creation,
 editing and soft archival with CSRF-protected same-origin BFF routes and optimistic concurrency.
-The members workspace supports registration with an active gym plan, profile editing, refreshed
-details with paginated plan history, and confirmation-based archival. Add and edit reuse one form;
-validation is inline and command outcomes use toasts. Registration retries retain their UUID key
-while the submitted details are unchanged and the dialog remains open. After an uncertain result,
-refresh before starting a new registration; closing the dialog discards its retry key.
+The members workspace shows profiles, editable contact details, paginated plan history and
+confirmation-based archival. New member creation is initiated from Payments, where it is combined
+with plan registration and payment in a single backend transaction. Validation is inline and
+command outcomes use toasts.
 
 Member BFF operations are `GET/POST /api/members`, `GET/PATCH/DELETE /api/members/:memberId`,
 and `GET /api/members/:memberId/subscriptions`. Mutations validate exact Origin and owner CSRF;
@@ -26,11 +25,13 @@ upstream API origin or stores invitation/session tokens in Web Storage.
 
 The Payments workspace lists gym-scoped ledger entries with status, method and order filters,
 searches the loaded rows by member, receipt or provider reference, and opens read-only details.
-It records a payment against an active member registration through `GET/POST /api/payments` and
-`GET /api/payments/:paymentId`. The POST route validates Origin and owner CSRF, sends a UUID
-`Idempotency-Key` header and never accepts a browser-selected organization ID. Unchanged retries
-within the open dialog reuse the same key and payment time. Cash records are confirmed immediately;
-external methods remain pending until a verified provider workflow confirms them. Void and refund
+The New payment form accepts a new or existing member, active plan, start date, duration, method,
+provider reference when required and optional note. Nest calculates the inclusive end date and
+snapshots the plan's full price. `POST /api/payments/registrations` validates exact Origin, owner
+CSRF and a UUID `Idempotency-Key`; the browser cannot select a gym or set a payment amount. The
+existing `GET/POST /api/payments` and `GET /api/payments/:paymentId` routes remain available, but
+the new form uses the atomic registration route. Unchanged retries reuse the key and payment time.
+Cash is confirmed immediately; external methods remain pending until verified. Void and refund
 controls are not part of this frontend slice.
 
 ## Local ports
