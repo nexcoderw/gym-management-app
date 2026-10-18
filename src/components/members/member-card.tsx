@@ -1,3 +1,6 @@
+import { ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+
 import type { Member } from '@/lib/contracts';
 
 import styles from './member-card.module.css';
@@ -9,47 +12,82 @@ const dateFormatter = new Intl.DateTimeFormat('en-RW', {
 	timeZone: 'Africa/Kigali',
 });
 
-export function MemberCard({ member }: { readonly member: Member }) {
-	return (
-		<article className={styles.card}>
-			<div className={styles.header}>
-				<div className={styles.identity}>
-					<span className={styles.avatar} aria-hidden="true">
-						{member.name.trim().charAt(0).toUpperCase()}
-					</span>
+function initialsOf(name: string) {
+	return name
+		.trim()
+		.split(/\s+/u)
+		.slice(0, 2)
+		.map((word) => Array.from(word)[0] ?? '')
+		.join('')
+		.toLocaleUpperCase('en');
+}
 
-					<div className={styles.identityText}>
-						<h2 className={styles.name}>{member.name}</h2>
-						<span className={styles.status} data-status={member.status}>
-							{member.status === 'ACTIVE' ? 'Active profile' : 'Archived profile'}
-						</span>
-					</div>
-				</div>
+export function MemberCard({
+	member,
+	onOpen,
+}: {
+	readonly member: Member;
+	readonly onOpen: (member: Member) => void;
+}) {
+	const nameId = `member-${member.id}-name`;
+
+	return (
+		<article className={styles.card} aria-labelledby={nameId}>
+			<div className={styles.top}>
+				<span className={styles.avatar} aria-hidden="true">
+					{initialsOf(member.name)}
+				</span>
+
+				<span className={styles.status} data-status={member.status}>
+					{member.status === 'ACTIVE' ? 'Active' : 'Archived'}
+				</span>
 			</div>
 
-			<dl className={styles.details}>
-				<div className={styles.detail}>
-					<dt>Phone number</dt>
-					<dd>{member.phoneNumber}</dd>
-				</div>
+			<div className={styles.identity}>
+				<h2 id={nameId} className={styles.name}>
+					<button
+						type="button"
+						className={styles.open}
+						aria-haspopup="dialog"
+						onClick={() => onOpen(member)}
+					>
+						{member.name}
+					</button>
+				</h2>
 
-				<div className={styles.detail}>
-					<dt>Email address</dt>
-					<dd>{member.email ?? 'Not provided'}</dd>
-				</div>
+				<p className={styles.phone}>{member.phoneNumber}</p>
+			</div>
 
-				<div className={styles.detail}>
+			<dl className={styles.meta}>
+				<div>
 					<dt>Registered</dt>
-					<dd>{dateFormatter.format(new Date(member.createdAt))}</dd>
+					<dd>
+						<time dateTime={member.createdAt}>
+							{dateFormatter.format(new Date(member.createdAt))}
+						</time>
+					</dd>
 				</div>
 
-				{member.archivedAt !== null ? (
-					<div className={styles.detail}>
-						<dt>Archived</dt>
-						<dd>{dateFormatter.format(new Date(member.archivedAt))}</dd>
-					</div>
-				) : null}
+				<div>
+					<dt>Last updated</dt>
+					<dd>
+						<time dateTime={member.updatedAt}>
+							{dateFormatter.format(new Date(member.updatedAt))}
+						</time>
+					</dd>
+				</div>
 			</dl>
+
+			<div className={styles.footer}>
+				<span className={styles.cue} aria-hidden="true">
+					Details
+					<HugeiconsIcon
+						icon={ArrowRight01Icon}
+						size={16}
+						strokeWidth={1.8}
+					/>
+				</span>
+			</div>
 		</article>
 	);
 }
