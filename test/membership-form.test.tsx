@@ -11,7 +11,7 @@ describe('membership form', () => {
 		const submit = vi.fn();
 		render(<MembershipForm pending={false} onCancel={vi.fn()} onSubmit={submit} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Create membership' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Add membership' }));
 
 		expect(await screen.findByText('Enter a membership name.')).toBeTruthy();
 		expect(screen.getByText('Enter a price in Rwandan francs.')).toBeTruthy();
@@ -29,7 +29,7 @@ describe('membership form', () => {
 		fireEvent.change(screen.getByLabelText(/Activities and description/u), {
 			target: { value: ' Gym floor and classes ' },
 		});
-		fireEvent.click(screen.getByRole('button', { name: 'Create membership' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Add membership' }));
 
 		expect(submit).toHaveBeenCalledWith({
 			name: 'Monthly strength',
