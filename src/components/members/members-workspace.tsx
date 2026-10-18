@@ -1,22 +1,23 @@
 'use client';
 
-import { ArrowDown01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, Cancel01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
 import { PageHeader } from '@/components/shared/page-header';
 import { routes } from '@/constants/routes';
 import {
 	memberListSchema,
-	memberStatusSchema,
 	type Member,
 	type MemberList,
 	type MemberStatus,
 } from '@/lib/contracts';
 
 import { MemberCard } from './member-card';
+import { MemberPreview } from './member-preview';
+import { MembersToolbar, type MemberOrder } from './members-toolbar';
 import styles from './members-workspace.module.css';
 
 type LoadingState = 'idle' | 'page' | 'more';
@@ -105,6 +106,10 @@ export function MembersWorkspace({
 		loading: 'idle',
 	});
 
+	const [term, setTerm] = useState('');
+	const [order, setOrder] = useState<MemberOrder>('newest');
+	const [preview, setPreview] = useState<Member | null>(null);
+
 	const activeController = useRef<AbortController | null>(null);
 	const requestNumber = useRef(0);
 
@@ -128,6 +133,8 @@ export function MembersWorkspace({
 		const controller = new AbortController();
 		activeController.current = controller;
 
+		setPreview(null);
+
 		setView((current) => ({
 			status,
 			items: append ? current.items : [],
@@ -142,12 +149,19 @@ export function MembersWorkspace({
 			if (currentRequest !== requestNumber.current) return;
 
 			setView((current) => {
-				const knownIds = new Set(current.items.map((member) => member.id));
+				const knownIds = new Set(
+					current.items.map((member) => member.id),
+				);
 
 				return {
 					status,
 					items: append
-						? [...current.items, ...result.items.filter((member) => !knownIds.has(member.id))]
+						? [
+								...current.items,
+								...result.items.filter(
+									(member) => !knownIds.has(member.id),
+								),
+							]
 						: result.items,
 					nextCursor: result.nextCursor,
 					errorStatus: null,
@@ -155,9 +169,16 @@ export function MembersWorkspace({
 				};
 			});
 		} catch (error: unknown) {
-			if (controller.signal.aborted || currentRequest !== requestNumber.current) return;
+			if (
+				controller.signal.aborted ||
+				currentRequest !== requestNumber.current
+			) {
+				return;
+			}
 
-			const errorStatus = error instanceof MembersRequestError ? error.status : 503;
+			const errorStatus =
+				error instanceof MembersRequestError ? error.status : 503;
+
 			const accessLost = errorStatus === 401 || errorStatus === 403;
 
 			setView((current) => ({
@@ -174,15 +195,54 @@ export function MembersWorkspace({
 		}
 	}
 
+	const visibleMembers = useMemo(() => {
+		const needle = term.trim().toLocaleLowerCase('en');
+
+		const filtered = view.items.filter((member) => {
+			if (!needle) return true;
+
+			return (
+				member.name.toLocaleLowerCase('en').includes(needle) ||
+				member.phoneNumber.toLocaleLowerCase('en').includes(needle) ||
+				(member.email ?? '').toLocaleLowerCase('en').includes(needle)
+			);
+		});
+
+		return filtered.sort((left, right) => {
+			const nameOrder = left.name.localeCompare(right.name, 'en', {
+				numeric: true,
+			});
+
+			switch (order) {
+				case 'name-asc':
+					return nameOrder || left.id.localeCompare(right.id);
+				case 'name-desc':
+					return -nameOrder || left.id.localeCompare(right.id);
+				case 'oldest':
+					return (
+						left.createdAt.localeCompare(right.createdAt) ||
+						nameOrder
+					);
+				case 'newest':
+					return (
+						right.createdAt.localeCompare(left.createdAt) ||
+						nameOrder
+					);
+			}
+		});
+	}, [view.items, term, order]);
+
 	const busy = view.loading !== 'idle';
-	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
+	const failure =
+		view.errorStatus === null ? null : errorDetails(view.errorStatus);
 	const canLoadMore = view.nextCursor !== null;
+	const searching = term.trim() !== '';
 
 	return (
 		<div className={styles.page}>
 			<PageHeader
 				title="Members"
-				description="View and manage member profiles registered to your gym."
+				description="Review registered members, contact details and profile status."
 				actions={
 					<Button
 						icon={RefreshIcon}
@@ -196,33 +256,24 @@ export function MembersWorkspace({
 				}
 			/>
 
-			<section className={styles.workspace} aria-label="Member profiles">
-				<div className={styles.toolbar}>
-					<div className={styles.filter}>
-						<label htmlFor="member-profile-status">Profile status</label>
-						<select
-							id="member-profile-status"
-							value={view.status}
-							onChange={(event) => {
-								const parsed = memberStatusSchema.safeParse(event.target.value);
-								if (parsed.success && parsed.data !== view.status) {
-									void loadMembers(parsed.data);
-								}
-							}}
-						>
-							<option value="ACTIVE">Active profiles</option>
-							<option value="ARCHIVED">Archived profiles</option>
-						</select>
-					</div>
-
-					<p className={styles.count} role="status">
-						{view.loading === 'page'
-							? 'Loading profiles…'
-							: view.errorStatus !== null && view.items.length === 0
-								? 'Profile count unavailable'
-								: `${view.items.length} loaded ${view.status.toLowerCase()} profile${view.items.length === 1 ? '' : 's'}`}
-					</p>
-				</div>
+			<section
+				className={styles.registry}
+				aria-label="Member registry"
+				aria-busy={busy}
+			>
+				<MembersToolbar
+					visibleCount={visibleMembers.length}
+					loadedCount={view.items.length}
+					hasMore={canLoadMore}
+					status={view.status}
+					order={order}
+					term={term}
+					pending={busy}
+					error={failure !== null}
+					onTermChange={setTerm}
+					onStatusChange={(status) => void loadMembers(status)}
+					onOrderChange={setOrder}
+				/>
 
 				{failure !== null ? (
 					<div className={styles.message} role="alert">
@@ -238,7 +289,12 @@ export function MembersWorkspace({
 								icon={RefreshIcon}
 								variant="secondary"
 								pending={busy}
-								onClick={() => void loadMembers(view.status, view.items.length > 0 && canLoadMore)}
+								onClick={() =>
+									void loadMembers(
+										view.status,
+										view.items.length > 0 && canLoadMore,
+									)
+								}
 							>
 								Try again
 							</Button>
@@ -252,12 +308,24 @@ export function MembersWorkspace({
 					</div>
 				) : null}
 
-				{view.loading !== 'page' && view.errorStatus === null && view.items.length === 0 ? (
+				{view.loading !== 'page' &&
+				failure === null &&
+				view.items.length === 0 ? (
 					<div className={styles.empty}>
 						<span className={styles.emptyIcon} aria-hidden="true">
-							<HugeiconsIcon icon={UserGroupIcon} size={28} strokeWidth={1.7} />
+							<HugeiconsIcon
+								icon={UserGroupIcon}
+								size={28}
+								strokeWidth={1.7}
+							/>
 						</span>
-						<h2>{view.status === 'ACTIVE' ? 'No active members yet' : 'No archived members'}</h2>
+
+						<h2>
+							{view.status === 'ACTIVE'
+								? 'No active members yet'
+								: 'No archived members'}
+						</h2>
+
 						<p>
 							{view.status === 'ACTIVE'
 								? 'Registered member profiles will appear here.'
@@ -266,15 +334,53 @@ export function MembersWorkspace({
 					</div>
 				) : null}
 
-				{view.items.length > 0 ? (
-					<div className={styles.list}>
-						{view.items.map((member) => (
-							<MemberCard key={member.id} member={member} />
-						))}
+				{view.loading !== 'page' &&
+				failure === null &&
+				view.items.length > 0 &&
+				visibleMembers.length === 0 ? (
+					<div className={styles.empty}>
+						<span className={styles.emptyIcon} aria-hidden="true">
+							<HugeiconsIcon
+								icon={UserGroupIcon}
+								size={28}
+								strokeWidth={1.7}
+							/>
+						</span>
+
+						<h2>No matching members</h2>
+
+						<p>
+							No loaded profiles match “{term.trim()}”.
+							{canLoadMore
+								? ' Search only checks loaded members. You can load more profiles.'
+								: ' Try another name, phone number or email.'}
+						</p>
+
+						{searching ? (
+							<Button
+								icon={Cancel01Icon}
+								variant="secondary"
+								onClick={() => setTerm('')}
+							>
+								Clear search
+							</Button>
+						) : null}
 					</div>
 				) : null}
 
-				{canLoadMore && view.errorStatus === null ? (
+				{visibleMembers.length > 0 ? (
+					<ul className={styles.grid} role="list">
+						{visibleMembers.map((member) => (
+							<li key={member.id} className={styles.item}>
+								<MemberCard member={member} onOpen={setPreview} />
+							</li>
+						))}
+					</ul>
+				) : null}
+
+				{canLoadMore &&
+				view.loading !== 'page' &&
+				failure === null ? (
 					<div className={styles.more}>
 						<Button
 							icon={ArrowDown01Icon}
@@ -288,6 +394,13 @@ export function MembersWorkspace({
 					</div>
 				) : null}
 			</section>
+
+			{preview !== null ? (
+				<MemberPreview
+					member={preview}
+					onClose={() => setPreview(null)}
+				/>
+			) : null}
 		</div>
 	);
 }
