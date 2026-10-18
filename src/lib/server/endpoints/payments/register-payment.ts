@@ -17,7 +17,15 @@ export async function registerPayment(
 				method: 'POST',
 				body: {
 					...(input.memberId === undefined ? {} : { memberId: input.memberId }),
-					...(input.member === undefined ? {} : { member: input.member }),
+					...(input.member === undefined
+						? {}
+						: {
+								member: {
+									name: input.member.name,
+									phoneNumber: input.member.phoneNumber,
+									...(input.member.email === null ? {} : { email: input.member.email }),
+								},
+							}),
 					subscription: input.subscription,
 					method: input.method,
 					occurredAt: input.occurredAt,
