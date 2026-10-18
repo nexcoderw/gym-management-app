@@ -2,13 +2,9 @@
 
 import {
 	Add01Icon,
-	Archive02Icon,
 	ArrowDown01Icon,
-	PackageIcon,
 	PackageAdd01Icon,
-	PencilEdit02Icon,
 	RefreshIcon,
-	ViewIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -33,6 +29,7 @@ import {
 	type MembershipFilter,
 	type MembershipOrder,
 } from './membership-toolbar';
+import { MembershipCard } from './membership-card';
 import styles from './memberships-workspace.module.css';
 
 type DialogState =
@@ -304,64 +301,21 @@ export function MembershipsWorkspace({
 				) : (
 					<div className={styles.list}>
 						{visiblePlans.map((plan) => (
-							<article key={plan.id} className={styles.plan} data-status={plan.status}>
-								<div className={styles.identity}>
-									<span className={styles.planIcon} aria-hidden="true">
-										<HugeiconsIcon icon={PackageIcon} size={20} strokeWidth={1.8} />
-									</span>
-									<span className={styles.status} data-status={plan.status}>
-										{plan.status.toLowerCase()}
-									</span>
-								</div>
-								<h3>{plan.name}</h3>
-								<div className={styles.price}>
-									<span>RWF</span>
-									<strong>{formatPrice(plan.price)}</strong>
-								</div>
-								<p className={styles.priceNote}>Rwandan francs</p>
-								<div
-									className={styles.actions}
-									data-busy={loadingAction.endsWith(plan.id) || undefined}
-								>
-									<Button
-										iconOnly
-										variant="secondary"
-										width="small"
-										icon={ViewIcon}
-										aria-label={`View ${plan.name} details`}
-										pending={loadingAction === `details:${plan.id}`}
-										onClick={() => openPlan('details', plan)}
-									>
-										Details
-									</Button>
-									{plan.status === 'ACTIVE' ? (
-										<>
-											<Button
-												iconOnly
-												variant="secondary"
-												width="small"
-												icon={PencilEdit02Icon}
-												aria-label={`Edit ${plan.name}`}
-												pending={loadingAction === `edit:${plan.id}`}
-												onClick={() => openPlan('edit', plan)}
-											>
-												Edit
-											</Button>
-											<Button
-												iconOnly
-												variant="secondary"
-												width="small"
-												icon={Archive02Icon}
-												aria-label={`Archive ${plan.name}`}
-												pending={loadingAction === `archive:${plan.id}`}
-												onClick={() => openPlan('archive', plan)}
-											>
-												Archive
-											</Button>
-										</>
-									) : null}
-								</div>
-							</article>
+							<MembershipCard
+								key={plan.id}
+								plan={plan}
+								pendingAction={
+									loadingAction === `details:${plan.id}`
+										? 'details'
+										: loadingAction === `edit:${plan.id}`
+											? 'edit'
+											: loadingAction === `archive:${plan.id}`
+												? 'archive'
+												: undefined
+								}
+								disabled={loadingAction !== ''}
+								onAction={openPlan}
+							/>
 						))}
 					</div>
 				)}
@@ -444,10 +398,4 @@ async function readJsonResponse(response: Response): Promise<unknown> {
 
 function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : 'The request could not be completed.';
-}
-
-function formatPrice(price: number): string {
-	return new Intl.NumberFormat('en-RW', {
-		maximumFractionDigits: 0,
-	}).format(price);
 }
