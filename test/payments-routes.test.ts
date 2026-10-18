@@ -16,15 +16,41 @@ import { POST as registerPayment } from '@/app/api/payments/registrations/route'
 const id = '11111111-1111-4111-8111-111111111111';
 const date = '2030-01-01T00:00:00.000Z';
 const payment = {
-	id, receiptNumber: 'PAY-20300101-11111111', memberId: id, memberName: 'Example Member',
-	amount: 30_000, currency: 'RWF', method: 'CASH', status: 'CONFIRMED',
-	providerReference: null, note: null, occurredAt: date, confirmedAt: date,
-	voidedAt: null, voidReason: null, createdAt: date,
-	allocations: [{ subscriptionId: id, planName: 'Monthly', amount: 30_000 }], refunds: [],
+	id,
+	receiptNumber: 'PAY-20300101-11111111',
+	memberId: id,
+	memberName: 'Example Member',
+	amount: 30_000,
+	currency: 'RWF',
+	method: 'CASH',
+	status: 'CONFIRMED',
+	providerReference: null,
+	note: null,
+	occurredAt: date,
+	confirmedAt: date,
+	voidedAt: null,
+	voidReason: null,
+	createdAt: date,
+	allocations: [
+		{
+			subscriptionId: id,
+			planName: 'Monthly',
+			amount: 30_000,
+			startDate: '2030-01-01',
+			endDate: '2030-01-31',
+		},
+	],
+	refunds: [],
 };
 const input = {
-	memberId: id, subscriptionId: id, amount: 30_000, method: 'CASH',
-	occurredAt: date, providerReference: '', note: '', idempotencyKey: id,
+	memberId: id,
+	subscriptionId: id,
+	amount: 30_000,
+	method: 'CASH',
+	occurredAt: date,
+	providerReference: '',
+	note: '',
+	idempotencyKey: id,
 };
 const registrationInput = {
 	member: { name: 'Example Member', phoneNumber: '+250700000001', email: '' },
@@ -44,7 +70,8 @@ const fetchMock = vi.fn<typeof fetch>();
 
 function post(body: unknown, origin = 'https://manager.test') {
 	return new Request('https://manager.test/api/payments', {
-		method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+		method: 'POST',
+		headers: { Origin: origin, 'Content-Type': 'application/json' },
 		body: JSON.stringify(body),
 	});
 }
@@ -67,16 +94,26 @@ describe('payment BFF routes', () => {
 	it('rejects tenant injection, invalid amounts and duplicate filters', async () => {
 		expect((await POST(post({ ...input, organizationId: id }))).status).toBe(400);
 		expect((await POST(post({ ...input, amount: 0 }))).status).toBe(400);
-		expect((await listPayments(new Request('https://manager.test/api/payments?status=PENDING&status=CONFIRMED'))).status).toBe(400);
+		expect(
+			(
+				await listPayments(
+					new Request('https://manager.test/api/payments?status=PENDING&status=CONFIRMED'),
+				)
+			).status,
+		).toBe(400);
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it('lists with fixed, validated filters and no-store output', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [payment], nextCursor: null }));
-		const result = await listPayments(new Request('https://manager.test/api/payments?status=CONFIRMED&order=NEWEST&limit=50'));
+		const result = await listPayments(
+			new Request('https://manager.test/api/payments?status=CONFIRMED&order=NEWEST&limit=50'),
+		);
 		expect(result.status).toBe(200);
 		expect(result.headers.get('cache-control')).toBe('no-store');
-		expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.manager.test/api/v1/owner/payments?order=NEWEST&limit=50&status=CONFIRMED');
+		expect(fetchMock.mock.calls[0]?.[0]).toBe(
+			'https://api.manager.test/api/v1/owner/payments?order=NEWEST&limit=50&status=CONFIRMED',
+		);
 	});
 
 	it('forwards only the payment DTO with an idempotency key', async () => {
@@ -88,7 +125,11 @@ describe('payment BFF routes', () => {
 		expect(new Headers(options?.headers).get('Idempotency-Key')).toBe(id);
 		expect(new Headers(options?.headers).get('x-owner-csrf-token')).toBe('fictional-csrf');
 		expect(JSON.parse(String(options?.body))).toEqual({
-			memberId: id, subscriptionId: id, amount: 30_000, method: 'CASH', occurredAt: date,
+			memberId: id,
+			subscriptionId: id,
+			amount: 30_000,
+			method: 'CASH',
+			occurredAt: date,
 		});
 	});
 
@@ -106,15 +147,16 @@ describe('payment BFF routes', () => {
 	});
 
 	it('rejects unsafe registration payments before reaching Nest', async () => {
-		expect((await registerPayment(post(registrationInput, 'https://foreign.test'))).status)
-			.toBe(403);
+		expect((await registerPayment(post(registrationInput, 'https://foreign.test'))).status).toBe(
+			403,
+		);
 		session.csrf = false;
 		expect((await registerPayment(post(registrationInput))).status).toBe(403);
 		session.csrf = true;
-		expect((await registerPayment(post({ ...registrationInput, organizationId: id }))).status)
-			.toBe(400);
-		expect((await registerPayment(post({ ...registrationInput, memberId: id }))).status)
-			.toBe(400);
+		expect((await registerPayment(post({ ...registrationInput, organizationId: id }))).status).toBe(
+			400,
+		);
+		expect((await registerPayment(post({ ...registrationInput, memberId: id }))).status).toBe(400);
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
@@ -123,8 +165,9 @@ describe('payment BFF routes', () => {
 		const result = await registerPayment(post(registrationInput));
 		expect(result.status).toBe(201);
 		expect(result.headers.get('cache-control')).toBe('no-store');
-		expect(fetchMock.mock.calls[0]?.[0])
-			.toBe('https://api.manager.test/api/v1/owner/payments/registrations');
+		expect(fetchMock.mock.calls[0]?.[0]).toBe(
+			'https://api.manager.test/api/v1/owner/payments/registrations',
+		);
 		const options = fetchMock.mock.calls[0]?.[1];
 		expect(new Headers(options?.headers).get('Idempotency-Key')).toBe(id);
 		expect(JSON.parse(String(options?.body))).toEqual({
