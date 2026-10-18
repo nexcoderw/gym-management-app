@@ -27,8 +27,7 @@
 	opacity: 0.6;
 }
 
-.message,
-.empty {
+.message {
 	display: grid;
 	justify-items: center;
 	align-content: center;
@@ -59,8 +58,18 @@
 }
 
 .empty {
+	display: grid;
+	place-items: center;
+	align-content: center;
+	gap: var(--space-3);
 	min-height: 20rem;
-	border-style: dashed;
+	padding: var(--space-8);
+	text-align: center;
+}
+
+.empty p {
+	max-width: 42ch;
+	font-size: var(--text-small);
 }
 
 .emptyIcon {
