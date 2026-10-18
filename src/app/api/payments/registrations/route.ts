@@ -3,6 +3,7 @@ import { registerPayment } from '@/lib/server/endpoints/payments/register-paymen
 import { requireOwnerCsrfToken } from '@/lib/server/owner-csrf';
 import { readJson, RequestError, requireSameOrigin } from '@/lib/server/request';
 import { errorResponse } from '@/lib/server/upstream';
+import { ZodError } from 'zod';
 
 export const runtime = 'nodejs';
 
@@ -20,6 +21,12 @@ export async function POST(request: Request): Promise<Response> {
 			return Response.json(
 				{ message: error.message },
 				{ status: error.status, headers: { 'Cache-Control': 'no-store' } },
+			);
+		}
+		if (error instanceof ZodError) {
+			return Response.json(
+				{ message: error.issues.map((issue) => issue.message).join(' ') },
+				{ status: 400, headers: { 'Cache-Control': 'no-store' } },
 			);
 		}
 		return errorResponse(error);
