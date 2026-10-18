@@ -176,25 +176,23 @@ export function MemberForm({
 						<h3 ref={stepHeading} tabIndex={-1}>
 							Membership details
 						</h3>
-						<div className={styles.row}>
-							<MemberPlanSelect
-								value={plan}
-								onChange={setPlan}
-								error={errors.membershipPlanId}
-							/>
-							<Input
-								label="Start date"
-								icon={Calendar03Icon}
-								type="date"
-								value={startDate}
-								onChange={(event) => setStart(event.target.value)}
-								error={errors.startDate}
-								placeholder="YYYY-MM-DD"
-								min="2000-01-01"
-								max="2099-12-31"
-								required
-							/>
-						</div>
+						<MemberPlanSelect
+							value={plan}
+							onChange={setPlan}
+							error={errors.membershipPlanId}
+						/>
+						<Input
+							label="Start date"
+							icon={Calendar03Icon}
+							type="date"
+							value={startDate}
+							onChange={(event) => setStart(event.target.value)}
+							error={errors.startDate}
+							placeholder="YYYY-MM-DD"
+							min="2000-01-01"
+							max="2099-12-31"
+							required
+						/>
 						<div className={styles.row}>
 							<Input
 								label="Period"
