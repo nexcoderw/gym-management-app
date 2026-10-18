@@ -155,20 +155,14 @@
 }
 
 .footer {
+	position: relative;
+	z-index: 1;
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	justify-content: flex-start;
 	gap: var(--space-3);
 	margin-block-start: auto;
-}
-
-.cue {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-1);
-	color: var(--action-primary);
-	font-size: var(--text-small);
-	font-weight: 700;
 }
 
 @container (max-width: 11rem) {
