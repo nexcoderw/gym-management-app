@@ -288,7 +288,7 @@ export function MembersWorkspace({
 
 						<h2>
 							{view.status === 'ACTIVE'
-								? 'No members yet'
+								? 'Register your first member'
 								: 'No archived members found'}
 						</h2>
 
