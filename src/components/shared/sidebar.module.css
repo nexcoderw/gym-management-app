@@ -51,7 +51,7 @@
 
 @media (min-width: 40rem) and (max-width: 59.99rem) {
 	.nav {
-		grid-template-columns: repeat(5, minmax(0, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
 
