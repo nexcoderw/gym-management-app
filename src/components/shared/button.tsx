@@ -3,7 +3,7 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'reac
 
 import styles from './button.module.css';
 
-type ButtonVariant = 'primary' | 'secondary';
+type ButtonVariant = 'primary' | 'secondary' | 'danger';
 type ButtonWidth = 'full' | 'medium' | 'small';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
