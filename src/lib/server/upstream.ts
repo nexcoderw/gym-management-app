@@ -61,7 +61,10 @@ export async function upstreamJson<T>(
 	} catch {
 		throw new UpstreamError(503, 'The service is temporarily unavailable.');
 	}
-	if (!response.ok) throw new UpstreamError(response.status, safeMessage(response.status));
+	if (!response.ok) {
+		const message = await upstreamErrorMessage(response);
+		throw new UpstreamError(response.status, message);
+	}
 	if (
 		response.status !== 204 &&
 		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json'
@@ -115,6 +118,24 @@ function safeMessage(status: number): string {
 	if (status === 412) return 'This membership changed elsewhere. Reload it and try again.';
 	if (status === 429) return 'Too many attempts. Wait before trying again.';
 	return 'The service is temporarily unavailable.';
+}
+
+async function upstreamErrorMessage(response: Response): Promise<string> {
+	const fallback = safeMessage(response.status);
+	if (response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json') {
+		return fallback;
+	}
+	try {
+		const body = (await response.json()) as { message?: unknown };
+		if (typeof body.message === 'string' && body.message.trim() !== '') return body.message;
+		if (Array.isArray(body.message)) {
+			const messages = body.message.filter((item): item is string => typeof item === 'string');
+			if (messages.length > 0) return messages.join(' ');
+		}
+		return fallback;
+	} catch {
+		return fallback;
+	}
 }
 
 async function boundedJson(body: ReadableStream<Uint8Array> | null): Promise<unknown> {
