@@ -2,7 +2,7 @@
 
 import { AlertCircleIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { PortalShell } from '@/components/portal-shell';
+import { PortalShell } from '@/components/auth/portal-shell';
 import { Button } from '@/components/shared/button';
 import styles from './error.module.css';
 
