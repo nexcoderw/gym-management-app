@@ -1,22 +1,24 @@
 'use client';
 
-import { ArrowDown01Icon, Cancel01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
+import {
+	Add01Icon,
+	ArrowDown01Icon,
+	Cancel01Icon,
+	RefreshIcon,
+	UserGroupIcon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
 import { PageHeader } from '@/components/shared/page-header';
+import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
-import {
-	memberListSchema,
-	type Member,
-	type MemberList,
-	type MemberStatus,
-} from '@/lib/contracts';
+import { memberListSchema, type Member, type MemberList, type MemberStatus } from '@/lib/contracts';
 
 import { MemberCard } from './member-card';
-import { MemberPreview } from './member-preview';
+import { MemberDialogs, type MemberDialogState } from './member-dialogs';
 import { MembersToolbar, type MemberOrder } from './members-toolbar';
 import styles from './members-workspace.module.css';
 
@@ -108,7 +110,18 @@ export function MembersWorkspace({
 
 	const [term, setTerm] = useState('');
 	const [order, setOrder] = useState<MemberOrder>('newest');
-	const [preview, setPreview] = useState<Member | null>(null);
+	const [dialog, setDialog] = useState<MemberDialogState | null>(null);
+	const [notice, setNotice] = useState<ToastNotice | null>(null);
+	const noticeId = useRef(0);
+
+	function notify(message: string, tone: ToastNotice['tone']) {
+		setNotice({ id: ++noticeId.current, message, tone });
+	}
+
+	function saved() {
+		setDialog(null);
+		void loadMembers(view.status);
+	}
 
 	const activeController = useRef<AbortController | null>(null);
 	const requestNumber = useRef(0);
@@ -133,8 +146,6 @@ export function MembersWorkspace({
 		const controller = new AbortController();
 		activeController.current = controller;
 
-		setPreview(null);
-
 		setView((current) => ({
 			status,
 			items: append ? current.items : [],
@@ -149,19 +160,12 @@ export function MembersWorkspace({
 			if (currentRequest !== requestNumber.current) return;
 
 			setView((current) => {
-				const knownIds = new Set(
-					current.items.map((member) => member.id),
-				);
+				const knownIds = new Set(current.items.map((member) => member.id));
 
 				return {
 					status,
 					items: append
-						? [
-								...current.items,
-								...result.items.filter(
-									(member) => !knownIds.has(member.id),
-								),
-							]
+						? [...current.items, ...result.items.filter((member) => !knownIds.has(member.id))]
 						: result.items,
 					nextCursor: result.nextCursor,
 					errorStatus: null,
@@ -169,15 +173,11 @@ export function MembersWorkspace({
 				};
 			});
 		} catch (error: unknown) {
-			if (
-				controller.signal.aborted ||
-				currentRequest !== requestNumber.current
-			) {
+			if (controller.signal.aborted || currentRequest !== requestNumber.current) {
 				return;
 			}
 
-			const errorStatus =
-				error instanceof MembersRequestError ? error.status : 503;
+			const errorStatus = error instanceof MembersRequestError ? error.status : 503;
 
 			const accessLost = errorStatus === 401 || errorStatus === 403;
 
@@ -219,22 +219,15 @@ export function MembersWorkspace({
 				case 'name-desc':
 					return -nameOrder || left.id.localeCompare(right.id);
 				case 'oldest':
-					return (
-						left.createdAt.localeCompare(right.createdAt) ||
-						nameOrder
-					);
+					return left.createdAt.localeCompare(right.createdAt) || nameOrder;
 				case 'newest':
-					return (
-						right.createdAt.localeCompare(left.createdAt) ||
-						nameOrder
-					);
+					return right.createdAt.localeCompare(left.createdAt) || nameOrder;
 			}
 		});
 	}, [view.items, term, order]);
 
 	const busy = view.loading !== 'idle';
-	const failure =
-		view.errorStatus === null ? null : errorDetails(view.errorStatus);
+	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
 	const canLoadMore = view.nextCursor !== null;
 	const searching = term.trim() !== '';
 
@@ -244,23 +237,28 @@ export function MembersWorkspace({
 				title="Members"
 				description="Review registered members, contact details and profile status."
 				actions={
-					<Button
-						icon={RefreshIcon}
-						variant="secondary"
-						pending={view.loading === 'page'}
-						disabled={busy}
-						onClick={() => void loadMembers(view.status)}
-					>
-						Refresh
-					</Button>
+					<>
+						<Button
+							icon={Add01Icon}
+							disabled={busy || view.errorStatus === 401 || view.errorStatus === 403}
+							onClick={() => setDialog({ kind: 'create' })}
+						>
+							Add member
+						</Button>
+						<Button
+							icon={RefreshIcon}
+							variant="secondary"
+							pending={view.loading === 'page'}
+							disabled={busy}
+							onClick={() => void loadMembers(view.status)}
+						>
+							Refresh
+						</Button>
+					</>
 				}
 			/>
 
-			<section
-				className={styles.registry}
-				aria-label="Member registry"
-				aria-busy={busy}
-			>
+			<section className={styles.registry} aria-label="Member registry" aria-busy={busy}>
 				<MembersToolbar
 					visibleCount={visibleMembers.length}
 					loadedCount={view.items.length}
@@ -289,12 +287,7 @@ export function MembersWorkspace({
 								icon={RefreshIcon}
 								variant="secondary"
 								pending={busy}
-								onClick={() =>
-									void loadMembers(
-										view.status,
-										view.items.length > 0 && canLoadMore,
-									)
-								}
+								onClick={() => void loadMembers(view.status, view.items.length > 0 && canLoadMore)}
 							>
 								Try again
 							</Button>
@@ -308,29 +301,24 @@ export function MembersWorkspace({
 					</div>
 				) : null}
 
-				{view.loading !== 'page' &&
-				failure === null &&
-				view.items.length === 0 ? (
+				{view.loading !== 'page' && failure === null && view.items.length === 0 ? (
 					<div className={styles.empty}>
 						<span className={styles.emptyIcon} aria-hidden="true">
-							<HugeiconsIcon
-								icon={UserGroupIcon}
-								size={28}
-								strokeWidth={1.7}
-							/>
+							<HugeiconsIcon icon={UserGroupIcon} size={28} strokeWidth={1.7} />
 						</span>
 
-						<h2>
-							{view.status === 'ACTIVE'
-								? 'No active members yet'
-								: 'No archived members'}
-						</h2>
+						<h2>{view.status === 'ACTIVE' ? 'No active members yet' : 'No archived members'}</h2>
 
 						<p>
 							{view.status === 'ACTIVE'
 								? 'Registered member profiles will appear here.'
 								: 'Archived member profiles will appear here.'}
 						</p>
+						{view.status === 'ACTIVE' ? (
+							<Button icon={Add01Icon} onClick={() => setDialog({ kind: 'create' })}>
+								Add member
+							</Button>
+						) : null}
 					</div>
 				) : null}
 
@@ -340,11 +328,7 @@ export function MembersWorkspace({
 				visibleMembers.length === 0 ? (
 					<div className={styles.empty}>
 						<span className={styles.emptyIcon} aria-hidden="true">
-							<HugeiconsIcon
-								icon={UserGroupIcon}
-								size={28}
-								strokeWidth={1.7}
-							/>
+							<HugeiconsIcon icon={UserGroupIcon} size={28} strokeWidth={1.7} />
 						</span>
 
 						<h2>No matching members</h2>
@@ -357,11 +341,7 @@ export function MembersWorkspace({
 						</p>
 
 						{searching ? (
-							<Button
-								icon={Cancel01Icon}
-								variant="secondary"
-								onClick={() => setTerm('')}
-							>
+							<Button icon={Cancel01Icon} variant="secondary" onClick={() => setTerm('')}>
 								Clear search
 							</Button>
 						) : null}
@@ -372,15 +352,18 @@ export function MembersWorkspace({
 					<ul className={styles.grid} role="list">
 						{visibleMembers.map((member) => (
 							<li key={member.id} className={styles.item}>
-								<MemberCard member={member} onOpen={setPreview} />
+								<MemberCard
+									member={member}
+									onOpen={(member) => setDialog({ kind: 'details', member })}
+									onEdit={(member) => setDialog({ kind: 'edit', member })}
+									onArchive={(member) => setDialog({ kind: 'archive', member })}
+								/>
 							</li>
 						))}
 					</ul>
 				) : null}
 
-				{canLoadMore &&
-				view.loading !== 'page' &&
-				failure === null ? (
+				{canLoadMore && view.loading !== 'page' && failure === null ? (
 					<div className={styles.more}>
 						<Button
 							icon={ArrowDown01Icon}
@@ -395,12 +378,16 @@ export function MembersWorkspace({
 				) : null}
 			</section>
 
-			{preview !== null ? (
-				<MemberPreview
-					member={preview}
-					onClose={() => setPreview(null)}
+			{dialog !== null ? (
+				<MemberDialogs
+					key={dialog.kind === 'create' ? 'create' : `${dialog.kind}-${dialog.member.id}`}
+					selection={dialog}
+					onClose={() => setDialog(null)}
+					onSaved={saved}
+					notify={notify}
 				/>
 			) : null}
+			{notice !== null ? <Toast notice={notice} onDismiss={() => setNotice(null)} /> : null}
 		</div>
 	);
 }
