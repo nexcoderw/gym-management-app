@@ -26,7 +26,7 @@ export function MembershipEditorDialog({
 		<Dialog
 			open={open}
 			onClose={close}
-			title={plan === undefined ? 'Create membership' : 'Edit membership'}
+			title={plan === undefined ? 'Add membership' : 'Edit membership'}
 			description="Set the offer name, whole-RWF price and included activities."
 		>
 			<MembershipForm initialPlan={plan} onCancel={close} onSubmit={onSubmit} pending={pending} />
@@ -118,7 +118,7 @@ export function ArchiveMembershipDialog({
 						onClick={onArchive}
 						pending={pending}
 					>
-						Archive membership
+						Archive
 					</Button>
 				</div>
 			</div>
