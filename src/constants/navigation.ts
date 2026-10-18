@@ -3,6 +3,7 @@ import {
 	CreditCardIcon,
 	DashboardSquare01Icon,
 	Notification01Icon,
+	PackageIcon,
 	UserGroupIcon,
 } from '@hugeicons/core-free-icons';
 
@@ -14,6 +15,12 @@ export const navigation = [
 		label: 'Dashboard',
 		href: routes.dashboard,
 		icon: DashboardSquare01Icon,
+	},
+	{
+		key: 'memberships',
+		label: 'Memberships',
+		href: routes.memberships,
+		icon: PackageIcon,
 	},
 	{
 		key: 'members',
