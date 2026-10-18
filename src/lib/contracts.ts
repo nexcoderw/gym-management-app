@@ -255,6 +255,8 @@ export const paymentSchema = z.strictObject({
 			subscriptionId: z.uuid(),
 			planName: z.string().min(1),
 			amount: z.number().int().min(1),
+			startDate: z.iso.date(),
+			endDate: z.iso.date(),
 		}),
 	),
 	refunds: z.array(
@@ -306,10 +308,12 @@ export const paymentInputSchema = z
 export const registerPaymentInputSchema = z
 	.strictObject({
 		memberId: z.uuid().optional(),
-		member: memberRegistrationInputSchema.omit({
-			subscription: true,
-			idempotencyKey: true,
-		}).optional(),
+		member: memberRegistrationInputSchema
+			.omit({
+				subscription: true,
+				idempotencyKey: true,
+			})
+			.optional(),
 		subscription: memberSubscriptionInputSchema,
 		method: paymentMethodSchema,
 		occurredAt: z.iso.datetime(),
