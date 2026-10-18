@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight01Icon, LockPasswordIcon, Mail01Icon } from '@hugeicons/core-free-icons';
+import { ShieldKeyIcon, LockPasswordIcon, Mail01Icon } from '@hugeicons/core-free-icons';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
@@ -41,7 +41,6 @@ export function LoginForm() {
 	return (
 		<form className={styles.form} onSubmit={submit}>
 			<div className={styles.heading}>
-				<span>Owner access</span>
 				<h1>Welcome back</h1>
 				<p>Sign in with the owner account connected to your gym.</p>
 			</div>
@@ -78,7 +77,7 @@ export function LoginForm() {
 					{message}
 				</p>
 			)}
-			<Button type="submit" icon={ArrowRight01Icon} width="full" pending={busy}>
+			<Button type="submit" icon={ShieldKeyIcon} width="full" pending={busy}>
 				Sign in securely
 			</Button>
 		</form>
