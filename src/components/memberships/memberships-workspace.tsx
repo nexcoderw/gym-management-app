@@ -51,7 +51,7 @@ export function MembershipsWorkspace({
 }) {
 	const [plans, setPlans] = useState(initialItems);
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
-	const [filter, setFilter] = useState<MembershipFilter>('ALL');
+	const [filter, setFilter] = useState<MembershipFilter>('ACTIVE');
 	const [term, setTerm] = useState('');
 	const [order, setOrder] = useState<MembershipOrder>('price-asc');
 	const [dialog, setDialog] = useState<DialogState>(null);
@@ -68,7 +68,7 @@ export function MembershipsWorkspace({
 		return plans
 			.filter(
 				(plan) =>
-					(filter === 'ALL' || plan.status === filter) &&
+					plan.status === filter &&
 					plan.name.toLocaleLowerCase('en-US').includes(query),
 			)
 			.sort((left, right) => {
@@ -86,7 +86,7 @@ export function MembershipsWorkspace({
 			});
 	}, [filter, plans, term, order]);
 	const dismissToast = useCallback(() => setNotice(null), []);
-	const showToolbar = plans.length >= 2;
+	const showToolbar = plans.length >= 2 || plans.some((plan) => plan.status === 'ARCHIVED');
 
 	function notify(message: string, tone: ToastNotice['tone']) {
 		noticeIdRef.current += 1;
@@ -119,6 +119,7 @@ export function MembershipsWorkspace({
 			});
 			setPlans((current) => [created, ...current.filter((plan) => plan.id !== created.id)]);
 			setLoadFailed(false);
+			setFilter('ACTIVE');
 			setDialog(null);
 			notify(`${created.name} was created.`, 'success');
 		} catch (error: unknown) {
@@ -138,7 +139,7 @@ export function MembershipsWorkspace({
 			const page = membershipPlanListSchema.parse(await readJsonResponse(response));
 			setPlans(page.items);
 			setNextCursor(page.nextCursor);
-			setFilter('ALL');
+			setFilter('ACTIVE');
 			setTerm('');
 			setLoadFailed(false);
 			notify('Memberships refreshed.', 'success');
@@ -266,7 +267,9 @@ export function MembershipsWorkspace({
 								? 'Memberships unavailable'
 								: plans.length === 0
 									? 'Create your first membership'
-									: 'No matching memberships'}
+									: filter === 'ARCHIVED'
+										? 'No archived memberships found'
+										: 'No active memberships found'}
 						</h3>
 						<p>
 							{loadFailed
@@ -290,18 +293,18 @@ export function MembershipsWorkspace({
 								icon={RefreshIcon}
 								width="small"
 								onClick={() => {
-									setFilter('ALL');
+									setFilter('ACTIVE');
 									setTerm('');
 								}}
 							>
-								Show all
+								Show active
 							</Button>
 						)}
 					</div>
 				) : (
 					<div className={styles.list}>
 						{visiblePlans.map((plan) => (
-							<article key={plan.id} className={styles.plan}>
+							<article key={plan.id} className={styles.plan} data-status={plan.status}>
 								<div className={styles.identity}>
 									<span className={styles.planIcon} aria-hidden="true">
 										<HugeiconsIcon icon={PackageIcon} size={20} strokeWidth={1.8} />
@@ -312,9 +315,10 @@ export function MembershipsWorkspace({
 								</div>
 								<h3>{plan.name}</h3>
 								<div className={styles.price}>
-									<span>Membership price</span>
+									<span>RWF</span>
 									<strong>{formatPrice(plan.price)}</strong>
 								</div>
+								<p className={styles.priceNote}>Rwandan francs</p>
 								<div
 									className={styles.actions}
 									data-busy={loadingAction.endsWith(plan.id) || undefined}
@@ -444,8 +448,6 @@ function errorMessage(error: unknown): string {
 
 function formatPrice(price: number): string {
 	return new Intl.NumberFormat('en-RW', {
-		style: 'currency',
-		currency: 'RWF',
 		maximumFractionDigits: 0,
 	}).format(price);
 }
