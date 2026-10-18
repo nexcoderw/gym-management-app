@@ -1,4 +1,3 @@
-
 import {
 	ArrowRight01Icon,
 	ChartLineData01Icon,
@@ -38,7 +37,7 @@ const metrics = [
 	},
 	{
 		label: 'Monthly revenue',
-		value: '18.4M',
+		value: '130k',
 		unit: 'RWF',
 		change: '+9.4%',
 		description: 'Compared with last month',
@@ -47,7 +46,7 @@ const metrics = [
 	},
 	{
 		label: 'Outstanding balance',
-		value: '2.6M',
+		value: '20k',
 		unit: 'RWF',
 		change: '−4.1%',
 		description: 'Illustrative unpaid balance',
@@ -143,15 +142,13 @@ export default async function DashboardPage() {
 
 					<h1>Dashboard</h1>
 					<p>
-						Welcome back, <strong>{session.displayName}</strong>.
-						Here&apos;s a preview of how your gym analytics could look.
+						Welcome back, <strong>{session.displayName}</strong>. Here&apos;s a preview of how your
+						gym analytics could look.
 					</p>
 				</div>
 
 				<div className={styles.headerAside}>
-					<span className={styles.period}>
-						October 2026
-					</span>
+					<span className={styles.period}>October 2026</span>
 					<span className={styles.demoBadge}>DEMO DATA</span>
 				</div>
 			</header>
@@ -163,8 +160,8 @@ export default async function DashboardPage() {
 				<div>
 					<strong>Dashboard design preview</strong>
 					<p>
-						All member counts, payments, trends, charts and tables on this page
-						use fictional example data. They are not connected to your gym records.
+						All member counts, payments, trends, charts and tables on this page use fictional
+						example data. They are not connected to your gym records.
 					</p>
 				</div>
 			</aside>
@@ -179,10 +176,7 @@ export default async function DashboardPage() {
 						<strong>{organization.name}</strong>
 					</div>
 				</div>
-				<span
-					className={styles.orgStatus}
-					data-status={organization.status}
-				>
+				<span className={styles.orgStatus} data-status={organization.status}>
 					<span aria-hidden="true" />
 					{organization.status === 'PENDING'
 						? 'Awaiting activation'
@@ -192,8 +186,8 @@ export default async function DashboardPage() {
 
 			{organization.status === 'PENDING' ? (
 				<aside className={styles.pendingNotice}>
-					<strong>Organization activation pending.</strong> Operational features
-					will become available after NEXCODE approves your gym.
+					<strong>Organization activation pending.</strong> Operational features will become
+					available after NEXCODE approves your gym.
 				</aside>
 			) : null}
 
@@ -226,7 +220,7 @@ export default async function DashboardPage() {
 
 					<div className={styles.revenueSummary}>
 						<strong>
-							<span>RWF</span> 18,400,000
+							<span>RWF</span> 130,000
 						</strong>
 						<span className={styles.positiveChange}>+9.4% vs September</span>
 					</div>
@@ -240,15 +234,15 @@ export default async function DashboardPage() {
 						>
 							<title id="revenue-chart-title">Illustrative monthly gym revenue</title>
 							<desc id="revenue-chart-description">
-								Demo monthly revenue increases from 10.8 million RWF in May
-								to 18.4 million RWF in October, with a slight dip in August.
+								Demo monthly revenue increases from 80,000 RWF in May to 130,000 RWF in October,
+								with a slight dip in August.
 							</desc>
 
 							{[
-								{ y: 48, label: '20M' },
-								{ y: 98, label: '15M' },
-								{ y: 148, label: '10M' },
-								{ y: 198, label: '5M' },
+								{ y: 48, label: '140k' },
+								{ y: 98, label: '105k' },
+								{ y: 148, label: '70k' },
+								{ y: 198, label: '35k' },
 								{ y: 248, label: '0' },
 							].map((level) => (
 								<g key={level.label}>
@@ -259,12 +253,7 @@ export default async function DashboardPage() {
 										y1={level.y}
 										y2={level.y}
 									/>
-									<text
-										className={styles.chartAxisText}
-										x="42"
-										y={level.y + 4}
-										textAnchor="end"
-									>
+									<text className={styles.chartAxisText} x="42" y={level.y + 4} textAnchor="end">
 										{level.label}
 									</text>
 								</g>
@@ -280,18 +269,8 @@ export default async function DashboardPage() {
 								pathLength={100}
 							/>
 
-							<circle
-								className={styles.chartEndpointHalo}
-								cx="660"
-								cy="60"
-								r="12"
-							/>
-							<circle
-								className={styles.chartEndpoint}
-								cx="660"
-								cy="60"
-								r="5"
-							/>
+							<circle className={styles.chartEndpointHalo} cx="660" cy="60" r="12" />
+							<circle className={styles.chartEndpoint} cx="660" cy="60" r="5" />
 
 							{months.map((month, index) => (
 								<text
@@ -308,7 +287,7 @@ export default async function DashboardPage() {
 
 						<figcaption className={styles.chartCaption}>
 							<span className={styles.legendSwatch} />
-							Example revenue · RWF millions
+							Example revenue · RWF
 						</figcaption>
 					</figure>
 				</article>
@@ -331,8 +310,8 @@ export default async function DashboardPage() {
 						>
 							<title id="donut-title">Illustrative membership distribution</title>
 							<desc id="donut-description">
-								968 active profiles, 186 expired profiles, and 94 scheduled
-								profiles, for a total of 1,248.
+								968 active profiles, 186 expired profiles, and 94 scheduled profiles, for a total of
+								1,248.
 							</desc>
 							<circle className={styles.donutTrack} cx="100" cy="100" r="73" />
 							<circle
@@ -411,17 +390,11 @@ export default async function DashboardPage() {
 						>
 							<title id="visits-title">Illustrative weekly gym attendance</title>
 							<desc id="visits-description">
-								142 visits Monday, 188 Tuesday, 204 Wednesday, 212 Thursday,
-								237 Friday, 258 Saturday and 161 Sunday.
+								142 visits Monday, 188 Tuesday, 204 Wednesday, 212 Thursday, 237 Friday, 258
+								Saturday and 161 Sunday.
 							</desc>
 
-							<line
-								className={styles.chartGridline}
-								x1="35"
-								x2="525"
-								y1="177"
-								y2="177"
-							/>
+							<line className={styles.chartGridline} x1="35" x2="525" y1="177" y2="177" />
 
 							{weeklyVisits.map((day) => (
 								<g key={day.day}>
@@ -433,12 +406,7 @@ export default async function DashboardPage() {
 										height={day.height}
 										rx="7"
 									/>
-									<text
-										className={styles.chartAxisText}
-										x={day.x + 21}
-										y="207"
-										textAnchor="middle"
-									>
+									<text className={styles.chartAxisText} x={day.x + 21} y="207" textAnchor="middle">
 										{day.day}
 									</text>
 								</g>
@@ -472,8 +440,12 @@ export default async function DashboardPage() {
 							<thead>
 								<tr>
 									<th scope="col">Membership plan</th>
-									<th scope="col" className={styles.numericCell}>Members</th>
-									<th scope="col" className={styles.numericCell}>Share</th>
+									<th scope="col" className={styles.numericCell}>
+										Members
+									</th>
+									<th scope="col" className={styles.numericCell}>
+										Share
+									</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -523,7 +495,9 @@ export default async function DashboardPage() {
 									<th scope="col">Membership</th>
 									<th scope="col">Date</th>
 									<th scope="col">Method</th>
-									<th scope="col" className={styles.numericCell}>Amount</th>
+									<th scope="col" className={styles.numericCell}>
+										Amount
+									</th>
 									<th scope="col">Status</th>
 								</tr>
 							</thead>
@@ -543,10 +517,7 @@ export default async function DashboardPage() {
 											{payment.amount} <span>RWF</span>
 										</td>
 										<td>
-											<span
-												className={styles.paymentStatus}
-												data-status={payment.status}
-											>
+											<span className={styles.paymentStatus} data-status={payment.status}>
 												<span aria-hidden="true" />
 												{payment.status}
 											</span>
