@@ -299,9 +299,49 @@ export const paymentInputSchema = z
 		}
 	});
 
+/** One command creates a dated registration and its full-price payment. */
+export const registerPaymentInputSchema = z
+	.strictObject({
+		memberId: z.uuid().optional(),
+		member: memberRegistrationInputSchema.omit({
+			subscription: true,
+			idempotencyKey: true,
+		}).optional(),
+		subscription: memberSubscriptionInputSchema,
+		method: paymentMethodSchema,
+		occurredAt: z.iso.datetime(),
+		providerReference: z.string().trim().max(120).optional(),
+		note: z.string().trim().max(500).optional(),
+		idempotencyKey: z.uuid(),
+	})
+	.superRefine((value, context) => {
+		if ((value.memberId === undefined) === (value.member === undefined)) {
+			context.addIssue({
+				code: 'custom',
+				path: ['memberId'],
+				message: 'Choose an existing member or enter a new member.',
+			});
+		}
+		if (value.method !== 'CASH' && !value.providerReference) {
+			context.addIssue({
+				code: 'custom',
+				path: ['providerReference'],
+				message: 'Enter the provider reference.',
+			});
+		}
+		if (value.method === 'CASH' && value.providerReference) {
+			context.addIssue({
+				code: 'custom',
+				path: ['providerReference'],
+				message: 'Cash payments do not use a provider reference.',
+			});
+		}
+	});
+
 export type Payment = z.infer<typeof paymentSchema>;
 export type PaymentList = z.infer<typeof paymentListSchema>;
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
 export type PaymentOrder = z.infer<typeof paymentOrderSchema>;
 export type PaymentInput = z.infer<typeof paymentInputSchema>;
+export type RegisterPaymentInput = z.output<typeof registerPaymentInputSchema>;
