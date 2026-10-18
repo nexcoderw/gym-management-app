@@ -7,7 +7,12 @@ import { Brand } from '@/components/shared/brand';
 import { getOwnerSession } from '@/lib/server/session';
 import styles from './page.module.css';
 
-export const metadata: Metadata = { title: 'Dashboard' };
+export async function generateMetadata(): Promise<Metadata> {
+	const session = await getOwnerSession();
+	const organization = session?.organizations.find(({ roles }) => roles.includes('owner'));
+	return { title: organization ? `${organization.name} dashboard` : 'Dashboard' };
+}
+
 export default async function DashboardPage() {
 	const session = await getOwnerSession();
 	if (!session) redirect('/login');
@@ -16,14 +21,14 @@ export default async function DashboardPage() {
 	return (
 		<div className={styles.shell}>
 			<header>
-				<Brand />
+				<Brand organizationName={organization.name} />
 				<LogoutButton />
 			</header>
 			<main id="main">
 				<div className={styles.intro}>
 					<span>ORGANIZATION PORTAL</span>
 					<h1>{organization.name}</h1>
-					<p>Secure owner access for your NEXCODE Gym organization.</p>
+					<p>Secure owner access for {organization.name}.</p>
 				</div>
 				<section className={styles.access}>
 					<div>
