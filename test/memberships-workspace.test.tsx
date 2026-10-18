@@ -68,7 +68,7 @@ describe('membership pricing workspace', () => {
 		).toEqual(['Premium', 'Basic']);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Status: Active' }));
-		fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
+		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
 		expect(screen.getAllByRole('article')).toHaveLength(1);
 		expect(screen.getByRole('heading', { name: 'Legacy' })).toBeTruthy();
 		expect(screen.queryByRole('button', { name: 'Edit Legacy' })).toBeNull();
@@ -91,7 +91,7 @@ describe('membership pricing workspace', () => {
 
 		expect(screen.queryByRole('article')).toBeNull();
 		fireEvent.click(screen.getByRole('button', { name: 'Status: Active' }));
-		fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
+		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
 		expect(screen.getByRole('heading', { name: 'Legacy' })).toBeTruthy();
 	});
 });
