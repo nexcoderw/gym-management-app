@@ -16,6 +16,7 @@ import type { z } from 'zod';
 
 import { Button, ButtonLink } from '@/components/shared/button';
 import { Input } from '@/components/shared/input';
+import { routes } from '@/constants/routes';
 import {
 	acceptedSchema,
 	authenticatedSchema,
@@ -154,7 +155,7 @@ export function InvitationFlow() {
 							Try invitation again
 						</Button>
 					) : null}
-					<ButtonLink href="/login" icon={LockPasswordIcon} width="full">
+					<ButtonLink href={routes.login} icon={LockPasswordIcon} width="full">
 						Open owner sign in
 					</ButtonLink>
 				</div>
@@ -168,7 +169,11 @@ export function InvitationFlow() {
 				</span>
 				<h1>Your gym ownership invitation has been accepted.</h1>
 				<p>Your organization access is ready. Continue to the portal using your owner account.</p>
-				<Button icon={ArrowRight01Icon} width="full" onClick={() => router.replace('/dashboard')}>
+				<Button
+					icon={ArrowRight01Icon}
+					width="full"
+					onClick={() => router.replace(routes.dashboard)}
+				>
 					Open gym portal
 				</Button>
 			</Panel>
