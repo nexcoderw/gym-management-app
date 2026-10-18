@@ -8,6 +8,19 @@ The first owner-portal slice provides fragment-only invitation handoff, purpose-
 existing-owner authentication, atomic invitation acceptance, separate owner sessions, and a minimal
 organization dashboard. The memberships workspace adds tenant-scoped plan listing, creation,
 editing and soft archival with CSRF-protected same-origin BFF routes and optimistic concurrency.
+The members workspace supports registration with an active gym plan, profile editing, refreshed
+details with paginated plan history, and confirmation-based archival. Add and edit reuse one form;
+validation is inline and command outcomes use toasts. Registration retries retain their UUID key
+while the submitted details are unchanged and the dialog remains open. After an uncertain result,
+refresh before starting a new registration; closing the dialog discards its retry key.
+
+Member BFF operations are `GET/POST /api/members`, `GET/PATCH/DELETE /api/members/:memberId`,
+and `GET /api/members/:memberId/subscriptions`. Mutations validate exact Origin and owner CSRF;
+profile edits and archival forward the latest quoted `updatedAt` as `If-Match`. The BFF never
+accepts an organization ID. Nest enforces live owner authorization and gym isolation. DELETE archives,
+not erases: history and unique contact keys remain, and current/future registrations block archival.
+Renewal and cancellation controls are not included in this frontend slice. Plan prices shown in
+history are snapshots, not payment receipts or period-multiplied charges.
 The browser talks only to same-origin BFF routes; it never receives the
 upstream API origin or stores invitation/session tokens in Web Storage.
 
