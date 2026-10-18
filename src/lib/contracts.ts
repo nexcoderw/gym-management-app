@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-export const memberPeriodUnitSchema = z.enum([
-	'DAYS',
-	'WEEKS',
-	'MONTHS',
-	'YEARS',
-]);
+export const memberPeriodUnitSchema = z.enum(['DAYS', 'WEEKS', 'MONTHS', 'YEARS']);
 
 const periodLimits = {
 	DAYS: 3650,
@@ -114,8 +109,7 @@ const memberStartDateSchema = z
 	.regex(/^20\d{2}-\d{2}-\d{2}$/u, 'Enter a valid start date.')
 	.refine((value) => {
 		const parsed = new Date(`${value}T00:00:00.000Z`);
-		return Number.isFinite(parsed.getTime()) &&
-			parsed.toISOString().slice(0, 10) === value;
+		return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 	}, 'Enter a real calendar date.');
 
 const memberPhoneSchema = z
@@ -125,8 +119,7 @@ const memberPhoneSchema = z
 	.max(40, 'Phone number is too long.')
 	.refine((value) => {
 		const normalized = value.replace(/[\s()-]/gu, '');
-		return /^07\d{8}$/u.test(normalized) ||
-			/^\+[1-9]\d{7,14}$/u.test(normalized);
+		return /^07\d{8}$/u.test(normalized) || /^\+[1-9]\d{7,14}$/u.test(normalized);
 	}, 'Use a Rwandan 07 number or an international number.');
 
 export const memberSubscriptionInputSchema = z
@@ -149,7 +142,12 @@ export const memberSubscriptionInputSchema = z
 export const memberRegistrationInputSchema = z.strictObject({
 	name: z
 		.string()
-		.transform((value) => value.normalize('NFKC').replace(/[\s\u0085]+/gu, ' ').trim())
+		.transform((value) =>
+			value
+				.normalize('NFKC')
+				.replace(/[\s\u0085]+/gu, ' ')
+				.trim(),
+		)
 		.pipe(z.string().min(1, 'Enter the member name.').max(160)),
 	phoneNumber: memberPhoneSchema,
 	email: z
@@ -160,7 +158,7 @@ export const memberRegistrationInputSchema = z.strictObject({
 			(value) => value === '' || z.email().safeParse(value).success,
 			'Enter a valid email address.',
 		)
-		.transform((value) => value === '' ? null : value.toLocaleLowerCase('en-US')),
+		.transform((value) => (value === '' ? null : value.toLocaleLowerCase('en-US'))),
 	subscription: memberSubscriptionInputSchema,
 	idempotencyKey: z.uuid(),
 });
