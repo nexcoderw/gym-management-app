@@ -72,6 +72,24 @@
 	font-size: var(--text-small);
 }
 
+.emptyAction {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 2.75rem;
+	padding: 0 var(--space-5);
+	border-radius: var(--radius-pill);
+	background: var(--action-primary);
+	color: var(--text-on-action);
+	font-size: var(--text-small);
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.emptyAction:hover {
+	background: var(--action-primary-hover);
+}
+
 .emptyIcon {
 	display: grid;
 	width: 4rem;
