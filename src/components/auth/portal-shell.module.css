@@ -1,0 +1,142 @@
+.shell {
+	min-height: 100svh;
+	display: grid;
+	background: var(--canvas);
+}
+
+.main {
+	width: 100%;
+	display: grid;
+	place-items: center;
+	padding: clamp(var(--space-4), 4vw, var(--space-10));
+}
+
+.frame {
+	width: min(76rem, 100%);
+	min-width: 0;
+	display: grid;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: calc(var(--radius-panel) + var(--space-2));
+	background: var(--surface-primary);
+	box-shadow: var(--shadow-panel);
+}
+
+.content {
+	min-width: 0;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	gap: var(--space-8);
+	padding: clamp(var(--space-6), 6vw, var(--space-10));
+}
+
+.formArea {
+	width: min(26rem, 100%);
+	min-width: 0;
+	align-self: center;
+	justify-self: center;
+}
+
+.privacy {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+}
+
+.visual {
+	position: relative;
+	min-width: 0;
+	min-height: 42rem;
+	display: none;
+	overflow: hidden;
+	padding: var(--space-8);
+	background-image: url('/images/manager-auth-fitness.jpg');
+	background-position: center;
+	background-size: cover;
+	isolation: isolate;
+}
+
+.visual::before {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: rgba(1, 18, 42, 0.28);
+	content: '';
+}
+
+.visualIntro,
+.visualNote {
+	width: fit-content;
+	max-width: 22rem;
+	background: rgba(0, 36, 106, 0.92);
+	color: var(--text-on-action);
+}
+
+.visualIntro {
+	display: grid;
+	gap: var(--space-1);
+	padding: var(--space-4) var(--space-5);
+	border-radius: var(--radius-control);
+}
+
+.visualIntro span,
+.visualNote small {
+	color: rgba(255, 255, 255, 0.78);
+	font-size: 0.75rem;
+}
+
+.visualIntro strong {
+	font-family: var(--font-heading), sans-serif;
+	font-size: 1rem;
+}
+
+.visualNote {
+	align-self: end;
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	border-radius: var(--radius-control);
+}
+
+.visualNote > span {
+	display: grid;
+	gap: var(--space-1);
+}
+
+.visualNote strong {
+	font-size: 0.875rem;
+}
+
+@media (min-width: 56rem) {
+	.frame {
+		grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+	}
+
+	.visual {
+		display: grid;
+		grid-template-rows: auto 1fr auto;
+	}
+}
+
+@media (max-width: 30rem) {
+	.main {
+		place-items: start center;
+		padding: 0;
+	}
+
+	.frame {
+		min-height: 100svh;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
+	}
+
+	.content {
+		gap: var(--space-6);
+		padding: var(--space-6) var(--space-5);
+	}
+}
