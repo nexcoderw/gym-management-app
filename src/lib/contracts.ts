@@ -213,3 +213,95 @@ export type MemberRegistrationInput = z.output<typeof memberRegistrationInputSch
 export type MemberRegistrationDraft = z.input<typeof memberRegistrationInputSchema>;
 export type MemberRegistrationResponse = z.infer<typeof memberRegistrationResponseSchema>;
 export type MemberPeriodUnit = z.infer<typeof memberPeriodUnitSchema>;
+
+export const paymentMethodSchema = z.enum([
+	'CASH',
+	'MOBILE_MONEY',
+	'BANK_TRANSFER',
+	'CARD',
+	'OTHER',
+]);
+export const paymentStatusSchema = z.enum([
+	'PENDING',
+	'CONFIRMED',
+	'FAILED',
+	'VOIDED',
+	'PARTIALLY_REFUNDED',
+	'REFUNDED',
+]);
+export const paymentOrderSchema = z.enum(['NEWEST', 'OLDEST', 'AMOUNT_HIGH', 'AMOUNT_LOW']);
+
+export const paymentSchema = z.strictObject({
+	id: z.uuid(),
+	receiptNumber: z.string().min(1),
+	memberId: z.uuid(),
+	memberName: z.string().min(1),
+	amount: z.number().int().min(1).max(1_000_000_000),
+	currency: z.literal('RWF'),
+	method: paymentMethodSchema,
+	status: paymentStatusSchema,
+	providerReference: z.string().nullable(),
+	note: z.string().nullable(),
+	occurredAt: z.iso.datetime(),
+	confirmedAt: z.iso.datetime().nullable(),
+	voidedAt: z.iso.datetime().nullable(),
+	voidReason: z.string().nullable(),
+	createdAt: z.iso.datetime(),
+	allocations: z.array(
+		z.strictObject({
+			subscriptionId: z.uuid(),
+			planName: z.string().min(1),
+			amount: z.number().int().min(1),
+		}),
+	),
+	refunds: z.array(
+		z.strictObject({
+			id: z.uuid(),
+			amount: z.number().int().min(1),
+			status: z.enum(['PENDING', 'CONFIRMED', 'FAILED']),
+			reason: z.string(),
+			providerReference: z.string().nullable(),
+			createdAt: z.iso.datetime(),
+		}),
+	),
+});
+
+export const paymentListSchema = z.strictObject({
+	items: z.array(paymentSchema).max(50),
+	nextCursor: z.uuid().nullable(),
+});
+
+export const paymentInputSchema = z
+	.strictObject({
+		memberId: z.uuid('Choose a member.'),
+		subscriptionId: z.uuid('Choose a membership registration.'),
+		amount: z.number().int().min(1, 'Enter an amount greater than zero.').max(1_000_000_000),
+		method: paymentMethodSchema,
+		occurredAt: z.iso.datetime(),
+		providerReference: z.string().trim().max(120).optional(),
+		note: z.string().trim().max(500).optional(),
+		idempotencyKey: z.uuid(),
+	})
+	.superRefine((value, context) => {
+		if (value.method !== 'CASH' && !value.providerReference) {
+			context.addIssue({
+				code: 'custom',
+				path: ['providerReference'],
+				message: 'Enter the provider reference.',
+			});
+		}
+		if (value.method === 'CASH' && value.providerReference) {
+			context.addIssue({
+				code: 'custom',
+				path: ['providerReference'],
+				message: 'Cash payments do not use a provider reference.',
+			});
+		}
+	});
+
+export type Payment = z.infer<typeof paymentSchema>;
+export type PaymentList = z.infer<typeof paymentListSchema>;
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
+export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
+export type PaymentOrder = z.infer<typeof paymentOrderSchema>;
+export type PaymentInput = z.infer<typeof paymentInputSchema>;
