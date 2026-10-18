@@ -126,11 +126,21 @@ async function upstreamErrorMessage(response: Response): Promise<string> {
 		return fallback;
 	}
 	try {
-		const body = (await response.json()) as { message?: unknown };
-		if (typeof body.message === 'string' && body.message.trim() !== '') return body.message;
-		if (Array.isArray(body.message)) {
-			const messages = body.message.filter((item): item is string => typeof item === 'string');
-			if (messages.length > 0) return messages.join(' ');
+		const body = (await response.json()) as {
+			message?: unknown;
+			error?: { message?: unknown; details?: unknown };
+		};
+		const messages = [body.message, body.error?.message];
+		for (const message of messages) {
+			if (typeof message === 'string' && message.trim() !== '') return message;
+			if (Array.isArray(message)) {
+				const values = message.filter((item): item is string => typeof item === 'string');
+				if (values.length > 0) return values.join(' ');
+			}
+		}
+		if (Array.isArray(body.error?.details)) {
+			const details = body.error.details.filter((item): item is string => typeof item === 'string');
+			if (details.length > 0) return details.join(' ');
 		}
 		return fallback;
 	} catch {
