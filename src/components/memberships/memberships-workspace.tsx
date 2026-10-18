@@ -294,7 +294,7 @@ export function MembershipsWorkspace({
 									setTerm('');
 								}}
 							>
-								Show active
+								Refresh
 							</Button>
 						)}
 					</div>
