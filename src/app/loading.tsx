@@ -1,4 +1,4 @@
-import { PortalShell } from '@/components/portal-shell';
+import { PortalShell } from '@/components/auth/portal-shell';
 import styles from './loading.module.css';
 
 export default function Loading() {
