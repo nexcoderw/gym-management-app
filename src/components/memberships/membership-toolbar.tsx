@@ -66,7 +66,11 @@ export function MembershipToolbar({
 				{hasMore ? ' · Load more to search and order all plans' : ''}
 			</p>
 			<div className={styles.tools}>
-				<div className={styles.search} data-open={searchOpen} role={searchOpen ? 'search' : undefined}>
+				<div
+					className={styles.search}
+					data-open={searchOpen}
+					role={searchOpen ? 'search' : undefined}
+				>
 					<button
 						ref={toggle}
 						type="button"
