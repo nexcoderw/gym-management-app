@@ -47,12 +47,7 @@ describe('payment wizard', () => {
 	it('validates each step and submits a normalized optional email', async () => {
 		const submit = vi.fn().mockResolvedValue(undefined);
 		render(
-			<PaymentForm
-				pending={false}
-				submissionError={null}
-				onCancel={vi.fn()}
-				onSubmit={submit}
-			/>,
+			<PaymentForm pending={false} submissionError={null} onCancel={vi.fn()} onSubmit={submit} />,
 		);
 
 		expect(screen.getByRole('heading', { name: 'Member details' })).toBeTruthy();

@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
 export class PaymentRequestError extends Error {
-	constructor(readonly status: number, message: string) {
+	constructor(
+		readonly status: number,
+		message: string,
+	) {
 		super(message);
 	}
 }
@@ -21,7 +24,10 @@ export async function paymentRequest<T>(
 			signal: init.signal ?? AbortSignal.timeout(60_000),
 		});
 	} catch {
-		throw new PaymentRequestError(503, 'The payment request could not be confirmed. Refresh before retrying.');
+		throw new PaymentRequestError(
+			503,
+			'The payment request could not be confirmed. Refresh before retrying.',
+		);
 	}
 	if (!response.ok) {
 		let message = paymentErrorMessage(response.status);
@@ -32,9 +38,12 @@ export async function paymentRequest<T>(
 			};
 			const nestedMessage = body.error?.message;
 			if (typeof body.message === 'string' && body.message.trim() !== '') message = body.message;
-			else if (typeof nestedMessage === 'string' && nestedMessage.trim() !== '') message = nestedMessage;
+			else if (typeof nestedMessage === 'string' && nestedMessage.trim() !== '')
+				message = nestedMessage;
 			else if (Array.isArray(body.error?.details)) {
-				const details = body.error.details.filter((item): item is string => typeof item === 'string');
+				const details = body.error.details.filter(
+					(item): item is string => typeof item === 'string',
+				);
 				if (details.length > 0) message = details.join(' ');
 			}
 		} catch {
@@ -52,8 +61,10 @@ export async function paymentRequest<T>(
 export function paymentErrorMessage(status: number): string {
 	if (status === 401) return 'Your session expired. Sign in again.';
 	if (status === 403) return 'This action requires an active gym owner session.';
-	if (status === 404) return 'The member or registration is no longer available. Refresh and try again.';
-	if (status === 409) return 'This payment conflicts with the registration balance or an existing payment. Review the ledger before retrying.';
+	if (status === 404)
+		return 'The member or registration is no longer available. Refresh and try again.';
+	if (status === 409)
+		return 'This payment conflicts with the registration balance or an existing payment. Review the ledger before retrying.';
 	if (status === 429) return 'Too many requests. Wait before trying again.';
 	if (status === 400) return 'Review the payment details and try again.';
 	return 'Payments are temporarily unavailable. Try again shortly.';

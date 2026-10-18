@@ -83,7 +83,10 @@ export function MemberPlanSelect({
 				value={value}
 				onChange={(event) => {
 					const id = event.target.value;
-					onChange(id, plans.find((plan) => plan.id === id));
+					onChange(
+						id,
+						plans.find((plan) => plan.id === id),
+					);
 				}}
 				error={error ?? failure ?? undefined}
 				hint={

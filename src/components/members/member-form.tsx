@@ -176,11 +176,7 @@ export function MemberForm({
 						<h3 ref={stepHeading} tabIndex={-1}>
 							Membership details
 						</h3>
-						<MemberPlanSelect
-							value={plan}
-							onChange={setPlan}
-							error={errors.membershipPlanId}
-						/>
+						<MemberPlanSelect value={plan} onChange={setPlan} error={errors.membershipPlanId} />
 						<Input
 							label="Start date"
 							icon={Calendar03Icon}

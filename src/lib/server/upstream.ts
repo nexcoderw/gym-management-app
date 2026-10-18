@@ -122,7 +122,9 @@ function safeMessage(status: number): string {
 
 async function upstreamErrorMessage(response: Response): Promise<string> {
 	const fallback = safeMessage(response.status);
-	if (response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json') {
+	if (
+		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json'
+	) {
 		return fallback;
 	}
 	try {
