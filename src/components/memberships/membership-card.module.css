@@ -1,5 +1,6 @@
 .card {
 	--card-border: var(--border-strong);
+	--notch: 1rem;
 	position: relative;
 	isolation: isolate;
 	min-width: 0;
@@ -12,7 +13,9 @@
 	border: 1px solid var(--card-border);
 	border-radius: 0 var(--radius-panel) var(--radius-panel) var(--radius-panel);
 	background: var(--surface-primary);
-	transition: border-color var(--motion-fast) var(--motion-ease);
+	transition:
+		border-color var(--motion-fast) var(--motion-ease),
+		box-shadow 240ms var(--motion-ease);
 }
 
 /* The raised left shoulder leaves a recessed corner for the real lifecycle status. */
@@ -34,6 +37,50 @@
 .card:hover,
 .card:focus-within {
 	--card-border: var(--action-primary);
+	box-shadow: 0 0.75rem 2rem -1.25rem color-mix(in srgb, var(--action-primary) 55%, transparent);
+}
+
+/* Engraved surface: concentric guilloche rings fading out from the top-right corner. */
+.face {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	overflow: hidden;
+	border-radius: inherit;
+	pointer-events: none;
+}
+
+.face::before {
+	position: absolute;
+	inset: 0;
+	background: repeating-radial-gradient(
+		circle at 100% 0,
+		transparent 0 0.4375rem,
+		color-mix(in srgb, var(--action-primary) 7%, transparent) 0.4375rem 0.5rem
+	);
+	-webkit-mask-image: linear-gradient(200deg, #000 0%, transparent 62%);
+	mask-image: linear-gradient(200deg, #000 0%, transparent 62%);
+	content: '';
+}
+
+/* Single light sweep, only when the person hovers or focuses the card. */
+.face::after {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		115deg,
+		transparent 38%,
+		color-mix(in srgb, var(--accent) 16%, transparent) 50%,
+		transparent 62%
+	);
+	transform: translateX(-120%);
+	content: '';
+}
+
+.card:hover .face::after,
+.card:focus-within .face::after {
+	transform: translateX(120%);
+	transition: transform 900ms var(--motion-ease);
 }
 
 .status {
@@ -64,9 +111,32 @@
 
 .heading {
 	display: grid;
-	place-items: center;
-	min-height: 2.75rem;
+	justify-items: center;
+	gap: var(--space-3);
 	text-align: center;
+}
+
+/* Seal-style monogram: navy disc with a double ring that lights up with the card. */
+.monogram {
+	display: grid;
+	place-items: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: var(--radius-pill);
+	background: linear-gradient(145deg, var(--action-primary), var(--action-primary-hover));
+	box-shadow:
+		0 0 0 3px var(--surface-primary),
+		0 0 0 4px var(--card-border);
+	color: var(--text-on-action);
+	font-family: var(--font-heading), sans-serif;
+	font-size: 1.125rem;
+	font-weight: 500;
+	line-height: 1;
+	transition: box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.card[data-status='ARCHIVED'] .monogram {
+	background: var(--text-secondary);
 }
 
 .heading h3 {
@@ -93,7 +163,7 @@
 	max-width: 100%;
 	color: var(--text-primary);
 	font-family: var(--font-heading), sans-serif;
-	font-size: 2rem;
+	font-size: 2.25rem;
 	font-weight: 500;
 	font-variant-numeric: tabular-nums;
 	letter-spacing: -0.05em;
@@ -101,15 +171,47 @@
 	overflow-wrap: anywhere;
 }
 
+.card[data-status='ARCHIVED'] .price strong {
+	color: var(--text-secondary);
+}
+
 .price span {
 	color: var(--text-secondary);
 	font-size: var(--text-caption);
+	letter-spacing: 0.04em;
 }
 
+/* Perforation line with half-circle bites cut into both card edges. */
 .divider {
+	position: relative;
 	width: 100%;
 	margin-block-start: auto;
 	border-block-start: 1px dashed var(--border-strong);
+}
+
+.divider::before,
+.divider::after {
+	position: absolute;
+	inset-block-start: 50%;
+	width: var(--notch);
+	height: var(--notch);
+	border: 1px solid var(--card-border);
+	border-radius: var(--radius-pill);
+	background: var(--canvas);
+	transform: translateY(-50%);
+	transition: border-color var(--motion-fast) var(--motion-ease);
+	content: '';
+}
+
+/* Centre of each circle sits on the card edge; only the inner half is kept. */
+.divider::before {
+	inset-inline-start: calc(-1 * (var(--space-5) + 1px) - var(--notch) / 2);
+	clip-path: inset(0 0 0 50%);
+}
+
+.divider::after {
+	inset-inline-end: calc(-1 * (var(--space-5) + 1px) - var(--notch) / 2);
+	clip-path: inset(0 50% 0 0);
 }
 
 .actions {
@@ -136,7 +238,14 @@
 @media (prefers-reduced-motion: reduce) {
 	.card,
 	.card::before,
+	.monogram,
+	.divider::before,
+	.divider::after,
 	.actions {
 		transition: none;
+	}
+
+	.face::after {
+		display: none;
 	}
 }
