@@ -1,4 +1,4 @@
-import { Dumbbell01Icon, Shield01Icon } from '@hugeicons/core-free-icons';
+import { Dumbbell01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 
@@ -13,19 +13,17 @@ export function PortalShell({ children }: { children: ReactNode }) {
 					<div className={styles.content}>
 						<Brand />
 						<div className={styles.formArea}>{children}</div>
-						<p className={styles.privacy}>
-							<HugeiconsIcon icon={Shield01Icon} size={15} aria-hidden="true" />
-							Private and secure organization access
-						</p>
 					</div>
 					<aside className={styles.visual} aria-hidden="true">
 						<div className={styles.visualIntro}>
-							<span>Owner workspace</span>
+							<span className={styles.visualLabel}>Owner workspace</span>
 							<strong>Lead your gym with focus.</strong>
 						</div>
 						<div className={styles.visualNote}>
-							<HugeiconsIcon icon={Dumbbell01Icon} size={22} />
-							<span>
+							<span className={styles.visualNoteIcon}>
+								<HugeiconsIcon icon={Dumbbell01Icon} size={20} />
+							</span>
+							<span className={styles.visualNoteCopy}>
 								<strong>Built for daily operations</strong>
 								<small>Members, teams and performance in one place.</small>
 							</span>
