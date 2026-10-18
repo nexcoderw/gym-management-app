@@ -1,7 +1,7 @@
 'use client';
 
 import { RefreshIcon, ArrowDown01Icon } from '@hugeicons/core-free-icons';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/shared/button';
 import { routes } from '@/constants/routes';
 import { membershipPlanListSchema, type MembershipPlan } from '@/lib/contracts';
@@ -24,39 +24,29 @@ export function MemberPlanSelect({
 	const [failure, setFailure] = useState<string | null>(null);
 	const controller = useRef<AbortController | null>(null);
 
-	const load = useCallback(async (next: string | null, signal: AbortSignal) => {
-		try {
-			const query = new URLSearchParams({ status: 'ACTIVE', limit: '50' });
-			if (next !== null) query.set('cursor', next);
-			const page = await memberRequest(
-				`${routes.membershipPlansApi}?${query}`,
-				membershipPlanListSchema,
-				{ signal },
-			);
-			if (signal.aborted) return;
-			setPlans((current) => {
-				const known = new Set(current.map((plan) => plan.id));
-				return next === null
-					? page.items
-					: [...current, ...page.items.filter((plan) => !known.has(plan.id))];
-			});
-			setCursor(page.nextCursor);
-		} catch {
-			if (!signal.aborted) setFailure('Membership plans could not be loaded. Try again.');
-		} finally {
-			if (!signal.aborted) setPending(false);
-		}
-	}, []);
-
 	useEffect(() => {
 		const request = new AbortController();
 		controller.current = request;
-		void load(null, request.signal);
+		void requestPlans(null, request.signal)
+			.then((page) => {
+				if (request.signal.aborted) return;
+				setPlans(page.items);
+				setCursor(page.nextCursor);
+				setFailure(null);
+			})
+			.catch(() => {
+				if (!request.signal.aborted) {
+					setFailure('Membership plans could not be loaded. Try again.');
+				}
+			})
+			.finally(() => {
+				if (!request.signal.aborted) setPending(false);
+			});
 		return () => {
 			request.abort();
 			controller.current?.abort();
 		};
-	}, [load]);
+	}, []);
 
 	function reload() {
 		setPending(true);
@@ -64,7 +54,25 @@ export function MemberPlanSelect({
 		controller.current?.abort();
 		const request = new AbortController();
 		controller.current = request;
-		void load(cursor, request.signal);
+		void requestPlans(cursor, request.signal)
+			.then((page) => {
+				if (request.signal.aborted) return;
+				setPlans((current) => {
+					const known = new Set(current.map((plan) => plan.id));
+					return cursor === null
+						? page.items
+						: [...current, ...page.items.filter((plan) => !known.has(plan.id))];
+				});
+				setCursor(page.nextCursor);
+			})
+			.catch(() => {
+				if (!request.signal.aborted) {
+					setFailure('Membership plans could not be loaded. Try again.');
+				}
+			})
+			.finally(() => {
+				if (!request.signal.aborted) setPending(false);
+			});
 	}
 
 	return (
@@ -111,4 +119,15 @@ export function MemberPlanSelect({
 			) : null}
 		</div>
 	);
+}
+
+async function requestPlans(
+	cursor: string | null,
+	signal: AbortSignal,
+): Promise<ReturnType<typeof membershipPlanListSchema.parse>> {
+	const query = new URLSearchParams({ status: 'ACTIVE', limit: '50' });
+	if (cursor !== null) query.set('cursor', cursor);
+	return memberRequest(`${routes.membershipPlansApi}?${query}`, membershipPlanListSchema, {
+		signal,
+	});
 }
