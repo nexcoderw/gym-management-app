@@ -84,10 +84,14 @@ export function PaymentForm({
 	useEffect(() => {
 		if (mode !== 'EXISTING') return;
 		const controller = new AbortController();
-		setMembersLoading(true);
-		void loadMembers(null, controller.signal)
+		void Promise.resolve()
+			.then(() => {
+				if (controller.signal.aborted) return undefined;
+				setMembersLoading(true);
+				return loadMembers(null, controller.signal);
+			})
 			.then((page) => {
-				if (controller.signal.aborted) return;
+				if (page === undefined || controller.signal.aborted) return;
 				setMembers(page.items);
 				setMemberCursor(page.nextCursor);
 				setMemberError(null);
@@ -191,9 +195,7 @@ export function PaymentForm({
 			const messages = validationMessages(result.error.issues);
 			setErrors(messages);
 			if (hasAny(messages, ['name', 'phoneNumber', 'email', 'memberId'])) setStep(1);
-			else if (
-				hasAny(messages, ['membershipPlanId', 'startDate', 'periodUnit', 'periodCount'])
-			) {
+			else if (hasAny(messages, ['membershipPlanId', 'startDate', 'periodUnit', 'periodCount'])) {
 				setStep(2);
 			}
 			return;
@@ -352,9 +354,7 @@ export function PaymentForm({
 								label="Duration"
 								icon={Calendar03Icon}
 								value={periodUnit}
-								onChange={(event) =>
-									setPeriodUnit(event.target.value as MemberPeriodUnit)
-								}
+								onChange={(event) => setPeriodUnit(event.target.value as MemberPeriodUnit)}
 								error={errors.periodUnit}
 							>
 								<option value="DAYS">Days</option>
@@ -453,11 +453,7 @@ export function PaymentForm({
 						Back
 					</Button>
 				)}
-				<Button
-					icon={step === 3 ? Tick02Icon : ArrowRight01Icon}
-					type="submit"
-					pending={pending}
-				>
+				<Button icon={step === 3 ? Tick02Icon : ArrowRight01Icon} type="submit" pending={pending}>
 					{step === 3 ? 'Register and record payment' : 'Continue'}
 				</Button>
 			</div>
