@@ -43,7 +43,9 @@
 			transparent calc(7.5rem + 1px)
 		);
 	content: '';
-	transition: opacity 240ms var(--motion-ease), transform 480ms var(--motion-ease);
+	transition:
+		opacity 240ms var(--motion-ease),
+		transform 480ms var(--motion-ease);
 	transform-origin: 100% 30%;
 }
 
@@ -136,7 +138,9 @@
 	padding: var(--space-1);
 	border-radius: var(--radius-pill);
 	background: var(--surface-primary);
-	transition: opacity var(--motion-fast) var(--motion-ease), transform 240ms var(--motion-ease);
+	transition:
+		opacity var(--motion-fast) var(--motion-ease),
+		transform 240ms var(--motion-ease);
 }
 
 @media (hover: hover) and (pointer: fine) {
