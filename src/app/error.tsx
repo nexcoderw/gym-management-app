@@ -3,6 +3,7 @@
 import { AlertCircleIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { PortalShell } from '@/components/portal-shell';
+import { Button } from '@/components/shared/button';
 import styles from './error.module.css';
 
 export default function ErrorPage({
@@ -18,10 +19,9 @@ export default function ErrorPage({
 				<span>503</span>
 				<h1>Portal temporarily unavailable</h1>
 				<p>Your access was not changed. Try the secure request again.</p>
-				<button onClick={reset}>
-					<HugeiconsIcon icon={RefreshIcon} size={17} />
+				<Button icon={RefreshIcon} onClick={reset}>
 					Try again
-				</button>
+				</Button>
 			</section>
 		</PortalShell>
 	);
