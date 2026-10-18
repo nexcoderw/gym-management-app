@@ -298,7 +298,7 @@ export function MembersWorkspace({
 								: 'Archived member profiles will appear here.'}
 						</p>
 						{view.status === 'ACTIVE' ? (
-							<Link className={styles.emptyAction} href={routes.payments}>
+							<Link className={styles.emptyAction} href={routes.payments} role="button">
 								Add member
 							</Link>
 						) : null}
