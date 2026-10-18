@@ -26,8 +26,17 @@ export async function paymentRequest<T>(
 	if (!response.ok) {
 		let message = paymentErrorMessage(response.status);
 		try {
-			const body = (await response.json()) as { message?: unknown };
+			const body = (await response.json()) as {
+				message?: unknown;
+				error?: { message?: unknown; details?: unknown };
+			};
+			const nestedMessage = body.error?.message;
 			if (typeof body.message === 'string' && body.message.trim() !== '') message = body.message;
+			else if (typeof nestedMessage === 'string' && nestedMessage.trim() !== '') message = nestedMessage;
+			else if (Array.isArray(body.error?.details)) {
+				const details = body.error.details.filter((item): item is string => typeof item === 'string');
+				if (details.length > 0) message = details.join(' ');
+			}
 		} catch {
 			// Keep the safe status-based message when the error body is unavailable.
 		}
