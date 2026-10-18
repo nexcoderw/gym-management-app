@@ -28,9 +28,13 @@ import {
 	type MembershipPlan,
 	type MembershipPlanInput,
 } from '@/lib/contracts';
+import {
+	MembershipToolbar,
+	type MembershipFilter,
+	type MembershipOrder,
+} from './membership-toolbar';
 import styles from './memberships-workspace.module.css';
 
-type Filter = 'ALL' | 'ACTIVE' | 'ARCHIVED';
 type DialogState =
 	| { readonly kind: 'create' }
 	| { readonly kind: 'details' | 'edit' | 'archive'; readonly plan: MembershipPlan }
@@ -47,7 +51,9 @@ export function MembershipsWorkspace({
 }) {
 	const [plans, setPlans] = useState(initialItems);
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
-	const [filter, setFilter] = useState<Filter>('ALL');
+	const [filter, setFilter] = useState<MembershipFilter>('ALL');
+	const [term, setTerm] = useState('');
+	const [order, setOrder] = useState<MembershipOrder>('price-asc');
 	const [dialog, setDialog] = useState<DialogState>(null);
 	const [pending, setPending] = useState(false);
 	const [loadingAction, setLoadingAction] = useState('');
@@ -57,10 +63,28 @@ export function MembershipsWorkspace({
 		initialError === undefined ? null : { id: 1, message: initialError, tone: 'error' },
 	);
 
-	const visiblePlans = useMemo(
-		() => (filter === 'ALL' ? plans : plans.filter((plan) => plan.status === filter)),
-		[filter, plans],
-	);
+	const visiblePlans = useMemo(() => {
+		const query = term.trim().toLocaleLowerCase('en-US');
+		return plans
+			.filter(
+				(plan) =>
+					(filter === 'ALL' || plan.status === filter) &&
+					plan.name.toLocaleLowerCase('en-US').includes(query),
+			)
+			.sort((left, right) => {
+				const nameOrder = left.name.localeCompare(right.name, 'en', { numeric: true });
+				switch (order) {
+					case 'price-asc':
+						return left.price - right.price || nameOrder;
+					case 'price-desc':
+						return right.price - left.price || nameOrder;
+					case 'name-asc':
+						return nameOrder;
+					case 'newest':
+						return right.createdAt.localeCompare(left.createdAt) || nameOrder;
+				}
+			});
+	}, [filter, plans, term, order]);
 	const dismissToast = useCallback(() => setNotice(null), []);
 	const showToolbar = plans.length >= 2;
 
@@ -115,6 +139,7 @@ export function MembershipsWorkspace({
 			setPlans(page.items);
 			setNextCursor(page.nextCursor);
 			setFilter('ALL');
+			setTerm('');
 			setLoadFailed(false);
 			notify('Memberships refreshed.', 'success');
 		} catch (error: unknown) {
@@ -213,24 +238,17 @@ export function MembershipsWorkspace({
 				data-empty={plans.length === 0 ? 'true' : undefined}
 			>
 				{showToolbar ? (
-					<header className={styles.toolbar}>
-						<div>
-							<h2>Membership offers</h2>
-							<p>{plans.length} loaded</p>
-						</div>
-						<div className={styles.filters} aria-label="Filter memberships">
-							{(['ALL', 'ACTIVE', 'ARCHIVED'] as const).map((value) => (
-								<button
-									key={value}
-									type="button"
-									aria-pressed={filter === value}
-									onClick={() => setFilter(value)}
-								>
-									{value === 'ALL' ? 'All' : value.toLowerCase()}
-								</button>
-							))}
-						</div>
-					</header>
+					<MembershipToolbar
+						count={visiblePlans.length}
+						total={plans.length}
+						hasMore={nextCursor !== null}
+						term={term}
+						status={filter}
+						order={order}
+						onTermChange={setTerm}
+						onStatusChange={setFilter}
+						onOrderChange={setOrder}
+					/>
 				) : null}
 
 				{visiblePlans.length === 0 ? (
@@ -248,14 +266,14 @@ export function MembershipsWorkspace({
 								? 'Memberships unavailable'
 								: plans.length === 0
 									? 'Create your first membership'
-									: 'No memberships match this filter'}
+									: 'No matching memberships'}
 						</h3>
 						<p>
 							{loadFailed
 								? 'The latest memberships could not be loaded. Refresh to try again.'
 								: plans.length === 0
 									? 'Start with a simple name and price. Activities can be added now or later.'
-									: 'Choose another status to see the rest of your offers.'}
+									: 'Try a different name or clear the filters to see your plans.'}
 						</p>
 						{plans.length === 0 ? (
 							<Button
@@ -264,14 +282,17 @@ export function MembershipsWorkspace({
 								pending={loadingAction === 'refresh'}
 								onClick={loadFailed ? reload : () => setDialog({ kind: 'create' })}
 							>
-								{loadFailed ? 'Refresh memberships' : 'Add membership'}
+								{loadFailed ? 'Refresh' : 'Add membership'}
 							</Button>
 						) : (
 							<Button
 								variant="secondary"
 								icon={RefreshIcon}
 								width="small"
-								onClick={() => setFilter('ALL')}
+								onClick={() => {
+									setFilter('ALL');
+									setTerm('');
+								}}
 							>
 								Show all
 							</Button>
@@ -285,20 +306,21 @@ export function MembershipsWorkspace({
 									<span className={styles.planIcon} aria-hidden="true">
 										<HugeiconsIcon icon={PackageIcon} size={20} strokeWidth={1.8} />
 									</span>
-									<div>
-										<h3>{plan.name}</h3>
-										<p>{plan.description ?? 'No activities added'}</p>
-									</div>
+									<span className={styles.status} data-status={plan.status}>
+										{plan.status.toLowerCase()}
+									</span>
 								</div>
+								<h3>{plan.name}</h3>
 								<div className={styles.price}>
-									<span>Price</span>
+									<span>Membership price</span>
 									<strong>{formatPrice(plan.price)}</strong>
 								</div>
-								<span className={styles.status} data-status={plan.status}>
-									{plan.status.toLowerCase()}
-								</span>
-								<div className={styles.actions}>
+								<div
+									className={styles.actions}
+									data-busy={loadingAction.endsWith(plan.id) || undefined}
+								>
 									<Button
+										iconOnly
 										variant="secondary"
 										width="small"
 										icon={ViewIcon}
@@ -311,6 +333,7 @@ export function MembershipsWorkspace({
 									{plan.status === 'ACTIVE' ? (
 										<>
 											<Button
+												iconOnly
 												variant="secondary"
 												width="small"
 												icon={PencilEdit02Icon}
@@ -321,6 +344,7 @@ export function MembershipsWorkspace({
 												Edit
 											</Button>
 											<Button
+												iconOnly
 												variant="secondary"
 												width="small"
 												icon={Archive02Icon}
