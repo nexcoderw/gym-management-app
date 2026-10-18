@@ -31,6 +31,9 @@ language per feature.
    40rem to prevent disruptive mobile browser zoom. Compact button labels remain at least 13px.
    Controls remain at least 44px high; small type must not create small tap targets. Respect browser
    zoom and use rem rather than reducing the root size.
+9. The reviewed manager authentication image may use restrained liquid-glass overlays to preserve
+   image context and text contrast. Keep this treatment decorative, non-interactive and confined to
+   that media panel; it is not a general card or dashboard surface style.
 
 ## Do
 
@@ -55,8 +58,9 @@ Label a backend active-staff count "Active staff accounts", not "Staff online".
 <StatCard label="Staff online" value={summary.activeStaff || 125} />
 ```
 
-No gradients, glassmorphism, decorative charts, fake trends or hardcoded component colors. Do not
-show a plausible placeholder number when the backend failed.
+Outside the reviewed authentication image overlays, do not use gradients, glassmorphism,
+decorative charts, fake trends or hardcoded component colors. Do not show a plausible placeholder
+number when the backend failed.
 
 ## Prevented failures and review checklist
 
