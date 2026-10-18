@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/shared/button';
 import { Input } from '@/components/shared/input';
+import { routes } from '@/constants/routes';
 import styles from './login-form.module.css';
 
 export function LoginForm() {
@@ -28,7 +29,7 @@ export function LoginForm() {
 			});
 			const body = (await response.json()) as { message?: string };
 			if (!response.ok) throw new Error(body.message ?? 'Sign-in could not be completed.');
-			router.replace('/dashboard');
+			router.replace(routes.dashboard);
 			router.refresh();
 		} catch (error: unknown) {
 			setMessage(error instanceof Error ? error.message : 'Sign-in could not be completed.');
