@@ -1,9 +1,10 @@
 .toast {
 	position: fixed;
-	inset-inline-end: var(--space-6);
-	inset-block-end: var(--space-6);
-	z-index: 80;
+	inset: auto;
+	inset-block-start: calc(env(safe-area-inset-top, 0px) + var(--space-4));
+	inset-inline-start: 50%;
 	width: min(24rem, calc(100% - 2rem));
+	margin: 0;
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr) auto;
 	align-items: center;
@@ -14,6 +15,7 @@
 	border-radius: var(--radius-control);
 	background: var(--surface-primary);
 	box-shadow: 0 1rem 2.5rem rgba(24, 39, 75, 0.18);
+	transform: translateX(-50%);
 }
 
 .toast[data-tone='success'] {
@@ -51,8 +53,6 @@
 
 @media (max-width: 35rem) {
 	.toast {
-		inset-inline: 1rem;
-		inset-block-end: 1rem;
-		width: auto;
+		width: calc(100% - 2rem);
 	}
 }
