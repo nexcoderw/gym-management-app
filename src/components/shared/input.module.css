@@ -17,7 +17,7 @@
 	align-items: center;
 	min-height: 3rem;
 	border: 1px solid var(--border-strong);
-	border-radius: var(--radius-control);
+	border-radius: var(--radius-pill);
 	background: var(--surface-primary);
 	color: var(--text-secondary);
 	transition:
@@ -43,7 +43,7 @@
 	outline: 0;
 	background: transparent;
 	color: var(--text-primary);
-	font-size: 1rem;
+	font-size: 0.875rem;
 }
 
 .control input::placeholder {
@@ -92,5 +92,11 @@
 @media (prefers-reduced-motion: reduce) {
 	.control {
 		transition: none;
+	}
+}
+
+@media (max-width: 40rem) {
+	.control input {
+		font-size: 1rem;
 	}
 }
