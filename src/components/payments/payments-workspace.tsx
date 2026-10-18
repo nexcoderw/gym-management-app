@@ -233,7 +233,7 @@ export function PaymentsWorkspace({
 						<p>{paymentErrorMessage(errorStatus ?? 503)}</p>
 						<Button
 							icon={RefreshIcon}
-							pending={loading === 'page'}
+							pending={loading !== 'idle'}
 							onClick={() => void load({ status, method, order })}
 						>
 							Refresh payments
