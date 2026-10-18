@@ -11,6 +11,8 @@
 	--canvas: #f1f4f8;
 	--surface-primary: #ffffff;
 	--surface-subtle: #f6f8fb;
+	--surface-raised: var(--surface-subtle);
+	--surface-hover: #eaf4fb;
 	--border: #e3e8f0;
 	--border-strong: #cbd4e1;
 	--focus-ring: color-mix(in srgb, var(--accent) 24%, transparent);
@@ -27,7 +29,18 @@
 	--space-8: 2rem;
 	--space-10: 2.5rem;
 	--space-12: 3rem;
-	--motion-fast: 160ms ease;
+	--text-caption: 0.75rem;
+	--text-small: 0.8125rem;
+	--text-body: 0.875rem;
+	--text-title: 1.5rem;
+	--sidebar-width: 15rem;
+	--gutter: clamp(1rem, 3vw, 2rem);
+	--motion-fast: 120ms;
+	--motion-ease: cubic-bezier(0.2, 0, 0, 1);
+	--primary: var(--action-primary);
+	--primary-hover: var(--action-primary-hover);
+	--on-primary: var(--text-on-action);
+	--text-muted: var(--text-secondary);
 	--navy: var(--action-primary);
 	--navy-dark: var(--action-primary-hover);
 	--signal: var(--accent);
@@ -50,6 +63,8 @@ body {
 	color: var(--ink);
 	background: var(--canvas);
 	font-family: var(--font-body), sans-serif;
+	font-size: var(--text-body);
+	line-height: 1.5;
 }
 button,
 input {
@@ -78,4 +93,15 @@ a {
 :focus-visible {
 	outline: 3px solid color-mix(in srgb, var(--signal) 45%, transparent);
 	outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		scroll-behavior: auto !important;
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+	}
 }
