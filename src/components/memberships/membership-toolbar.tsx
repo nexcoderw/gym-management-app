@@ -13,11 +13,10 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Button } from '@/components/shared/button';
 import styles from './membership-toolbar.module.css';
 
-export type MembershipFilter = 'ALL' | 'ACTIVE' | 'ARCHIVED';
+export type MembershipFilter = 'ACTIVE' | 'ARCHIVED';
 export type MembershipOrder = 'price-asc' | 'price-desc' | 'name-asc' | 'newest';
 
 const statuses: readonly { value: MembershipFilter; label: string }[] = [
-	{ value: 'ALL', label: 'All statuses' },
 	{ value: 'ACTIVE', label: 'Active' },
 	{ value: 'ARCHIVED', label: 'Archived' },
 ];
