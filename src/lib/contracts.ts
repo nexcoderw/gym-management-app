@@ -150,15 +150,18 @@ export const memberRegistrationInputSchema = z.strictObject({
 		)
 		.pipe(z.string().min(1, 'Enter the member name.').max(160)),
 	phoneNumber: memberPhoneSchema,
-	email: z
-		.string()
-		.trim()
-		.max(254)
-		.refine(
-			(value) => value === '' || z.email().safeParse(value).success,
-			'Enter a valid email address.',
-		)
-		.transform((value) => (value === '' ? null : value.toLocaleLowerCase('en-US'))),
+	email: z.union([
+		z
+			.string()
+			.trim()
+			.max(254)
+			.refine(
+				(value) => value === '' || z.email().safeParse(value).success,
+				'Enter a valid email address.',
+			)
+			.transform((value) => (value === '' ? null : value.toLocaleLowerCase('en-US'))),
+		z.null(),
+	]),
 	subscription: memberSubscriptionInputSchema,
 	idempotencyKey: z.uuid(),
 });
