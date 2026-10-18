@@ -85,7 +85,7 @@ describe('shared member form', () => {
 		);
 	});
 
-	it('edits contact fields without requiring or changing a plan', () => {
+	it('edits contact fields without requiring or changing a plan', async () => {
 		const submit = vi.fn().mockResolvedValue(undefined);
 		render(
 			<MemberForm
