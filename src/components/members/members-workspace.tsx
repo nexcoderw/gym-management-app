@@ -297,6 +297,11 @@ export function MembersWorkspace({
 								? 'Add their contact details and choose the membership plan they are joining.'
 								: 'Archived member profiles will appear here.'}
 						</p>
+						{view.status === 'ACTIVE' ? (
+							<Link className={styles.emptyAction} href={routes.payments}>
+								Add member
+							</Link>
+						) : null}
 					</div>
 				) : null}
 
