@@ -17,6 +17,8 @@
 	--border-strong: #cbd4e1;
 	--focus-ring: color-mix(in srgb, var(--accent) 24%, transparent);
 	--shadow-panel: 0 1.5rem 4rem rgba(24, 39, 75, 0.14);
+	--shadow-card: 0 1px 2px rgb(17 17 17 / 6%);
+	--shadow-card-hover: 0 6px 16px rgb(17 17 17 / 8%);
 	--radius-control: 0.5rem;
 	--radius-panel: 1.25rem;
 	--radius-pill: 9999px;
