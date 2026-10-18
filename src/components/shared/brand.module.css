@@ -1,18 +1,24 @@
 .brand {
+	min-width: 0;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.7rem;
 	color: var(--navy-dark);
 }
-.brand span:last-child {
+
+.identity {
+	min-width: 0;
 	display: grid;
 	line-height: 1.05;
 }
+
 .brand strong {
 	font-family: var(--font-heading), sans-serif;
 	font-size: 0.96rem;
 	letter-spacing: -0.02em;
+	overflow-wrap: anywhere;
 }
+
 .brand small {
 	margin-top: 0.2rem;
 	color: var(--muted);
@@ -22,8 +28,9 @@
 	display: grid;
 	width: 2.25rem;
 	height: 2.25rem;
+	flex: 0 0 auto;
 	place-items: center;
-	border-radius: 0.68rem;
+	border-radius: var(--radius-pill);
 	background: var(--navy);
 	color: white;
 	font-family: var(--font-heading), sans-serif;
