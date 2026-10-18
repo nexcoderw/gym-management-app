@@ -12,4 +12,6 @@ export const routes = {
 	membersApi: '/api/members',
 	memberApi: (id: string) => `/api/members/${encodeURIComponent(id)}`,
 	memberSubscriptionsApi: (id: string) => `/api/members/${encodeURIComponent(id)}/subscriptions`,
+	paymentsApi: '/api/payments',
+	paymentApi: (id: string) => `/api/payments/${encodeURIComponent(id)}`,
 } as const;
