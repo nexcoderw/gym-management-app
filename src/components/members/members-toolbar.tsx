@@ -119,11 +119,7 @@ function MemberSearch({
 	}
 
 	return (
-		<div
-			className={styles.search}
-			data-open={open}
-			role={open ? 'search' : undefined}
-		>
+		<div className={styles.search} data-open={open} role={open ? 'search' : undefined}>
 			<button
 				ref={toggle}
 				type="button"
@@ -137,11 +133,7 @@ function MemberSearch({
 					else setOpen(true);
 				}}
 			>
-				<HugeiconsIcon
-					icon={Search01Icon}
-					size={18}
-					aria-hidden="true"
-				/>
+				<HugeiconsIcon icon={Search01Icon} size={18} aria-hidden="true" />
 			</button>
 
 			{open ? (
@@ -206,10 +198,7 @@ function ToolbarMenu<T extends string>({
 		if (!open) return;
 
 		function outside(event: PointerEvent) {
-			if (
-				event.target instanceof Node &&
-				wrapper.current?.contains(event.target)
-			) {
+			if (event.target instanceof Node && wrapper.current?.contains(event.target)) {
 				return;
 			}
 
@@ -223,9 +212,7 @@ function ToolbarMenu<T extends string>({
 
 	function close() {
 		setOpen(false);
-		wrapper.current
-			?.querySelector<HTMLButtonElement>('[data-trigger]')
-			?.focus();
+		wrapper.current?.querySelector<HTMLButtonElement>('[data-trigger]')?.focus();
 	}
 
 	function choose(next: T) {
@@ -246,9 +233,7 @@ function ToolbarMenu<T extends string>({
 			event.currentTarget.querySelectorAll<HTMLButtonElement>('[data-option]'),
 		);
 
-		const index = buttons.findIndex(
-			(button) => button === document.activeElement,
-		);
+		const index = buttons.findIndex((button) => button === document.activeElement);
 		const last = buttons.length - 1;
 
 		const moves: Record<string, number> = {
@@ -274,10 +259,7 @@ function ToolbarMenu<T extends string>({
 			onBlur={(event) => {
 				const destination = event.relatedTarget;
 
-				if (
-					!(destination instanceof Node) ||
-					!event.currentTarget.contains(destination)
-				) {
+				if (!(destination instanceof Node) || !event.currentTarget.contains(destination)) {
 					setOpen(false);
 				}
 			}}
@@ -296,12 +278,7 @@ function ToolbarMenu<T extends string>({
 			</Button>
 
 			{open ? (
-				<div
-					id={menuId}
-					className={styles.menu}
-					role="group"
-					aria-label={label}
-				>
+				<div id={menuId} className={styles.menu} role="group" aria-label={label}>
 					<p className={styles.menuHeading}>{label}</p>
 
 					{options.map((option) => {
@@ -318,9 +295,7 @@ function ToolbarMenu<T extends string>({
 								onClick={() => choose(option.value)}
 							>
 								<span className={styles.check} aria-hidden="true">
-									{selected ? (
-										<HugeiconsIcon icon={Tick02Icon} size={16} />
-									) : null}
+									{selected ? <HugeiconsIcon icon={Tick02Icon} size={16} /> : null}
 								</span>
 
 								{option.label}
