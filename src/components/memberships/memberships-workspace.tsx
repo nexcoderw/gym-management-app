@@ -5,11 +5,13 @@ import {
 	Archive02Icon,
 	ArrowDown01Icon,
 	PackageIcon,
+	PackageAdd01Icon,
 	PencilEdit02Icon,
+	RefreshIcon,
 	ViewIcon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
 	ArchiveMembershipDialog,
@@ -49,6 +51,8 @@ export function MembershipsWorkspace({
 	const [dialog, setDialog] = useState<DialogState>(null);
 	const [pending, setPending] = useState(false);
 	const [loadingAction, setLoadingAction] = useState('');
+	const [loadFailed, setLoadFailed] = useState(initialError !== undefined);
+	const noticeIdRef = useRef(initialError === undefined ? 0 : 1);
 	const [notice, setNotice] = useState<ToastNotice | null>(
 		initialError === undefined ? null : { id: 1, message: initialError, tone: 'error' },
 	);
@@ -58,9 +62,11 @@ export function MembershipsWorkspace({
 		[filter, plans],
 	);
 	const dismissToast = useCallback(() => setNotice(null), []);
+	const showToolbar = plans.length >= 2;
 
 	function notify(message: string, tone: ToastNotice['tone']) {
-		setNotice({ id: Date.now(), message, tone });
+		noticeIdRef.current += 1;
+		setNotice({ id: noticeIdRef.current, message, tone });
 	}
 
 	async function openPlan(kind: 'details' | 'edit' | 'archive', plan: MembershipPlan) {
@@ -88,12 +94,34 @@ export function MembershipsWorkspace({
 				body: JSON.stringify(input),
 			});
 			setPlans((current) => [created, ...current.filter((plan) => plan.id !== created.id)]);
+			setLoadFailed(false);
 			setDialog(null);
 			notify(`${created.name} was created.`, 'success');
 		} catch (error: unknown) {
 			notify(errorMessage(error), 'error');
 		} finally {
 			setPending(false);
+		}
+	}
+
+	async function reload() {
+		if (loadingAction !== '') return;
+		setLoadingAction('refresh');
+		try {
+			const response = await fetch(`${routes.membershipPlansApi}?status=ALL&limit=50`, {
+				cache: 'no-store',
+			});
+			const page = membershipPlanListSchema.parse(await readJsonResponse(response));
+			setPlans(page.items);
+			setNextCursor(page.nextCursor);
+			setFilter('ALL');
+			setLoadFailed(false);
+			notify('Memberships refreshed.', 'success');
+		} catch (error: unknown) {
+			setLoadFailed(true);
+			notify(errorMessage(error), 'error');
+		} finally {
+			setLoadingAction('');
 		}
 	}
 
@@ -167,47 +195,87 @@ export function MembershipsWorkspace({
 				title="Memberships"
 				description="Create clear offers with a name, whole-RWF price and optional included activities."
 				actions={
-					<Button icon={Add01Icon} width="medium" onClick={() => setDialog({ kind: 'create' })}>
-						Add membership
-					</Button>
+					plans.length > 0 ? (
+						<Button
+							icon={Add01Icon}
+							width="medium"
+							onClick={() => setDialog({ kind: 'create' })}
+						>
+							Add membership
+						</Button>
+					) : undefined
 				}
 			/>
 
-			<section className={styles.workspace} aria-labelledby="membership-list-title">
-				<header className={styles.toolbar}>
-					<div>
-						<h2 id="membership-list-title">Membership offers</h2>
-						<p>{plans.length} loaded</p>
-					</div>
-					<div className={styles.filters} aria-label="Filter memberships">
-						{(['ALL', 'ACTIVE', 'ARCHIVED'] as const).map((value) => (
-							<button
-								key={value}
-								type="button"
-								aria-pressed={filter === value}
-								onClick={() => setFilter(value)}
-							>
-								{value === 'ALL' ? 'All' : value.toLowerCase()}
-							</button>
-						))}
-					</div>
-				</header>
+			<section
+				className={styles.workspace}
+				aria-label="Membership plans"
+				data-empty={plans.length === 0 ? 'true' : undefined}
+			>
+				{showToolbar ? (
+					<header className={styles.toolbar}>
+						<div>
+							<h2>Membership offers</h2>
+							<p>{plans.length} loaded</p>
+						</div>
+						<div className={styles.filters} aria-label="Filter memberships">
+							{(['ALL', 'ACTIVE', 'ARCHIVED'] as const).map((value) => (
+								<button
+									key={value}
+									type="button"
+									aria-pressed={filter === value}
+									onClick={() => setFilter(value)}
+								>
+									{value === 'ALL' ? 'All' : value.toLowerCase()}
+								</button>
+							))}
+						</div>
+					</header>
+				) : null}
 
 				{visiblePlans.length === 0 ? (
 					<div className={styles.empty}>
-						<span>
-							<HugeiconsIcon icon={Add01Icon} size={22} strokeWidth={1.8} aria-hidden="true" />
+						<span className={styles.emptyIcon}>
+							<HugeiconsIcon
+								icon={PackageAdd01Icon}
+								size={28}
+								strokeWidth={1.7}
+								aria-hidden="true"
+							/>
 						</span>
 						<h3>
-							{plans.length === 0
-								? 'Create your first membership'
-								: 'No memberships match this filter'}
+							{loadFailed
+								? 'Memberships unavailable'
+								: plans.length === 0
+									? 'Create your first membership'
+									: 'No memberships match this filter'}
 						</h3>
 						<p>
-							{plans.length === 0
-								? 'Start with a simple name and price. Activities can be added now or later.'
-								: 'Choose another status to see the rest of your offers.'}
+							{loadFailed
+								? 'The latest memberships could not be loaded. Refresh to try again.'
+								: plans.length === 0
+									? 'Start with a simple name and price. Activities can be added now or later.'
+									: 'Choose another status to see the rest of your offers.'}
 						</p>
+						{plans.length === 0 ? (
+							<Button
+								icon={loadFailed ? RefreshIcon : Add01Icon}
+								width="medium"
+								pending={loadingAction === 'refresh'}
+								onClick={loadFailed ? reload : () => setDialog({ kind: 'create' })}
+							>
+								{loadFailed ? 'Refresh memberships' : 'Add membership'}
+							</Button>
+						) : (
+							<Button
+								variant="secondary"
+								icon={RefreshIcon}
+								width="small"
+								onClick={() => setFilter('ALL')}
+							>
+								Show all
+							</Button>
+						)}
 					</div>
 				) : (
 					<div className={styles.list}>
