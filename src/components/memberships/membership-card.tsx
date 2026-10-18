@@ -11,11 +11,6 @@ export type MembershipCardAction = 'details' | 'edit' | 'archive';
 
 const priceFormatter = new Intl.NumberFormat('en-RW', { maximumFractionDigits: 0 });
 
-/** First visible character of the plan name; Array.from keeps emoji / surrogate pairs intact. */
-function getMonogram(name: string): string {
-	return Array.from(name.trim())[0]?.toUpperCase() ?? '';
-}
-
 export function MembershipCard({
 	plan,
 	pendingAction,
@@ -28,28 +23,23 @@ export function MembershipCard({
 	readonly onAction: (action: MembershipCardAction, plan: MembershipPlan) => void;
 }) {
 	const headingId = useId();
-	const monogram = getMonogram(plan.name);
 
 	return (
 		<article className={styles.card} data-status={plan.status} aria-labelledby={headingId}>
-			{/* Decorative engraved surface + hover sheen, clipped to the card body (not the tab). */}
-			<span className={styles.face} aria-hidden="true" />
-			<span className={styles.status}>{plan.status.toLowerCase()}</span>
-			<header className={styles.heading}>
-				{monogram ? (
-					<span className={styles.monogram} aria-hidden="true">
-						{monogram}
-					</span>
-				) : null}
-				<h3 id={headingId}>{plan.name}</h3>
+			<header className={styles.header}>
+				<span className={styles.status}>{plan.status.toLowerCase()}</span>
+				<h3 id={headingId} className={styles.name}>
+					{plan.name}
+				</h3>
 			</header>
-			<div className={styles.price}>
-				<strong>{priceFormatter.format(plan.price)}</strong>
-				<span>RWF</span>
-			</div>
-			{/* Perforated ticket stub edge; notches are drawn in CSS. */}
-			<div className={styles.divider} aria-hidden="true" />
-			<div className={styles.actions} data-busy={pendingAction !== undefined || undefined}>
+
+			<p className={styles.price}>
+				<span className={styles.currency}>RWF</span>
+				<strong className={styles.amount}>{priceFormatter.format(plan.price)}</strong>
+			</p>
+
+			{/* Floating dock: a light pill that keeps the secondary buttons legible on the dark card. */}
+			<div className={styles.dock} data-busy={pendingAction !== undefined || undefined}>
 				<Button
 					iconOnly
 					icon={ViewIcon}
