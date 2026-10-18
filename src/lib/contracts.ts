@@ -77,5 +77,26 @@ export const membershipPlanInputSchema = z
 	})
 	.strict();
 
+export const memberStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
+
+export const memberSchema = z.strictObject({
+	id: z.uuid(),
+	name: z.string().min(1).max(160),
+	phoneNumber: z.string().min(1).max(40),
+	email: z.email().nullable(),
+	status: memberStatusSchema,
+	createdAt: z.iso.datetime(),
+	updatedAt: z.iso.datetime(),
+	archivedAt: z.iso.datetime().nullable(),
+});
+
+export const memberListSchema = z.strictObject({
+	items: z.array(memberSchema).max(50),
+	nextCursor: z.uuid().nullable(),
+});
+
 export type MembershipPlan = z.infer<typeof membershipPlanSchema>;
 export type MembershipPlanInput = z.infer<typeof membershipPlanInputSchema>;
+export type Member = z.infer<typeof memberSchema>;
+export type MemberStatus = z.infer<typeof memberStatusSchema>;
+export type MemberList = z.infer<typeof memberListSchema>;
