@@ -11,6 +11,24 @@
 	border: 0;
 }
 
+.section {
+	display: grid;
+	gap: var(--space-4);
+	min-width: 0;
+	padding-block: var(--space-4);
+	border-block-end: 1px solid var(--border);
+}
+
+.section:first-child {
+	padding-block-start: 0;
+}
+
+.section h3 {
+	margin: 0;
+	font-family: var(--font-heading), sans-serif;
+	font-size: 1rem;
+}
+
 .row {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -25,6 +43,21 @@
 
 .hint {
 	color: var(--text-secondary);
+}
+
+.total {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-3);
+	margin: 0;
+	padding: var(--space-4);
+	border-radius: var(--radius-control);
+	background: var(--surface-subtle);
+	font-size: var(--text-small);
+}
+
+.total strong {
+	font-variant-numeric: tabular-nums;
 }
 
 .error {
