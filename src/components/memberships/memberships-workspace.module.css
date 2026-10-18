@@ -10,6 +10,11 @@
 	overflow: hidden;
 }
 
+.workspace[data-empty='true'] {
+	border-color: transparent;
+	background: transparent;
+}
+
 .toolbar {
 	display: flex;
 	flex-wrap: wrap;
@@ -180,13 +185,14 @@
 	text-align: center;
 }
 
-.empty > span {
-	width: 3.25rem;
-	height: 3.25rem;
+.emptyIcon {
+	width: 4rem;
+	height: 4rem;
 	display: grid;
 	place-items: center;
-	border-radius: var(--radius-panel);
-	background: var(--surface-hover);
+	border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+	border-radius: var(--radius-pill);
+	background: transparent;
 	color: var(--action-primary);
 }
 
