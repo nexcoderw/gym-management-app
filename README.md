@@ -6,7 +6,9 @@ permissions, entitlements and business policy. `gym-db` owns every Prisma schema
 
 The first owner-portal slice provides fragment-only invitation handoff, purpose-scoped enrollment,
 existing-owner authentication, atomic invitation acceptance, separate owner sessions, and a minimal
-organization dashboard. The browser talks only to same-origin BFF routes; it never receives the
+organization dashboard. The memberships workspace adds tenant-scoped plan listing, creation,
+editing and soft archival with CSRF-protected same-origin BFF routes and optimistic concurrency.
+The browser talks only to same-origin BFF routes; it never receives the
 upstream API origin or stores invitation/session tokens in Web Storage.
 
 ## Local ports
@@ -46,6 +48,11 @@ closed or reloaded before that transfer succeeds, reopen the original email link
 intentionally cannot reconstruct the secret. A temporary API outage can be retried from the same
 open page because the token remains only in that page's memory. Agents do not execute these commands;
 see `.agents/agent-workflow.md`.
+
+Membership plan updates and archival use the latest `updatedAt` value as an `If-Match` precondition.
+If another request changes a plan first, the manager asks the owner to reload rather than overwriting
+newer data. The delete-shaped API action is intentionally presented as archival because historical
+membership records remain in the database.
 
 ## Configuration boundary
 
