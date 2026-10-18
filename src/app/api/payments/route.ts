@@ -1,0 +1,66 @@
+import { z } from 'zod';
+
+import {
+	paymentInputSchema,
+	paymentMethodSchema,
+	paymentOrderSchema,
+	paymentStatusSchema,
+} from '@/lib/contracts';
+import { createPayment } from '@/lib/server/endpoints/payments/create-payment';
+import { listPayments } from '@/lib/server/endpoints/payments/list-payments';
+import { requireOwnerCsrfToken } from '@/lib/server/owner-csrf';
+import { readJson, RequestError, requireSameOrigin } from '@/lib/server/request';
+import { errorResponse } from '@/lib/server/upstream';
+
+export const runtime = 'nodejs';
+
+const querySchema = z.strictObject({
+	status: paymentStatusSchema.optional(),
+	method: paymentMethodSchema.optional(),
+	memberId: z.uuid().optional(),
+	order: paymentOrderSchema.default('NEWEST'),
+	limit: z.coerce.number<number>().int().min(1).max(50).default(50),
+	cursor: z.uuid().optional(),
+});
+
+export async function GET(request: Request): Promise<Response> {
+	try {
+		const params = new URL(request.url).searchParams;
+		const keys = [...params.keys()];
+		if (new Set(keys).size !== keys.length) {
+			throw new RequestError(400, 'Duplicate query parameters are not allowed.');
+		}
+		const filters = querySchema.parse(Object.fromEntries(params));
+		return Response.json(await listPayments(filters), {
+			headers: { 'Cache-Control': 'no-store' },
+		});
+	} catch (error: unknown) {
+		if (error instanceof RequestError) {
+			return Response.json(
+				{ message: error.message },
+				{ status: error.status, headers: { 'Cache-Control': 'no-store' } },
+			);
+		}
+		return errorResponse(error);
+	}
+}
+
+export async function POST(request: Request): Promise<Response> {
+	try {
+		const origin = requireSameOrigin(request);
+		const csrfToken = await requireOwnerCsrfToken();
+		const input = paymentInputSchema.parse(await readJson(request));
+		return Response.json(await createPayment(input, csrfToken, origin), {
+			status: 201,
+			headers: { 'Cache-Control': 'no-store' },
+		});
+	} catch (error: unknown) {
+		if (error instanceof RequestError) {
+			return Response.json(
+				{ message: error.message },
+				{ status: error.status, headers: { 'Cache-Control': 'no-store' } },
+			);
+		}
+		return errorResponse(error);
+	}
+}
