@@ -5,8 +5,8 @@ import { bodyFont, headingFont } from './fonts';
 import './globals.css';
 
 export const metadata: Metadata = {
-	title: { default: 'NEXCODE Gym Portal', template: '%s | NEXCODE Gym Portal' },
-	description: 'Secure organization access for NEXCODE Gym owners.',
+	title: { default: 'Gym owner portal', template: '%s | Gym owner portal' },
+	description: 'Secure organization access for gym owners.',
 	robots: { index: false, follow: false },
 	referrer: 'no-referrer',
 };
