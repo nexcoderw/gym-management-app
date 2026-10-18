@@ -69,18 +69,11 @@ afterEach(() => {
 
 describe('members registry UI', () => {
 	it('renders compact member cards with names and status', () => {
-		render(
-			<MembersWorkspace
-				initialItems={[activeMember]}
-				initialNextCursor={null}
-			/>,
-		);
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		expect(screen.getByRole('heading', { name: 'Members' })).toBeTruthy();
 
-		expect(
-			screen.getByRole('heading', { name: 'Example Active Member' }),
-		).toBeTruthy();
+		expect(screen.getByRole('heading', { name: 'Example Active Member' })).toBeTruthy();
 
 		expect(screen.getByText('Active')).toBeTruthy();
 		expect(screen.getByText('+250 700 000 001')).toBeTruthy();
@@ -90,10 +83,7 @@ describe('members registry UI', () => {
 
 	it('searches only loaded member records', () => {
 		render(
-			<MembersWorkspace
-				initialItems={[activeMember, secondMember]}
-				initialNextCursor={null}
-			/>,
+			<MembersWorkspace initialItems={[activeMember, secondMember]} initialNextCursor={null} />,
 		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search members' }));
@@ -112,12 +102,7 @@ describe('members registry UI', () => {
 	});
 
 	it('shows the correct empty state for an unmatched search', () => {
-		render(
-			<MembersWorkspace
-				initialItems={[activeMember]}
-				initialNextCursor={null}
-			/>,
-		);
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search members' }));
 
@@ -141,83 +126,84 @@ describe('members registry UI', () => {
 			}),
 		);
 
-		render(
-			<MembersWorkspace
-				initialItems={[activeMember]}
-				initialNextCursor={null}
-			/>,
-		);
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
-		fireEvent.click(
-			screen.getByRole('button', { name: 'Filter by status: Active' }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
 
-		fireEvent.click(
-			screen.getByRole('button', { name: 'Archived', exact: true }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
 
-		expect(
-			await screen.findByRole('heading', { name: 'Example Archived Member' }),
-		).toBeTruthy();
+		expect(await screen.findByRole('heading', { name: 'Example Archived Member' })).toBeTruthy();
 
-		expect(
-			screen.queryByRole('heading', { name: 'Example Active Member' }),
-		).toBeNull();
+		expect(screen.queryByRole('heading', { name: 'Example Active Member' })).toBeNull();
 
 		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('status=ARCHIVED');
 	});
 
 	it('sorts only loaded members', () => {
 		render(
-			<MembersWorkspace
-				initialItems={[activeMember, secondMember]}
-				initialNextCursor={null}
-			/>,
+			<MembersWorkspace initialItems={[activeMember, secondMember]} initialNextCursor={null} />,
 		);
 
 		let cards = screen.getAllByRole('article');
 
-		expect(
-			within(cards[0]!).getByRole('heading').textContent,
-		).toBe('Zoe Member');
+		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Zoe Member');
 
-		fireEvent.click(
-			screen.getByRole('button', { name: 'Sort members: Newest first' }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: 'Sort members: Newest first' }));
 
-		fireEvent.click(
-			screen.getByRole('button', { name: 'Name: A to Z' }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: 'Name: A to Z' }));
 
 		cards = screen.getAllByRole('article');
 
-		expect(
-			within(cards[0]!).getByRole('heading').textContent,
-		).toBe('Example Active Member');
+		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Example Active Member');
 	});
 
-	it('opens a read-only member preview', () => {
-		render(
-			<MembersWorkspace
-				initialItems={[activeMember]}
-				initialNextCursor={null}
-			/>,
-		);
+	it('refreshes details and loads plan history when opening a member', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json(activeMember));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
-		fireEvent.click(
-			screen.getByRole('button', { name: 'Example Active Member' }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: 'Example Active Member' }));
 
-		const dialog = screen.getByRole('dialog', {
+		const dialog = await screen.findByRole('dialog', {
 			name: 'Example Active Member',
 		});
 
 		expect(within(dialog).getByText('Not provided')).toBeTruthy();
 		expect(within(dialog).getByText('+250 700 000 001')).toBeTruthy();
+		expect(await within(dialog).findByText('No plan registrations recorded.')).toBeTruthy();
 
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Close details' }));
 
 		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('confirms archival and refreshes the registry only after success', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json(activeMember));
+		fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
+		fireEvent.click(screen.getByRole('button', { name: `Archive ${activeMember.name}` }));
+		const confirm = await screen.findByRole('button', { name: 'Archive member', exact: true });
+		fireEvent.click(confirm);
+		expect(await screen.findByText('Member archived.')).toBeTruthy();
+		await waitFor(() => expect(screen.queryByRole('article')).toBeNull());
+		expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('DELETE');
+	});
+
+	it('keeps the archive dialog open when current registrations block archival', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json(activeMember));
+		fetchMock.mockResolvedValueOnce(Response.json({}, { status: 409 }));
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
+		fireEvent.click(screen.getByRole('button', { name: `Archive ${activeMember.name}` }));
+		fireEvent.click(await screen.findByRole('button', { name: 'Archive member', exact: true }));
+		await waitFor(() =>
+			expect(
+				screen.getAllByText('Cancel current and future registrations before archiving this member.')
+					.length,
+			).toBeGreaterThan(0),
+		);
+		expect(screen.getByRole('dialog', { name: 'Archive member' })).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
 	it('loads the next cursor page without duplicates', async () => {
@@ -237,9 +223,7 @@ describe('members registry UI', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
 
-		expect(
-			await screen.findByRole('heading', { name: 'Zoe Member' }),
-		).toBeTruthy();
+		expect(await screen.findByRole('heading', { name: 'Zoe Member' })).toBeTruthy();
 
 		expect(screen.getAllByRole('article')).toHaveLength(2);
 		expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
@@ -247,11 +231,7 @@ describe('members registry UI', () => {
 
 	it('does not present service failures as an empty gym', () => {
 		render(
-			<MembersWorkspace
-				initialItems={[]}
-				initialNextCursor={null}
-				initialErrorStatus={503}
-			/>,
+			<MembersWorkspace initialItems={[]} initialNextCursor={null} initialErrorStatus={503} />,
 		);
 
 		expect(screen.getByText('Members unavailable')).toBeTruthy();
@@ -260,16 +240,9 @@ describe('members registry UI', () => {
 	});
 
 	it('clears member data when owner access is denied', async () => {
-		fetchMock.mockResolvedValueOnce(
-			Response.json({ message: 'Forbidden' }, { status: 403 }),
-		);
+		fetchMock.mockResolvedValueOnce(Response.json({ message: 'Forbidden' }, { status: 403 }));
 
-		render(
-			<MembersWorkspace
-				initialItems={[activeMember]}
-				initialNextCursor={null}
-			/>,
-		);
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
 
@@ -298,26 +271,15 @@ describe('members registry UI', () => {
 				}),
 			);
 
-		render(
-			<MembersWorkspace
-				initialItems={[activeMember]}
-				initialNextCursor={null}
-			/>,
-		);
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
 
-		fireEvent.click(
-			screen.getByRole('button', { name: 'Filter by status: Active' }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
 
-		fireEvent.click(
-			screen.getByRole('button', { name: 'Archived', exact: true }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
 
-		expect(
-			await screen.findByRole('heading', { name: 'Example Archived Member' }),
-		).toBeTruthy();
+		expect(await screen.findByRole('heading', { name: 'Example Archived Member' })).toBeTruthy();
 
 		finishFirstRequest?.(
 			Response.json({
@@ -327,9 +289,7 @@ describe('members registry UI', () => {
 		);
 
 		await waitFor(() => {
-			expect(
-				screen.queryByRole('heading', { name: 'Example Active Member' }),
-			).toBeNull();
+			expect(screen.queryByRole('heading', { name: 'Example Active Member' })).toBeNull();
 		});
 	});
 });
