@@ -3,6 +3,7 @@
 import {
 	Add01Icon,
 	ArrowDown01Icon,
+	Cancel01Icon,
 	PackageAdd01Icon,
 	RefreshIcon,
 } from '@hugeicons/core-free-icons';
@@ -64,9 +65,7 @@ export function MembershipsWorkspace({
 		const query = term.trim().toLocaleLowerCase('en-US');
 		return plans
 			.filter(
-				(plan) =>
-					plan.status === filter &&
-					plan.name.toLocaleLowerCase('en-US').includes(query),
+				(plan) => plan.status === filter && plan.name.toLocaleLowerCase('en-US').includes(query),
 			)
 			.sort((left, right) => {
 				const nameOrder = left.name.localeCompare(right.name, 'en', { numeric: true });
@@ -84,6 +83,12 @@ export function MembershipsWorkspace({
 	}, [filter, plans, term, order]);
 	const dismissToast = useCallback(() => setNotice(null), []);
 	const showToolbar = plans.length >= 2 || plans.some((plan) => plan.status === 'ARCHIVED');
+	const emptyAction =
+		filter === 'ARCHIVED'
+			? { label: 'Show active', icon: RefreshIcon, primary: false }
+			: term.trim() !== ''
+				? { label: 'Clear search', icon: Cancel01Icon, primary: false }
+				: { label: 'Add membership', icon: Add01Icon, primary: true };
 
 	function notify(message: string, tone: ToastNotice['tone']) {
 		noticeIdRef.current += 1;
@@ -219,11 +224,7 @@ export function MembershipsWorkspace({
 				description="Create clear offers with a name, whole-RWF price and optional included activities."
 				actions={
 					plans.length > 0 ? (
-						<Button
-							icon={Add01Icon}
-							width="medium"
-							onClick={() => setDialog({ kind: 'create' })}
-						>
+						<Button icon={Add01Icon} width="medium" onClick={() => setDialog({ kind: 'create' })}>
 							Add membership
 						</Button>
 					) : undefined
@@ -286,15 +287,19 @@ export function MembershipsWorkspace({
 							</Button>
 						) : (
 							<Button
-								variant="secondary"
-								icon={RefreshIcon}
-								width="small"
+								icon={emptyAction.icon}
+								variant={emptyAction.primary ? 'primary' : 'secondary'}
+								width={emptyAction.primary ? 'medium' : 'small'}
 								onClick={() => {
-									setFilter('ACTIVE');
-									setTerm('');
+									if (emptyAction.primary) {
+										setDialog({ kind: 'create' });
+									} else {
+										setFilter('ACTIVE');
+										setTerm('');
+									}
 								}}
 							>
-								Refresh
+								{emptyAction.label}
 							</Button>
 						)}
 					</div>
