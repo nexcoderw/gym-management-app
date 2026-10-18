@@ -1,0 +1,108 @@
+.panel {
+	min-width: 0;
+	display: grid;
+	gap: var(--space-5);
+}
+
+.panel h1 {
+	margin: 0;
+	color: var(--text-primary);
+	font:
+		700 clamp(1.75rem, 4vw, 2.25rem) / 1.08 var(--font-heading),
+		sans-serif;
+	letter-spacing: -0.045em;
+}
+
+.panel p {
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	line-height: 1.55;
+}
+
+.eyebrow {
+	color: var(--action-primary);
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+.pass {
+	display: grid;
+	gap: var(--space-1);
+	padding: var(--space-4);
+	border-inline-start: 3px solid var(--accent);
+	background: var(--surface-subtle);
+}
+
+.pass span,
+.pass small {
+	color: var(--text-secondary);
+	font-size: 0.72rem;
+}
+
+.pass strong {
+	font-family: var(--font-heading), sans-serif;
+	font-size: 1.08rem;
+}
+
+.form {
+	display: grid;
+	gap: var(--space-4);
+}
+
+.heading {
+	display: grid;
+	gap: var(--space-2);
+	margin-block: var(--space-1);
+}
+
+.headingIcon,
+.successIcon {
+	width: 2.5rem;
+	height: 2.5rem;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+}
+
+.headingIcon {
+	background: var(--surface-subtle);
+	color: var(--action-primary);
+}
+
+.successIcon {
+	background: color-mix(in srgb, var(--text-success) 11%, transparent);
+	color: var(--text-success);
+}
+
+.actions {
+	display: grid;
+	gap: var(--space-3);
+}
+
+.panel .error {
+	color: var(--text-danger);
+	font-size: 0.8125rem;
+}
+
+.loader {
+	width: 2rem;
+	height: 2rem;
+	border: 3px solid var(--border);
+	border-top-color: var(--action-primary);
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.loader {
+		animation: none;
+		border-color: var(--action-primary);
+	}
+}
