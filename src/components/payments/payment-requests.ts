@@ -23,7 +23,16 @@ export async function paymentRequest<T>(
 	} catch {
 		throw new PaymentRequestError(503, 'The payment request could not be confirmed. Refresh before retrying.');
 	}
-	if (!response.ok) throw new PaymentRequestError(response.status, paymentErrorMessage(response.status));
+	if (!response.ok) {
+		let message = paymentErrorMessage(response.status);
+		try {
+			const body = (await response.json()) as { message?: unknown };
+			if (typeof body.message === 'string' && body.message.trim() !== '') message = body.message;
+		} catch {
+			// Keep the safe status-based message when the error body is unavailable.
+		}
+		throw new PaymentRequestError(response.status, message);
+	}
 	try {
 		return schema.parse(await response.json());
 	} catch {
