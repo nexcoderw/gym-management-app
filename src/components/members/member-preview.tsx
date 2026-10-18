@@ -1,4 +1,5 @@
 import { Dialog } from '@/components/shared/dialog';
+import type { ReactNode } from 'react';
 import type { Member } from '@/lib/contracts';
 
 import styles from './member-preview.module.css';
@@ -13,17 +14,14 @@ const dateFormatter = new Intl.DateTimeFormat('en-RW', {
 export function MemberPreview({
 	member,
 	onClose,
+	children,
 }: {
 	readonly member: Member;
 	readonly onClose: () => void;
+	readonly children?: ReactNode;
 }) {
 	return (
-		<Dialog
-			open
-			title={member.name}
-			description="Member profile details"
-			onClose={onClose}
-		>
+		<Dialog open title={member.name} description="Member profile details" onClose={onClose}>
 			<dl className={styles.details}>
 				<div>
 					<dt>Profile status</dt>
@@ -57,6 +55,7 @@ export function MemberPreview({
 					</div>
 				) : null}
 			</dl>
+			{children}
 		</Dialog>
 	);
 }
