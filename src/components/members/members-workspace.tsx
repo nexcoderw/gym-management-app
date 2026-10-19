@@ -1,16 +1,17 @@
 'use client';
 
 import {
+	Add01Icon,
 	ArrowDown01Icon,
 	Cancel01Icon,
 	RefreshIcon,
 	UserGroupIcon,
 } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Button } from '@/components/shared/button';
+import { Button, ButtonLink } from '@/components/shared/button';
+import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
@@ -281,54 +282,49 @@ export function MembersWorkspace({
 				) : null}
 
 				{view.loading !== 'page' && failure === null && view.items.length === 0 ? (
-					<div className={styles.empty}>
-						<span className={styles.emptyIcon} aria-hidden="true">
-							<HugeiconsIcon icon={UserGroupIcon} size={28} strokeWidth={1.7} />
-						</span>
-
-						<h2>
-							{view.status === 'ACTIVE'
-								? 'Register your first member'
-								: 'No archived members found'}
-						</h2>
-
-						<p>
-							{view.status === 'ACTIVE'
+					<EmptyState
+						icon={UserGroupIcon}
+						title={
+							view.status === 'ACTIVE' ? 'Register your first member' : 'No archived members found'
+						}
+						description={
+							view.status === 'ACTIVE'
 								? 'Add their contact details and choose the membership plan they are joining.'
-								: 'Archived member profiles will appear here.'}
-						</p>
-						{view.status === 'ACTIVE' ? (
-							<Link className={styles.emptyAction} href={routes.payments} role="button">
-								Add member
-							</Link>
-						) : null}
-					</div>
+								: 'Archived member profiles will appear here.'
+						}
+						action={
+							view.status === 'ACTIVE' ? (
+								<ButtonLink href={routes.payments} icon={Add01Icon} variant="primary">
+									Add member
+								</ButtonLink>
+							) : undefined
+						}
+					/>
 				) : null}
 
 				{view.loading !== 'page' &&
 				failure === null &&
 				view.items.length > 0 &&
 				visibleMembers.length === 0 ? (
-					<div className={styles.empty}>
-						<span className={styles.emptyIcon} aria-hidden="true">
-							<HugeiconsIcon icon={UserGroupIcon} size={28} strokeWidth={1.7} />
-						</span>
-
-						<h2>No matching members</h2>
-
-						<p>
-							No loaded profiles match “{term.trim()}”.
-							{canLoadMore
-								? ' Search only checks loaded members. You can load more profiles.'
-								: ' Try another name, phone number or email.'}
-						</p>
-
-						{searching ? (
-							<Button icon={Cancel01Icon} variant="secondary" onClick={() => setTerm('')}>
-								Clear search
-							</Button>
-						) : null}
-					</div>
+					<EmptyState
+						icon={UserGroupIcon}
+						title="No matching members"
+						description={
+							<>
+								No loaded profiles match “{term.trim()}”.
+								{canLoadMore
+									? ' Search only checks loaded members. You can load more profiles.'
+									: ' Try another name, phone number or email.'}
+							</>
+						}
+						action={
+							searching ? (
+								<Button icon={Cancel01Icon} variant="secondary" onClick={() => setTerm('')}>
+									Clear search
+								</Button>
+							) : undefined
+						}
+					/>
 				) : null}
 
 				{visibleMembers.length > 0 ? (
