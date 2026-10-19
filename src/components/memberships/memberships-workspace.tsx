@@ -7,7 +7,6 @@ import {
 	PackageAdd01Icon,
 	RefreshIcon,
 } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
@@ -16,6 +15,7 @@ import {
 	MembershipEditorDialog,
 } from '@/components/memberships/membership-dialogs';
 import { Button } from '@/components/shared/button';
+import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
@@ -251,58 +251,54 @@ export function MembershipsWorkspace({
 				) : null}
 
 				{visiblePlans.length === 0 ? (
-					<div className={styles.empty}>
-						<span className={styles.emptyIcon}>
-							<HugeiconsIcon
-								icon={PackageAdd01Icon}
-								size={28}
-								strokeWidth={1.7}
-								aria-hidden="true"
-							/>
-						</span>
-						<h3>
-							{loadFailed
+					<EmptyState
+						icon={PackageAdd01Icon}
+						role={loadFailed ? 'alert' : undefined}
+						title={
+							loadFailed
 								? 'Memberships unavailable'
 								: plans.length === 0
 									? 'Create your first membership'
 									: filter === 'ARCHIVED'
 										? 'No archived memberships found'
-										: 'No active memberships found'}
-						</h3>
-						<p>
-							{loadFailed
+										: 'No active memberships found'
+						}
+						description={
+							loadFailed
 								? 'The latest memberships could not be loaded. Refresh to try again.'
 								: plans.length === 0
 									? 'Start with a simple name and price. Activities can be added now or later.'
-									: 'Try a different name or clear the filters to see your plans.'}
-						</p>
-						{plans.length === 0 ? (
-							<Button
-								icon={loadFailed ? RefreshIcon : Add01Icon}
-								width="medium"
-								pending={loadingAction === 'refresh'}
-								onClick={loadFailed ? reload : () => setDialog({ kind: 'create' })}
-							>
-								{loadFailed ? 'Refresh' : 'Add membership'}
-							</Button>
-						) : (
-							<Button
-								icon={emptyAction.icon}
-								variant={emptyAction.primary ? 'primary' : 'secondary'}
-								width={emptyAction.primary ? 'medium' : 'small'}
-								onClick={() => {
-									if (emptyAction.primary) {
-										setDialog({ kind: 'create' });
-									} else {
-										setFilter('ACTIVE');
-										setTerm('');
-									}
-								}}
-							>
-								{emptyAction.label}
-							</Button>
-						)}
-					</div>
+									: 'Try a different name or clear the filters to see your plans.'
+						}
+						action={
+							plans.length === 0 ? (
+								<Button
+									icon={loadFailed ? RefreshIcon : Add01Icon}
+									width="medium"
+									pending={loadingAction === 'refresh'}
+									onClick={loadFailed ? reload : () => setDialog({ kind: 'create' })}
+								>
+									{loadFailed ? 'Refresh' : 'Add membership'}
+								</Button>
+							) : (
+								<Button
+									icon={emptyAction.icon}
+									variant={emptyAction.primary ? 'primary' : 'secondary'}
+									width={emptyAction.primary ? 'medium' : 'small'}
+									onClick={() => {
+										if (emptyAction.primary) {
+											setDialog({ kind: 'create' });
+										} else {
+											setFilter('ACTIVE');
+											setTerm('');
+										}
+									}}
+								>
+									{emptyAction.label}
+								</Button>
+							)
+						}
+					/>
 				) : (
 					<div className={styles.list}>
 						{visiblePlans.map((plan) => (
