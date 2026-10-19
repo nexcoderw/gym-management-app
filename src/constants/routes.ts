@@ -6,6 +6,7 @@ export const routes = {
 	members: '/members',
 	payments: '/payments',
 	reminders: '/reminders',
+	reminderActivityApi: '/api/reminders/activity',
 	report: '/report',
 	membershipPlansApi: '/api/membership-plans',
 	membershipPlanApi: (planId: string) => `/api/membership-plans/${encodeURIComponent(planId)}`,
