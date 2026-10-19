@@ -91,7 +91,7 @@ describe('members registry UI', () => {
 				'Add their contact details and choose the membership plan they are joining.',
 			),
 		).toBeTruthy();
-		expect(screen.getByRole('button', { name: 'Add member' })).toBeTruthy();
+		expect(screen.getByRole('link', { name: 'Add member' }).getAttribute('href')).toBe('/payments');
 		expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
 	});
 
