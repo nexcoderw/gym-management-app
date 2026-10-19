@@ -115,22 +115,8 @@
 	color: var(--text-success);
 }
 
-.empty {
-	min-height: 16rem;
-	display: grid;
-	place-content: center;
-	gap: var(--space-2);
-	text-align: center;
-}
-
-.empty h2,
-.empty p,
 .note {
 	margin: 0;
-}
-
-.empty p,
-.note {
 	color: var(--text-secondary);
 }
 
