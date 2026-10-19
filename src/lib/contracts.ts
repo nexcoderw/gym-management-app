@@ -54,6 +54,25 @@ export const sessionSchema = z.object({
 
 export type OwnerSession = z.infer<typeof sessionSchema>;
 
+export const reminderActivityItemSchema = z.strictObject({
+	id: z.uuid(),
+	memberId: z.uuid(),
+	memberName: z.string().min(1).max(160),
+	planName: z.string().min(1).max(120),
+	kind: z.enum(['THREE_DAYS_BEFORE', 'EXPIRY_DAY']),
+	status: z.enum(['ACCEPTED', 'DELIVERED', 'BOUNCED', 'FAILED', 'UNCERTAIN']),
+	dueDate: z.iso.date(),
+	endDate: z.iso.date(),
+	acceptedAt: z.iso.datetime().nullable(),
+	deliveredAt: z.iso.datetime().nullable(),
+});
+
+export const reminderActivitySchema = z.strictObject({
+	items: z.array(reminderActivityItemSchema).max(50),
+});
+
+export type ReminderActivityItem = z.infer<typeof reminderActivityItemSchema>;
+
 export const membershipPlanStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
 
 export const membershipPlanSchema = z.object({
