@@ -7,11 +7,11 @@ import {
 	Invoice01Icon,
 	RefreshIcon,
 } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
 import { Dialog } from '@/components/shared/dialog';
+import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
@@ -225,50 +225,51 @@ export function PaymentsWorkspace({
 						Loading payments…
 					</p>
 				) : failure ? (
-					<div className={styles.empty}>
-						<span className={styles.emptyIcon}>
-							<HugeiconsIcon icon={Invoice01Icon} size={28} aria-hidden="true" />
-						</span>
-						<h2>Payments unavailable</h2>
-						<p>{paymentErrorMessage(errorStatus ?? 503)}</p>
-						<Button
-							icon={RefreshIcon}
-							pending={loading !== 'idle'}
-							onClick={() => void load({ status, method, order })}
-						>
-							Refresh payments
-						</Button>
-					</div>
-				) : visible.length === 0 ? (
-					<div className={styles.empty}>
-						<span className={styles.emptyIcon}>
-							<HugeiconsIcon icon={Invoice01Icon} size={28} aria-hidden="true" />
-						</span>
-						<h2>{filteredEmpty ? 'No matching payments' : 'Record your first payment'}</h2>
-						<p>
-							{filteredEmpty
-								? 'Change your search or filters to see more of the ledger.'
-								: 'Add a member or choose an existing one, select a plan and record its payment.'}
-						</p>
-						{filteredEmpty ? (
+					<EmptyState
+						icon={Invoice01Icon}
+						role="alert"
+						title="Payments unavailable"
+						description={paymentErrorMessage(errorStatus ?? 503)}
+						action={
 							<Button
-								icon={Cancel01Icon}
-								variant="secondary"
-								onClick={() => {
-									setTerm('');
-									setStatus('ALL');
-									setMethod('ALL');
-									void load({ status: 'ALL', method: 'ALL', order });
-								}}
+								icon={RefreshIcon}
+								pending={loading !== 'idle'}
+								onClick={() => void load({ status, method, order })}
 							>
-								Clear filters
+								Refresh payments
 							</Button>
-						) : (
-							<Button icon={Add01Icon} onClick={() => setDialogOpen(true)}>
-								New payment
-							</Button>
-						)}
-					</div>
+						}
+					/>
+				) : visible.length === 0 ? (
+					<EmptyState
+						icon={Invoice01Icon}
+						title={filteredEmpty ? 'No matching payments' : 'Record your first payment'}
+						description={
+							filteredEmpty
+								? 'Change your search or filters to see more of the ledger.'
+								: 'Add a member or choose an existing one, select a plan and record its payment.'
+						}
+						action={
+							filteredEmpty ? (
+								<Button
+									icon={Cancel01Icon}
+									variant="secondary"
+									onClick={() => {
+										setTerm('');
+										setStatus('ALL');
+										setMethod('ALL');
+										void load({ status: 'ALL', method: 'ALL', order });
+									}}
+								>
+									Clear filters
+								</Button>
+							) : (
+								<Button icon={Add01Icon} onClick={() => setDialogOpen(true)}>
+									New payment
+								</Button>
+							)
+						}
+					/>
 				) : (
 					<div className={styles.tableScroll}>
 						<table className={styles.table}>
