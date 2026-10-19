@@ -1,12 +1,18 @@
 'use client';
 
-import { RefreshIcon, Search01Icon } from '@hugeicons/core-free-icons';
+import {
+	ArrowRight01Icon,
+	Cancel01Icon,
+	Mail01Icon,
+	RefreshIcon,
+	Search01Icon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-import { Button } from '@/components/shared/button';
+import { Button, ButtonLink } from '@/components/shared/button';
+import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { routes } from '@/constants/routes';
 import type { ReminderActivityItem } from '@/lib/contracts';
@@ -87,31 +93,45 @@ export function RemindersWorkspace({
 				title="Reminders"
 				description="Review automatic membership-expiry email activity for this gym."
 				actions={
-					<Button icon={RefreshIcon} variant="secondary" pending={refreshing} onClick={refresh}>
-						Refresh
-					</Button>
+					errorStatus === null && items.length > 0 ? (
+						<Button icon={RefreshIcon} variant="secondary" pending={refreshing} onClick={refresh}>
+							Refresh
+						</Button>
+					) : undefined
 				}
 			/>
 			{errorStatus !== null ? (
-				<section className={styles.empty} role="alert" aria-labelledby="reminder-error-title">
-					<h2 id="reminder-error-title">
-						{errorStatus === 401
+				<EmptyState
+					icon={Mail01Icon}
+					role="alert"
+					title={
+						errorStatus === 401
 							? 'Your session has expired'
 							: errorStatus === 403
 								? 'Reminder activity is restricted'
-								: 'Reminder activity unavailable'}
-					</h2>
-					<p>
-						{errorStatus === 401
+								: 'Reminder activity unavailable'
+					}
+					description={
+						errorStatus === 401
 							? 'Sign in again to view reminder activity.'
 							: errorStatus === 403
 								? 'An active gym owner account is required to view this activity.'
 								: errorStatus === 429
 									? 'Too many requests. Wait a moment before refreshing.'
-									: 'We could not load reminder activity. Please try again.'}
-					</p>
-					{errorStatus === 401 ? <Link href={routes.login}>Open sign in</Link> : null}
-				</section>
+									: 'We could not load reminder activity. Please try again.'
+					}
+					action={
+						errorStatus === 401 ? (
+							<ButtonLink href={routes.login} icon={ArrowRight01Icon} variant="primary">
+								Open sign in
+							</ButtonLink>
+						) : errorStatus === 403 || errorStatus === 429 ? undefined : (
+							<Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>
+								Refresh activity
+							</Button>
+						)
+					}
+				/>
 			) : (
 				<section className={styles.workspace} aria-label="Email reminder activity">
 					{items.length > 0 ? (
@@ -150,14 +170,33 @@ export function RemindersWorkspace({
 						</div>
 					) : null}
 					{visible.length === 0 ? (
-						<div className={styles.empty}>
-							<h2>{items.length === 0 ? 'No reminder activity yet' : 'No matching reminders'}</h2>
-							<p>
-								{items.length === 0
+						<EmptyState
+							icon={Mail01Icon}
+							title={items.length === 0 ? 'No reminder activity yet' : 'No matching reminders'}
+							description={
+								items.length === 0
 									? 'Automatic email reminders will appear here after the scheduler and sender run.'
-									: 'Try a different search or status.'}
-							</p>
-						</div>
+									: 'Try a different search or status.'
+							}
+							action={
+								items.length === 0 ? (
+									<Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>
+										Refresh activity
+									</Button>
+								) : (
+									<Button
+										icon={Cancel01Icon}
+										variant="secondary"
+										onClick={() => {
+											setSearch('');
+											setStatus('ALL');
+										}}
+									>
+										Clear filters
+									</Button>
+								)
+							}
+						/>
 					) : (
 						<div className={styles.tableScroll}>
 							<table className={styles.table}>
@@ -199,10 +238,12 @@ export function RemindersWorkspace({
 							</table>
 						</div>
 					)}
-					<p className={styles.note}>
-						Submitted means the email provider accepted the message; it does not confirm inbox
-						delivery. Showing the 50 most recent reminder occasions.
-					</p>
+					{items.length > 0 ? (
+						<p className={styles.note}>
+							Submitted means the email provider accepted the message; it does not confirm inbox
+							delivery. Showing the 50 most recent reminder occasions.
+						</p>
+					) : null}
 				</section>
 			)}
 		</div>
