@@ -15,42 +15,6 @@
 	gap: var(--space-4);
 }
 
-.empty {
-	min-height: 20rem;
-	display: grid;
-	place-items: center;
-	align-content: center;
-	gap: var(--space-3);
-	padding: var(--space-8);
-	text-align: center;
-}
-
-.emptyIcon {
-	width: 4rem;
-	height: 4rem;
-	display: grid;
-	place-items: center;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--radius-pill);
-	color: var(--action-primary);
-}
-
-.empty h3,
-.empty p {
-	margin: 0;
-}
-
-.empty h3 {
-	font-family: var(--font-heading), sans-serif;
-	font-size: 1.125rem;
-}
-
-.empty p {
-	max-width: 42ch;
-	color: var(--text-secondary);
-	font-size: var(--text-small);
-}
-
 .more {
 	display: flex;
 	justify-content: center;
