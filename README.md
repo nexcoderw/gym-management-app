@@ -34,6 +34,13 @@ the new form uses the atomic registration route. Unchanged retries reuse the key
 Cash is confirmed immediately; external methods remain pending until verified. Void and refund
 controls are not part of this frontend slice.
 
+The Reminders page reads the latest 50 automatic email reminder occasions from Nest through the
+fixed `GET /api/reminders/activity` BFF route. Nest authenticates the owner, authorizes the gym from
+its portal origin and returns only safe activity fields. The page distinguishes provider acceptance
+from confirmed delivery, and separates an empty feed from an unavailable service. Search and status
+filters apply to the loaded 50 rows only. There is no manual send control or SMS delivery in this
+slice; the scheduler, sender and reconciler are separate backend processes.
+
 ## Local ports
 
 | Service    | Port |
