@@ -57,15 +57,18 @@ describe('reminders activity workspace', () => {
 		expect(screen.getByText('Other Member')).toBeTruthy();
 		fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'ACCEPTED' } });
 		expect(screen.getByRole('heading', { name: 'No matching reminders' })).toBeTruthy();
+		fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+		expect(screen.getByText('Example Member')).toBeTruthy();
 	});
 
 	it('distinguishes an empty feed from a failed read', () => {
 		const view = render(<RemindersWorkspace items={[]} errorStatus={null} />);
 		expect(screen.getByRole('heading', { name: 'No reminder activity yet' })).toBeTruthy();
-		fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Refresh activity' }));
 		expect(refresh).toHaveBeenCalledOnce();
 		view.rerender(<RemindersWorkspace items={[]} errorStatus={503} />);
 		expect(screen.getByRole('alert')).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Refresh activity' })).toBeTruthy();
 		expect(screen.queryByRole('heading', { name: 'No reminder activity yet' })).toBeNull();
 	});
 });
