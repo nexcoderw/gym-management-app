@@ -42,15 +42,35 @@ const plans: MembershipPlan[] = [
 ];
 
 const fetchMock = vi.fn<typeof fetch>();
+const showModalDescriptor = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'showModal');
+const closeDescriptor = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'close');
 
 beforeEach(() => {
 	fetchMock.mockReset();
 	vi.stubGlobal('fetch', fetchMock);
+	Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+		configurable: true,
+		value(this: HTMLDialogElement) {
+			this.open = true;
+		},
+	});
+	Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+		configurable: true,
+		value(this: HTMLDialogElement) {
+			this.open = false;
+		},
+	});
 });
 
 afterEach(() => {
 	cleanup();
 	vi.unstubAllGlobals();
+	if (showModalDescriptor)
+		Object.defineProperty(HTMLDialogElement.prototype, 'showModal', showModalDescriptor);
+	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+	if (closeDescriptor)
+		Object.defineProperty(HTMLDialogElement.prototype, 'close', closeDescriptor);
+	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
 });
 
 describe('membership pricing workspace', () => {
@@ -65,43 +85,54 @@ describe('membership pricing workspace', () => {
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
 	});
 
-	it('searches loaded plans while requesting status and ordering from the backend', async () => {
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[0]], nextCursor: null }));
+	it('stages status and order in the sheet, applies both once, and keeps search local', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[2]], nextCursor: null }));
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[1], plans[0]], nextCursor: null }));
 		render(<MembershipsWorkspace initialItems={[plans[1]!, plans[0]!]} initialNextCursor={null} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Order: Price: low to high' }));
-		fireEvent.click(screen.getByRole('button', { name: 'Price: high to low' }));
-		await waitFor(() => expect(String(fetchMock.mock.calls[0]?.[0])).toContain('order=PRICE_DESC'));
-		expect(await screen.findByRole('heading', { name: 'Premium' })).toBeTruthy();
-
-		fireEvent.click(screen.getByRole('button', { name: 'Status: Active' }));
-		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		expect(screen.getByRole('button', { name: 'Apply' }).hasAttribute('disabled')).toBe(true);
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		fireEvent.change(screen.getByRole('combobox', { name: 'Order' }), {
+			target: { value: 'price-desc' },
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('order=PRICE_DESC');
+		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('status=ARCHIVED');
 		expect(await screen.findByRole('heading', { name: 'Legacy' })).toBeTruthy();
-		expect(String(fetchMock.mock.calls[1]?.[0])).toContain('status=ARCHIVED');
 		expect(screen.queryByRole('button', { name: 'Edit Legacy' })).toBeNull();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search memberships' }));
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'not a plan' } });
 		expect(await screen.findByRole('heading', { name: 'No matching memberships' })).toBeTruthy();
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 		fireEvent.click(screen.getByRole('button', { name: 'Show active' }));
 		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
 	});
 
-	it('loads archived plans even when the active page has one plan', async () => {
+	it('discards staged filters on Close and allows one filter to change', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[2]], nextCursor: null }));
-		render(
-			<MembershipsWorkspace
-				initialItems={[plans[1]!]}
-				initialNextCursor={null}
-			/>,
-		);
+		render(<MembershipsWorkspace initialItems={[plans[1]!]} initialNextCursor={null} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Status: Active' }));
-		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+		expect(fetchMock).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		expect(screen.getByRole('combobox', { name: 'Status' })).toHaveProperty('value', 'ACTIVE');
+		expect(screen.getByRole('button', { name: 'Apply' }).hasAttribute('disabled')).toBe(true);
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 		expect(await screen.findByRole('heading', { name: 'Legacy' })).toBeTruthy();
+		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('order=PRICE_ASC');
 	});
 });
