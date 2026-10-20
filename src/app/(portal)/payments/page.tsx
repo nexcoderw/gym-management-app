@@ -14,7 +14,7 @@ export default async function PaymentsPage() {
 	let initialNextCursor: string | null = null;
 	let initialErrorStatus: number | null = null;
 	try {
-		const page = await listPayments({ order: 'NEWEST', limit: 50 });
+		const page = await listPayments({ order: 'NEWEST', limit: 24 });
 		initialItems = page.items;
 		initialNextCursor = page.nextCursor;
 	} catch (error: unknown) {
