@@ -54,7 +54,7 @@ describe('members listing BFF', () => {
 		expect(listMembersMock).toHaveBeenCalledWith({
 			status: 'ACTIVE',
 			order: 'NEWEST',
-			limit: 24,
+			limit: 20,
 			cursor: syntheticCursor,
 		});
 	});
@@ -72,7 +72,25 @@ describe('members listing BFF', () => {
 			order: 'NAME_ASC',
 			fromDate: '2026-01-01',
 			toDate: '2026-10-19',
-			limit: 24,
+			limit: 20,
+		});
+	});
+
+	it('forwards a numbered page for a direct last-page jump', async () => {
+		listMembersMock.mockResolvedValueOnce({
+			items: [],
+			nextCursor: null,
+			totalItems: 325,
+			totalPages: 17,
+			page: 17,
+		});
+		const response = await GET(new Request('https://manager.test/api/members?page=17&limit=20'));
+		expect(response.status).toBe(200);
+		expect(listMembersMock).toHaveBeenCalledWith({
+			status: 'ACTIVE',
+			order: 'NEWEST',
+			limit: 20,
+			page: 17,
 		});
 	});
 
@@ -82,6 +100,9 @@ describe('members listing BFF', () => {
 		'?limit=0',
 		'?limit=51',
 		'?limit=25',
+		'?limit=21',
+		'?page=0',
+		'?page=2&cursor=22222222-2222-4222-8222-222222222222',
 		'?fromDate=2026-02-30',
 		'?limit=abc',
 		'?cursor=invalid',
