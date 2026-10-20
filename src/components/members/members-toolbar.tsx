@@ -1,17 +1,10 @@
 'use client';
 
-import {
-	ArrowDown01Icon,
-	Calendar03Icon,
-	Cancel01Icon,
-	FilterIcon,
-	Search01Icon,
-} from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { useId, useRef, useState } from 'react';
+import { ArrowDown01Icon, Calendar03Icon, FilterIcon } from '@hugeicons/core-free-icons';
+import { useState } from 'react';
 
-import { Button } from '@/components/shared/button';
 import { FilterSheet } from '@/components/shared/filter-sheet';
+import { FilterToolbar } from '@/components/shared/filter-toolbar';
 import { Input } from '@/components/shared/input';
 import { Select } from '@/components/shared/select';
 import type { MemberStatus } from '@/lib/contracts';
@@ -105,25 +98,16 @@ export function MembersToolbar({
 					: `${loadedCount} loaded ${status.toLowerCase()} profile${loadedCount === 1 ? '' : 's'}`;
 
 	return (
-		<div className={styles.toolbar}>
-			<p className={styles.summary} role="status">
-				{summary}
-				{hasMore && !error ? ' · More profiles available' : ''}
-			</p>
-
-			<div className={styles.tools}>
-				<MemberSearch term={term} onTermChange={onTermChange} />
-				<Button
-					iconOnly
-					icon={FilterIcon}
-					variant="secondary"
-					aria-haspopup="dialog"
-					aria-expanded={filtersOpen}
-					onClick={openFilters}
-				>
-					Filters
-				</Button>
-			</div>
+		<FilterToolbar
+			summary={`${summary}${hasMore && !error ? ' · More profiles available' : ''}`}
+			term={term}
+			searchLabel="Search members"
+			searchInputLabel="Search loaded members"
+			searchPlaceholder="Search members…"
+			onTermChange={onTermChange}
+			filtersOpen={filtersOpen}
+			onOpenFilters={openFilters}
+		>
 			<FilterSheet
 				open={filtersOpen}
 				title="Filter members"
@@ -136,6 +120,7 @@ export function MembersToolbar({
 					<Select
 						label="Status"
 						icon={FilterIcon}
+						focusStyle="subtle"
 						value={draftStatus}
 						onChange={(event) => {
 							const selected = statuses.find((option) => option.value === event.target.value);
@@ -151,6 +136,7 @@ export function MembersToolbar({
 					<Select
 						label="Order"
 						icon={ArrowDown01Icon}
+						focusStyle="subtle"
 						value={draftOrder}
 						onChange={(event) => {
 							const selected = orders.find((option) => option.value === event.target.value);
@@ -166,6 +152,7 @@ export function MembersToolbar({
 					<Input
 						label="Registered from"
 						icon={Calendar03Icon}
+						focusStyle="subtle"
 						type="date"
 						value={draftFromDate}
 						max={draftToDate || undefined}
@@ -174,6 +161,7 @@ export function MembersToolbar({
 					<Input
 						label="Registered through"
 						icon={Calendar03Icon}
+						focusStyle="subtle"
 						type="date"
 						value={draftToDate}
 						min={draftFromDate || undefined}
@@ -181,81 +169,6 @@ export function MembersToolbar({
 					/>
 				</div>
 			</FilterSheet>
-		</div>
-	);
-}
-
-function MemberSearch({
-	term,
-	onTermChange,
-}: {
-	readonly term: string;
-	readonly onTermChange: (term: string) => void;
-}) {
-	const inputId = useId();
-	const toggle = useRef<HTMLButtonElement>(null);
-	const input = useRef<HTMLInputElement>(null);
-	const [open, setOpen] = useState(false);
-
-	function close() {
-		onTermChange('');
-		setOpen(false);
-		toggle.current?.focus();
-	}
-
-	return (
-		<div className={styles.search} data-open={open} role={open ? 'search' : undefined}>
-			<button
-				ref={toggle}
-				type="button"
-				className={styles.searchToggle}
-				aria-label="Search members"
-				title="Search members"
-				aria-expanded={open}
-				aria-controls={open ? inputId : undefined}
-				onClick={() => {
-					if (open) input.current?.focus();
-					else setOpen(true);
-				}}
-			>
-				<HugeiconsIcon icon={Search01Icon} size={18} aria-hidden="true" />
-			</button>
-
-			{open ? (
-				<>
-					<input
-						ref={input}
-						id={inputId}
-						type="search"
-						className={styles.searchInput}
-						value={term}
-						placeholder="Search members…"
-						aria-label="Search loaded members"
-						autoComplete="off"
-						spellCheck={false}
-						autoFocus
-						onChange={(event) => onTermChange(event.target.value)}
-						onKeyDown={(event) => {
-							if (event.key !== 'Escape') return;
-
-							event.preventDefault();
-
-							if (term) onTermChange('');
-							else close();
-						}}
-					/>
-
-					<Button
-						iconOnly
-						icon={Cancel01Icon}
-						variant="secondary"
-						className={styles.searchClose}
-						onClick={close}
-					>
-						Close search
-					</Button>
-				</>
-			) : null}
-		</div>
+		</FilterToolbar>
 	);
 }
