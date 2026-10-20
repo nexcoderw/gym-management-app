@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/server/session', () => ({ requireOwnerPortalSession: vi.fn(async () => ({})) }));
 vi.mock('@/lib/server/endpoints/reports/get-payment-report-summary', () => ({
@@ -26,6 +26,7 @@ const summary = {
 const getSummary = vi.mocked(getPaymentReportSummary);
 
 beforeEach(() => getSummary.mockReset());
+afterEach(() => cleanup());
 
 describe('payment report page', () => {
 	it('asks for dates before requesting financial data', async () => {
