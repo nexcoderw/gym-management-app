@@ -1,6 +1,11 @@
-F'use client';
+'use client';
 
-import { ArrowDown01Icon, Cancel01Icon, FilterIcon, Search01Icon } from '@hugeicons/core-free-icons';
+import {
+	ArrowDown01Icon,
+	Cancel01Icon,
+	FilterIcon,
+	Search01Icon,
+} from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useId, useRef, useState } from 'react';
 
@@ -120,9 +125,9 @@ export function MembershipToolbar({
 					) : null}
 				</div>
 				<Button
+					iconOnly
 					icon={FilterIcon}
 					variant="secondary"
-					width="small"
 					aria-haspopup="dialog"
 					aria-expanded={filtersOpen}
 					onClick={openFilters}
