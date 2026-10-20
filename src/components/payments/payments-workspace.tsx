@@ -7,7 +7,7 @@ import {
 	Invoice01Icon,
 	RefreshIcon,
 } from '@hugeicons/core-free-icons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
 import { Dialog } from '@/components/shared/dialog';
@@ -47,6 +47,8 @@ export function PaymentsWorkspace({
 	const [method, setMethod] = useState<PaymentMethodFilter>('ALL');
 	const [order, setOrder] = useState<PaymentOrder>('NEWEST');
 	const [term, setTerm] = useState('');
+	const [fromDate, setFromDate] = useState('');
+	const [toDate, setToDate] = useState('');
 	const [loading, setLoading] = useState<'idle' | 'page' | 'more'>('idle');
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [details, setDetails] = useState<Payment | null>(null);
@@ -57,18 +59,13 @@ export function PaymentsWorkspace({
 	const [notice, setNotice] = useState<ToastNotice | null>(null);
 	const requestId = useRef(0);
 	const controller = useRef<AbortController | null>(null);
+	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const dismissToast = useCallback(() => setNotice(null), []);
-	useEffect(() => () => controller.current?.abort(), []);
-	const visible = useMemo(() => {
-		const query = term.trim().toLocaleLowerCase('en');
-		return items.filter(
-			(payment) =>
-				!query ||
-				[payment.memberName, payment.receiptNumber, payment.providerReference ?? ''].some((text) =>
-					text.toLocaleLowerCase('en').includes(query),
-				),
-		);
-	}, [items, term]);
+	useEffect(() => () => {
+		controller.current?.abort();
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+	}, []);
+	const visible = items;
 
 	function notify(message: string, tone: ToastNotice['tone']) {
 		noticeId.current += 1;
@@ -80,6 +77,9 @@ export function PaymentsWorkspace({
 			status: PaymentStatusFilter;
 			method: PaymentMethodFilter;
 			order: PaymentOrder;
+			search?: string;
+			fromDate?: string;
+			toDate?: string;
 		},
 		append = false,
 		preserveExisting = false,
@@ -95,9 +95,12 @@ export function PaymentsWorkspace({
 			setItems([]);
 			setNextCursor(null);
 		}
-		const query = new URLSearchParams({ order: next.order, limit: '50' });
+		const query = new URLSearchParams({ order: next.order, limit: '24' });
 		if (next.status !== 'ALL') query.set('status', next.status);
 		if (next.method !== 'ALL') query.set('method', next.method);
+		if (next.search?.trim()) query.set('search', next.search.trim());
+		if (next.fromDate) query.set('fromDate', next.fromDate);
+		if (next.toDate) query.set('toDate', next.toDate);
 		if (append && nextCursor) query.set('cursor', nextCursor);
 		try {
 			const page = await paymentRequest(`${routes.paymentsApi}?${query}`, paymentListSchema, {
@@ -129,19 +132,26 @@ export function PaymentsWorkspace({
 	}
 
 	function changeStatus(value: PaymentStatusFilter) {
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		setStatus(value);
-		setTerm('');
-		void load({ status: value, method, order });
+		void load({ status: value, method, order, search: term, fromDate, toDate });
 	}
 	function changeMethod(value: PaymentMethodFilter) {
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		setMethod(value);
-		setTerm('');
-		void load({ status, method: value, order });
+		void load({ status, method: value, order, search: term, fromDate, toDate });
 	}
 	function changeOrder(value: PaymentOrder) {
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		setOrder(value);
-		setTerm('');
-		void load({ status, method, order: value });
+		void load({ status, method, order: value, search: term, fromDate, toDate });
+	}
+	function changeTerm(value: string) {
+		setTerm(value);
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+		searchTimer.current = setTimeout(() => {
+			void load({ status, method, order, search: value, fromDate, toDate });
+		}, 300);
 	}
 
 	async function create(input: RegisterPaymentInput) {
@@ -156,7 +166,10 @@ export function PaymentsWorkspace({
 			setStatus('ALL');
 			setMethod('ALL');
 			setOrder('NEWEST');
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			setTerm('');
+			setFromDate('');
+			setToDate('');
 			setItems([created]);
 			setNextCursor(null);
 			setErrorStatus(null);
@@ -189,8 +202,20 @@ export function PaymentsWorkspace({
 	}
 
 	const showToolbar =
-		items.length >= 2 || status !== 'ALL' || method !== 'ALL' || order !== 'NEWEST' || term !== '';
-	const filteredEmpty = status !== 'ALL' || method !== 'ALL' || term.trim() !== '';
+		items.length > 0 ||
+		nextCursor !== null ||
+		status !== 'ALL' ||
+		method !== 'ALL' ||
+		order !== 'NEWEST' ||
+		term !== '' ||
+		fromDate !== '' ||
+		toDate !== '';
+	const filteredEmpty =
+		status !== 'ALL' ||
+		method !== 'ALL' ||
+		term.trim() !== '' ||
+		fromDate !== '' ||
+		toDate !== '';
 	const failure = errorStatus !== null;
 	return (
 		<div className={styles.page}>
@@ -211,13 +236,25 @@ export function PaymentsWorkspace({
 						count={visible.length}
 						hasMore={nextCursor !== null}
 						term={term}
+						fromDate={fromDate}
+						toDate={toDate}
 						status={status}
 						method={method}
 						order={order}
-						onTermChange={setTerm}
+						onTermChange={changeTerm}
 						onStatusChange={changeStatus}
 						onMethodChange={changeMethod}
 						onOrderChange={changeOrder}
+						onFromDateChange={(value) => {
+							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+							setFromDate(value);
+							void load({ status, method, order, search: term, fromDate: value, toDate });
+						}}
+						onToDateChange={(value) => {
+							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+							setToDate(value);
+							void load({ status, method, order, search: term, fromDate, toDate: value });
+						}}
 					/>
 				) : null}
 				{loading === 'page' ? (
@@ -234,7 +271,7 @@ export function PaymentsWorkspace({
 							<Button
 								icon={RefreshIcon}
 								pending={loading !== 'idle'}
-								onClick={() => void load({ status, method, order })}
+								onClick={() => void load({ status, method, order, search: term, fromDate, toDate })}
 							>
 								Refresh payments
 							</Button>
@@ -256,8 +293,11 @@ export function PaymentsWorkspace({
 									variant="secondary"
 									onClick={() => {
 										setTerm('');
+										if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 										setStatus('ALL');
 										setMethod('ALL');
+										setFromDate('');
+										setToDate('');
 										void load({ status: 'ALL', method: 'ALL', order });
 									}}
 								>
@@ -348,7 +388,7 @@ export function PaymentsWorkspace({
 							icon={ArrowDown01Icon}
 							variant="secondary"
 							pending={loading === 'more'}
-							onClick={() => void load({ status, method, order }, true)}
+							onClick={() => void load({ status, method, order, search: term, fromDate, toDate }, true)}
 						>
 							Load more
 						</Button>
