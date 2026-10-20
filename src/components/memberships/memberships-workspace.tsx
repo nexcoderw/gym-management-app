@@ -1,11 +1,6 @@
 'use client';
 
-import {
-	Add01Icon,
-	Cancel01Icon,
-	PackageAdd01Icon,
-	RefreshIcon,
-} from '@hugeicons/core-free-icons';
+import { Add01Icon, Cancel01Icon, PackageAdd01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -52,6 +47,8 @@ export function MembershipsWorkspace({
 	const [currentPage, setCurrentPage] = useState(1);
 	const [filter, setFilter] = useState<MembershipFilter>('ACTIVE');
 	const [term, setTerm] = useState('');
+	const appliedSearch = useRef('');
+	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [order, setOrder] = useState<MembershipOrder>('price-asc');
 	const [dialog, setDialog] = useState<DialogState>(null);
 	const [pending, setPending] = useState(false);
@@ -61,8 +58,7 @@ export function MembershipsWorkspace({
 	const [notice, setNotice] = useState<ToastNotice | null>(
 		initialError === undefined ? null : { id: 1, message: initialError, tone: 'error' },
 	);
-	const needle = term.trim().toLocaleLowerCase('en');
-	const visiblePlans = plans.filter((plan) => plan.name.toLocaleLowerCase('en').includes(needle));
+	const visiblePlans = plans;
 	const loadedPages = Math.max(1, Math.ceil(visiblePlans.length / 24));
 	const displayedPage = Math.min(currentPage, loadedPages);
 	const pagePlans = visiblePlans.slice((displayedPage - 1) * 24, displayedPage * 24);
@@ -70,6 +66,7 @@ export function MembershipsWorkspace({
 	const requestNumber = useRef(0);
 	useEffect(
 		() => () => {
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			activeController.current?.abort();
 		},
 		[],
@@ -93,6 +90,7 @@ export function MembershipsWorkspace({
 		status: MembershipFilter,
 		selectedOrder: MembershipOrder,
 		append = false,
+		search = appliedSearch.current,
 	) {
 		if (append && (nextCursor === null || loadingAction !== '')) return;
 		activeController.current?.abort();
@@ -109,6 +107,7 @@ export function MembershipsWorkspace({
 			order: selectedOrder.replace('-', '_').toUpperCase(),
 			limit: '24',
 		});
+		if (search) query.set('search', search);
 		if (append && nextCursor) query.set('cursor', nextCursor);
 		try {
 			const response = await fetch(`${routes.membershipPlansApi}?${query}`, {
@@ -122,11 +121,7 @@ export function MembershipsWorkspace({
 				: page.items;
 			setPlans(nextPlans);
 			setNextCursor(page.nextCursor);
-			setCurrentPage(
-				append
-					? Math.max(1, Math.ceil(nextPlans.filter((plan) => plan.name.toLocaleLowerCase('en').includes(needle)).length / 24))
-					: 1,
-			);
+			setCurrentPage(append ? Math.max(1, Math.ceil(nextPlans.length / 24)) : 1);
 			setLoadFailed(false);
 		} catch (error: unknown) {
 			if (controller.signal.aborted || request !== requestNumber.current) return;
@@ -143,6 +138,13 @@ export function MembershipsWorkspace({
 	function changeTerm(value: string) {
 		setTerm(value);
 		setCurrentPage(1);
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+		const search = value.trim().length >= 3 ? value.trim() : '';
+		if (search === appliedSearch.current) return;
+		searchTimer.current = setTimeout(() => {
+			appliedSearch.current = search;
+			void loadPage(filter, order, false, search);
+		}, 250);
 	}
 
 	async function openPlan(kind: 'details' | 'edit' | 'archive', plan: MembershipPlan) {
@@ -171,6 +173,8 @@ export function MembershipsWorkspace({
 			});
 			setLoadFailed(false);
 			setFilter('ACTIVE');
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+			appliedSearch.current = '';
 			setTerm('');
 			setDialog(null);
 			void loadPage('ACTIVE', order);
@@ -252,16 +256,17 @@ export function MembershipsWorkspace({
 				{showToolbar ? (
 					<MembershipToolbar
 						count={visiblePlans.length}
-						total={plans.length}
 						hasMore={nextCursor !== null}
 						term={term}
 						status={filter}
 						order={order}
 						onTermChange={changeTerm}
 						onFiltersApply={(status, selectedOrder) => {
+							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+							appliedSearch.current = term.trim().length >= 3 ? term.trim() : '';
 							setFilter(status);
 							setOrder(selectedOrder);
-							void loadPage(status, selectedOrder);
+							void loadPage(status, selectedOrder, false, appliedSearch.current);
 						}}
 					/>
 				) : null}
@@ -288,9 +293,7 @@ export function MembershipsWorkspace({
 								? 'The latest memberships could not be loaded. Refresh to try again.'
 								: plans.length === 0 && filter === 'ACTIVE' && term === ''
 									? 'Start with a simple name and price. Activities can be added now or later.'
-									: nextCursor !== null && term.trim() !== ''
-										? 'No loaded plans match. Open the next page or try another name.'
-										: 'Try a different name or clear the filters to see your plans.'
+									: 'Try a different name or clear the filters to see your plans.'
 						}
 						action={
 							loadFailed || (plans.length === 0 && filter === 'ACTIVE' && term === '') ? (
@@ -312,8 +315,10 @@ export function MembershipsWorkspace({
 											setDialog({ kind: 'create' });
 										} else {
 											setFilter('ACTIVE');
+											if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+											appliedSearch.current = '';
 											setTerm('');
-											if (filter !== 'ACTIVE') void loadPage('ACTIVE', order);
+											void loadPage('ACTIVE', order, false, '');
 										}
 									}}
 								>
