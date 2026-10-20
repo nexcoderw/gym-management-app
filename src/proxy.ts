@@ -28,7 +28,8 @@ export function proxy(request: NextRequest): NextResponse {
 export const config = {
 	matcher: [
 		{
-			source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+			// Framework assets and the development HMR endpoint do not need a page nonce.
+			source: '/((?!api|_next|favicon.ico).*)',
 			missing: [
 				{ type: 'header', key: 'next-router-prefetch' },
 				{ type: 'header', key: 'purpose', value: 'prefetch' },
