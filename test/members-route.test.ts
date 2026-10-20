@@ -10,6 +10,7 @@ import { GET } from '@/app/api/members/route';
 import { UpstreamError } from '@/lib/server/upstream';
 
 const cursor = '22222222-2222-4222-8222-222222222222';
+const syntheticCursor = '11ab9b64-19b3-ee0d-19c8-e2c69b0722da';
 
 beforeEach(() => {
 	listMembersMock.mockReset();
@@ -40,6 +41,19 @@ describe('members listing BFF', () => {
 		await expect(response.json()).resolves.toEqual({
 			items: [],
 			nextCursor: null,
+		});
+	});
+
+	it('accepts a cursor returned from PostgreSQL for synthetic records', async () => {
+		listMembersMock.mockResolvedValueOnce({ items: [], nextCursor: null });
+		const response = await GET(
+			new Request(`https://manager.test/api/members?cursor=${syntheticCursor}`),
+		);
+		expect(response.status).toBe(200);
+		expect(listMembersMock).toHaveBeenCalledWith({
+			status: 'ACTIVE',
+			limit: 20,
+			cursor: syntheticCursor,
 		});
 	});
 
