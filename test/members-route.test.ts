@@ -94,8 +94,24 @@ describe('members listing BFF', () => {
 		});
 	});
 
+	it('forwards a validated search with pagination and tenant-safe filters', async () => {
+		listMembersMock.mockResolvedValueOnce({ items: [], nextCursor: null });
+		const response = await GET(
+			new Request('https://manager.test/api/members?search=Zoe%20Member&page=2'),
+		);
+		expect(response.status).toBe(200);
+		expect(listMembersMock).toHaveBeenCalledWith({
+			status: 'ACTIVE',
+			order: 'NEWEST',
+			limit: 20,
+			page: 2,
+			search: 'Zoe Member',
+		});
+	});
+
 	it.each([
-		'?search=soho',
+		'?search=zo',
+		'?search=zo&search=other',
 		'?status=ALL',
 		'?limit=0',
 		'?limit=51',
