@@ -69,7 +69,9 @@ afterEach(() => {
 });
 
 describe('payments ledger search', () => {
-	it('filters loaded payments without requesting another page', () => {
+	it('searches payments through the backend after three characters', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [payment], nextCursor: null }));
 		render(
 			<PaymentsWorkspace
 				initialItems={[payment]}
@@ -78,16 +80,19 @@ describe('payments ledger search', () => {
 			/>,
 		);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Search loaded payments' }));
-		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'unknown' } });
-		expect(screen.getByRole('heading', { name: 'No matching payments' })).toBeTruthy();
+		fireEvent.click(screen.getByRole('button', { name: 'Search payments' }));
+		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'un' } });
 		expect(fetchMock).not.toHaveBeenCalled();
+		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'unknown' } });
+		expect(await screen.findByRole('heading', { name: 'No matching payments' })).toBeTruthy();
+		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('search=unknown');
 
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'example member' } });
 		expect(
-			screen.getByRole('button', { name: `View payment ${payment.receiptNumber}` }),
+			await screen.findByRole('button', { name: `View payment ${payment.receiptNumber}` }),
 		).toBeTruthy();
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(String(fetchMock.mock.calls[1]?.[0])).toContain('search=example+member');
 	});
 
 	it('discards closed drafts and applies payment filters in one request', async () => {
