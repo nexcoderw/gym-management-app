@@ -2,14 +2,16 @@
 
 import {
 	ArrowDown01Icon,
-	Cancel01Icon,
+	Calendar03Icon,
 	FilterIcon,
-	Search01Icon,
+	Wallet01Icon,
 } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { useId, useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { Button } from '@/components/shared/button';
+import { FilterSheet } from '@/components/shared/filter-sheet';
+import { FilterToolbar } from '@/components/shared/filter-toolbar';
+import { Input } from '@/components/shared/input';
+import { Select } from '@/components/shared/select';
 import {
 	paymentMethodSchema,
 	paymentOrderSchema,
@@ -18,10 +20,19 @@ import {
 	type PaymentOrder,
 	type PaymentStatus,
 } from '@/lib/contracts';
+
 import styles from './payment-toolbar.module.css';
 
 export type PaymentStatusFilter = PaymentStatus | 'ALL';
 export type PaymentMethodFilter = PaymentMethod | 'ALL';
+
+export interface PaymentFilterSelection {
+	readonly status: PaymentStatusFilter;
+	readonly method: PaymentMethodFilter;
+	readonly order: PaymentOrder;
+	readonly fromDate: string;
+	readonly toDate: string;
+}
 
 export function PaymentToolbar({
 	count,
@@ -33,11 +44,7 @@ export function PaymentToolbar({
 	method,
 	order,
 	onTermChange,
-	onStatusChange,
-	onMethodChange,
-	onOrderChange,
-	onFromDateChange,
-	onToDateChange,
+	onFiltersApply,
 }: {
 	readonly count: number;
 	readonly hasMore: boolean;
@@ -48,101 +55,72 @@ export function PaymentToolbar({
 	readonly method: PaymentMethodFilter;
 	readonly order: PaymentOrder;
 	readonly onTermChange: (value: string) => void;
-	readonly onStatusChange: (value: PaymentStatusFilter) => void;
-	readonly onMethodChange: (value: PaymentMethodFilter) => void;
-	readonly onOrderChange: (value: PaymentOrder) => void;
-	readonly onFromDateChange: (value: string) => void;
-	readonly onToDateChange: (value: string) => void;
+	readonly onFiltersApply: (selection: PaymentFilterSelection) => void;
 }) {
-	const [searchOpen, setSearchOpen] = useState(false);
-	const searchId = useId();
-	const toggle = useRef<HTMLButtonElement>(null);
-	const input = useRef<HTMLInputElement>(null);
+	const [filtersOpen, setFiltersOpen] = useState(false);
+	const [draftStatus, setDraftStatus] = useState(status);
+	const [draftMethod, setDraftMethod] = useState(method);
+	const [draftOrder, setDraftOrder] = useState(order);
+	const [draftFromDate, setDraftFromDate] = useState(fromDate);
+	const [draftToDate, setDraftToDate] = useState(toDate);
+	const datesInvalid = draftFromDate !== '' && draftToDate !== '' && draftFromDate > draftToDate;
+	const filtersChanged =
+		draftStatus !== status ||
+		draftMethod !== method ||
+		draftOrder !== order ||
+		draftFromDate !== fromDate ||
+		draftToDate !== toDate;
 
-	function closeSearch() {
-		onTermChange('');
-		setSearchOpen(false);
-		toggle.current?.focus();
+	function openFilters() {
+		setDraftStatus(status);
+		setDraftMethod(method);
+		setDraftOrder(order);
+		setDraftFromDate(fromDate);
+		setDraftToDate(toDate);
+		setFiltersOpen(true);
+	}
+
+	function applyFilters() {
+		onFiltersApply({
+			status: draftStatus,
+			method: draftMethod,
+			order: draftOrder,
+			fromDate: draftFromDate,
+			toDate: draftToDate,
+		});
+		setFiltersOpen(false);
 	}
 
 	return (
-		<header className={styles.toolbar}>
-			<p className={styles.summary} role="status">
-				{count} loaded payment{count === 1 ? '' : 's'}
-				{hasMore ? ' · More payments available' : ''}
-			</p>
-			<div className={styles.tools}>
-				<div
-					className={styles.search}
-					data-open={searchOpen}
-					role={searchOpen ? 'search' : undefined}
-				>
-					<button
-						ref={toggle}
-						type="button"
-						className={styles.searchToggle}
-						aria-label="Search loaded payments"
-						aria-expanded={searchOpen}
-						aria-controls={searchOpen ? searchId : undefined}
-						onClick={() => (searchOpen ? input.current?.focus() : setSearchOpen(true))}
-					>
-						<HugeiconsIcon icon={Search01Icon} size={18} aria-hidden="true" />
-					</button>
-					{searchOpen ? (
-						<>
-							<input
-								ref={input}
-								id={searchId}
-								type="search"
-								value={term}
-								aria-label="Search loaded payments by member, receipt or reference"
-								placeholder="Search payments…"
-								autoComplete="off"
-								autoFocus
-								onChange={(event) => onTermChange(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key !== 'Escape') return;
-									event.preventDefault();
-									if (term) onTermChange('');
-									else closeSearch();
-								}}
-							/>
-							<Button iconOnly icon={Cancel01Icon} variant="secondary" onClick={closeSearch}>
-								Close search
-							</Button>
-						</>
-					) : null}
-				</div>
-				<label className={styles.dateFilter}>
-					<span>From</span>
-					<input
-						type="date"
-						value={fromDate}
-						max={toDate || undefined}
-						aria-label="Payments from date"
-						onChange={(event) => onFromDateChange(event.target.value)}
-					/>
-				</label>
-				<label className={styles.dateFilter}>
-					<span>To</span>
-					<input
-						type="date"
-						value={toDate}
-						min={fromDate || undefined}
-						aria-label="Payments through date"
-						onChange={(event) => onToDateChange(event.target.value)}
-					/>
-				</label>
-				<label className={styles.filter}>
-					<HugeiconsIcon icon={FilterIcon} size={18} aria-hidden="true" />
-					<span className={styles.srOnly}>Payment status</span>
-					<select
-						value={status}
+		<FilterToolbar
+			summary={`${count} loaded payment${count === 1 ? '' : 's'}${hasMore ? ' · More payments available' : ''}`}
+			term={term}
+			searchLabel="Search loaded payments"
+			searchInputLabel="Search loaded payments by member, receipt or reference"
+			searchPlaceholder="Search payments…"
+			onTermChange={onTermChange}
+			filtersOpen={filtersOpen}
+			onOpenFilters={openFilters}
+		>
+			<FilterSheet
+				open={filtersOpen}
+				title="Filter payments"
+				description="Choose which payments to show and how to order them."
+				applyDisabled={!filtersChanged || datesInvalid}
+				onClose={() => setFiltersOpen(false)}
+				onApply={applyFilters}
+			>
+				<div className={styles.filterFields}>
+					<Select
+						label="Status"
+						icon={FilterIcon}
+						focusStyle="subtle"
+						value={draftStatus}
 						onChange={(event) => {
-							if (event.target.value === 'ALL') onStatusChange('ALL');
+							if (event.target.value === 'ALL') setDraftStatus('ALL');
 							else {
 								const parsed = paymentStatusSchema.safeParse(event.target.value);
-								if (parsed.success) onStatusChange(parsed.data);
+								if (parsed.success) setDraftStatus(parsed.data);
 							}
 						}}
 					>
@@ -153,17 +131,17 @@ export function PaymentToolbar({
 						<option value="VOIDED">Voided</option>
 						<option value="PARTIALLY_REFUNDED">Partially refunded</option>
 						<option value="REFUNDED">Refunded</option>
-					</select>
-				</label>
-				<label className={styles.filter}>
-					<span className={styles.srOnly}>Payment method</span>
-					<select
-						value={method}
+					</Select>
+					<Select
+						label="Method"
+						icon={Wallet01Icon}
+						focusStyle="subtle"
+						value={draftMethod}
 						onChange={(event) => {
-							if (event.target.value === 'ALL') onMethodChange('ALL');
+							if (event.target.value === 'ALL') setDraftMethod('ALL');
 							else {
 								const parsed = paymentMethodSchema.safeParse(event.target.value);
-								if (parsed.success) onMethodChange(parsed.data);
+								if (parsed.success) setDraftMethod(parsed.data);
 							}
 						}}
 					>
@@ -173,25 +151,42 @@ export function PaymentToolbar({
 						<option value="BANK_TRANSFER">Bank transfer</option>
 						<option value="CARD">Card</option>
 						<option value="OTHER">Other</option>
-					</select>
-				</label>
-				<label className={styles.filter}>
-					<HugeiconsIcon icon={ArrowDown01Icon} size={18} aria-hidden="true" />
-					<span className={styles.srOnly}>Payment order</span>
-					<select
-						value={order}
+					</Select>
+					<Select
+						label="Order"
+						icon={ArrowDown01Icon}
+						focusStyle="subtle"
+						value={draftOrder}
 						onChange={(event) => {
 							const parsed = paymentOrderSchema.safeParse(event.target.value);
-							if (parsed.success) onOrderChange(parsed.data);
+							if (parsed.success) setDraftOrder(parsed.data);
 						}}
 					>
 						<option value="NEWEST">Newest first</option>
 						<option value="OLDEST">Oldest first</option>
 						<option value="AMOUNT_HIGH">Highest amount</option>
 						<option value="AMOUNT_LOW">Lowest amount</option>
-					</select>
-				</label>
-			</div>
-		</header>
+					</Select>
+					<Input
+						label="Payments from"
+						icon={Calendar03Icon}
+						focusStyle="subtle"
+						type="date"
+						value={draftFromDate}
+						max={draftToDate || undefined}
+						onChange={(event) => setDraftFromDate(event.target.value)}
+					/>
+					<Input
+						label="Payments through"
+						icon={Calendar03Icon}
+						focusStyle="subtle"
+						type="date"
+						value={draftToDate}
+						min={draftFromDate || undefined}
+						onChange={(event) => setDraftToDate(event.target.value)}
+					/>
+				</div>
+			</FilterSheet>
+		</FilterToolbar>
 	);
 }
