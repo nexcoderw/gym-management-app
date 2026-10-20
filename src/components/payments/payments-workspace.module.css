@@ -49,25 +49,32 @@
 	background: var(--surface-subtle);
 }
 
-.receipt {
+.table .receiptColumn {
+	text-align: end;
+	white-space: nowrap;
+}
+
+.receiptAction {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
 	min-height: 2.75rem;
-	padding: var(--space-2);
+	padding-inline: var(--space-4);
 	border: 0;
-	border-radius: var(--radius-control);
-	background: transparent;
+	border-radius: var(--radius-pill);
+	background: var(--surface-hover);
 	color: var(--action-primary);
 	font-weight: 700;
-	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
-	text-decoration: underline;
 	cursor: pointer;
 }
 
-.receipt:hover {
-	background: var(--surface-hover);
+.receiptAction:hover {
+	background: var(--border);
 }
 
-.receipt:disabled {
+.receiptAction:disabled {
 	opacity: 0.5;
 	cursor: wait;
 }
@@ -84,7 +91,14 @@
 	font-weight: 500;
 }
 
-.status {
+.remainingList {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-1);
+}
+
+.remaining {
 	display: inline-flex;
 	align-items: center;
 	min-height: 1.75rem;
@@ -94,21 +108,26 @@
 	color: var(--text-secondary);
 	font-size: var(--text-caption);
 	font-weight: 700;
+	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
 }
 
-.status[data-status='CONFIRMED'] {
-	background: var(--surface-hover);
+.remaining[data-tone='healthy'] {
+	background: color-mix(in srgb, var(--text-success) 10%, var(--surface-primary));
 	color: var(--text-success);
 }
 
-.status[data-status='PENDING'] {
-	background: var(--surface-subtle);
-	color: var(--text-primary);
+.remaining[data-tone='soon'] {
+	background: var(--surface-hover);
+	color: var(--action-primary);
 }
 
-.status[data-status='FAILED'],
-.status[data-status='VOIDED'] {
+.remaining[data-tone='urgent'] {
+	background: color-mix(in srgb, var(--text-danger) 10%, var(--surface-primary));
+	color: var(--text-danger);
+}
+
+.remaining[data-tone='expired'] {
 	background: var(--surface-subtle);
 	color: var(--text-danger);
 }
