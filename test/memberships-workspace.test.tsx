@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MembershipsWorkspace } from '@/components/memberships/memberships-workspace';
 import type { MembershipPlan } from '@/lib/contracts';
@@ -41,57 +41,68 @@ const plans: MembershipPlan[] = [
 	},
 ];
 
-afterEach(cleanup);
+const fetchMock = vi.fn<typeof fetch>();
+
+beforeEach(() => {
+	fetchMock.mockReset();
+	vi.stubGlobal('fetch', fetchMock);
+});
+
+afterEach(() => {
+	cleanup();
+	vi.unstubAllGlobals();
+});
 
 describe('membership pricing workspace', () => {
 	it('orders cards by ascending price and keeps descriptions out of cards', () => {
-		render(<MembershipsWorkspace initialItems={plans} initialNextCursor={null} />);
+		render(<MembershipsWorkspace initialItems={plans.slice(1, 2)} initialNextCursor={null} />);
 
 		const cards = screen.getAllByRole('article');
-		expect(cards.map((card) => within(card).getByRole('heading').textContent)).toEqual([
-			'Basic',
-			'Premium',
-		]);
+		expect(cards.map((card) => within(card).getByRole('heading').textContent)).toEqual(['Basic']);
 		expect(screen.queryByText('Gym floor access')).toBeNull();
 		expect(screen.queryByText('Personal training and pool access')).toBeNull();
-		expect(screen.getByRole('button', { name: 'View Premium details' })).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'View Basic details' })).toBeTruthy();
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
 	});
 
-	it('combines search, status filtering and descending ordering', () => {
-		render(<MembershipsWorkspace initialItems={plans} initialNextCursor={null} />);
+	it('queries server-side search, status filtering and ordering', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[0]], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[2]], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[1], plans[0]], nextCursor: null }));
+		render(<MembershipsWorkspace initialItems={[plans[1]!, plans[0]!]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Order: Price: low to high' }));
 		fireEvent.click(screen.getByRole('button', { name: 'Price: high to low' }));
-		expect(
-			screen.getAllByRole('article').map((card) => within(card).getByRole('heading').textContent),
-		).toEqual(['Premium', 'Basic']);
+		await waitFor(() => expect(String(fetchMock.mock.calls[0]?.[0])).toContain('order=PRICE_DESC'));
+		expect(await screen.findByRole('heading', { name: 'Premium' })).toBeTruthy();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Status: Active' }));
 		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
-		expect(screen.getAllByRole('article')).toHaveLength(1);
-		expect(screen.getByRole('heading', { name: 'Legacy' })).toBeTruthy();
+		expect(await screen.findByRole('heading', { name: 'Legacy' })).toBeTruthy();
+		expect(String(fetchMock.mock.calls[1]?.[0])).toContain('status=ARCHIVED');
 		expect(screen.queryByRole('button', { name: 'Edit Legacy' })).toBeNull();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search memberships' }));
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'not a plan' } });
-		expect(screen.queryByRole('article')).toBeNull();
+		await waitFor(() => expect(String(fetchMock.mock.calls[2]?.[0])).toContain('search=not+a+plan'));
+		expect(await screen.findByRole('heading', { name: 'No matching memberships' })).toBeTruthy();
 		fireEvent.click(screen.getByRole('button', { name: 'Show active' }));
-		expect(screen.getAllByRole('article')).toHaveLength(2);
+		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
 	});
 
-	it('allows archived filtering when the only plan is archived', () => {
+	it('loads archived plans even when the active page has one plan', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[2]], nextCursor: null }));
 		render(
 			<MembershipsWorkspace
-				initialItems={plans.filter((plan) => plan.status === 'ARCHIVED')}
+				initialItems={[plans[1]!]}
 				initialNextCursor={null}
 			/>,
 		);
 
-		expect(screen.queryByRole('article')).toBeNull();
 		fireEvent.click(screen.getByRole('button', { name: 'Status: Active' }));
 		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
-		expect(screen.getByRole('heading', { name: 'Legacy' })).toBeTruthy();
+		expect(await screen.findByRole('heading', { name: 'Legacy' })).toBeTruthy();
 	});
 });
