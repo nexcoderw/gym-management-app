@@ -8,7 +8,6 @@ import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 const filtersSchema = z.strictObject({
 	status: memberStatusSchema.default('ACTIVE'),
 	order: memberOrderSchema.default('NEWEST'),
-	search: z.string().max(80).optional(),
 	fromDate: listDateSchema.optional(),
 	toDate: listDateSchema.optional(),
 	limit: z.number().int().min(1).max(24).default(24),
@@ -25,7 +24,6 @@ export async function listMembers(filters: MemberListFilters = {}) {
 		order: parsed.order,
 		limit: String(parsed.limit),
 	});
-	if (parsed.search) query.set('search', parsed.search);
 	if (parsed.fromDate) query.set('fromDate', parsed.fromDate);
 	if (parsed.toDate) query.set('toDate', parsed.toDate);
 
