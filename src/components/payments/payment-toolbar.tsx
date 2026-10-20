@@ -95,9 +95,9 @@ export function PaymentToolbar({
 		<FilterToolbar
 			summary={`${count} loaded payment${count === 1 ? '' : 's'}${hasMore ? ' · More payments available' : ''}`}
 			term={term}
-			searchLabel="Search loaded payments"
-			searchInputLabel="Search loaded payments by member, receipt or reference"
-			searchPlaceholder="Search payments…"
+			searchLabel="Search payments"
+			searchInputLabel="Search payments by member, receipt or reference"
+			searchPlaceholder="Search payments (3+ characters)…"
 			onTermChange={onTermChange}
 			filtersOpen={filtersOpen}
 			onOpenFilters={openFilters}
