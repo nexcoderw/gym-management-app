@@ -95,7 +95,9 @@ describe('members registry UI', () => {
 		expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
 	});
 
-	it('searches only loaded member records', () => {
+	it('searches the backend rather than only loaded member records', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [secondMember], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [activeMember, secondMember], nextCursor: null }));
 		render(
 			<MembersWorkspace initialItems={[activeMember, secondMember]} initialNextCursor={null} />,
 		);
@@ -106,16 +108,18 @@ describe('members registry UI', () => {
 			target: { value: 'zoe@example.com' },
 		});
 
-		expect(screen.getAllByRole('article')).toHaveLength(1);
-		expect(screen.getByRole('heading', { name: 'Zoe Member' })).toBeTruthy();
-		expect(screen.getByText(/1 of 2 loaded profiles match/)).toBeTruthy();
+		expect(await screen.findByRole('heading', { name: 'Zoe Member' })).toBeTruthy();
+		await waitFor(() => expect(String(fetchMock.mock.calls[0]?.[0])).toContain('search=zoe%40example.com'));
+		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(1));
 
 		fireEvent.click(screen.getByRole('button', { name: 'Close search' }));
 
-		expect(screen.getAllByRole('article')).toHaveLength(2);
+		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
 	});
 
-	it('shows the correct empty state for an unmatched search', () => {
+	it('shows the correct empty state for an unmatched search', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [activeMember], nextCursor: null }));
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search members' }));
@@ -124,12 +128,12 @@ describe('members registry UI', () => {
 			target: { value: 'unknown person' },
 		});
 
-		expect(screen.getByText('No matching members')).toBeTruthy();
+		expect(await screen.findByText('No matching members')).toBeTruthy();
 		expect(screen.queryByRole('article')).toBeNull();
 
-		fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 
-		expect(screen.getAllByRole('article')).toHaveLength(1);
+		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(1));
 	});
 
 	it('switches between active and archived profiles', async () => {
@@ -153,19 +157,21 @@ describe('members registry UI', () => {
 		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('status=ARCHIVED');
 	});
 
-	it('sorts only loaded members', () => {
+	it('requests member ordering from the backend', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [activeMember, secondMember], nextCursor: null }));
 		render(
 			<MembersWorkspace initialItems={[activeMember, secondMember]} initialNextCursor={null} />,
 		);
 
 		let cards = screen.getAllByRole('article');
 
-		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Zoe Member');
+		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Example Active Member');
 
 		fireEvent.click(screen.getByRole('button', { name: 'Sort members: Newest first' }));
 
 		fireEvent.click(screen.getByRole('button', { name: 'Name: A to Z' }));
 
+		await waitFor(() => expect(String(fetchMock.mock.calls[0]?.[0])).toContain('order=NAME_ASC'));
 		cards = screen.getAllByRole('article');
 
 		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Example Active Member');
