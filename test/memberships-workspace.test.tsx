@@ -42,7 +42,10 @@ const plans: MembershipPlan[] = [
 ];
 
 const fetchMock = vi.fn<typeof fetch>();
-const showModalDescriptor = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'showModal');
+const showModalDescriptor = Object.getOwnPropertyDescriptor(
+	HTMLDialogElement.prototype,
+	'showModal',
+);
 const closeDescriptor = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'close');
 
 beforeEach(() => {
@@ -68,8 +71,7 @@ afterEach(() => {
 	if (showModalDescriptor)
 		Object.defineProperty(HTMLDialogElement.prototype, 'showModal', showModalDescriptor);
 	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
-	if (closeDescriptor)
-		Object.defineProperty(HTMLDialogElement.prototype, 'close', closeDescriptor);
+	if (closeDescriptor) Object.defineProperty(HTMLDialogElement.prototype, 'close', closeDescriptor);
 	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
 });
 
@@ -87,7 +89,9 @@ describe('membership pricing workspace', () => {
 
 	it('stages status and order in the sheet, applies both once, and keeps search local', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[2]], nextCursor: null }));
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[1], plans[0]], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(
+			Response.json({ items: [plans[1], plans[0]], nextCursor: null }),
+		);
 		render(<MembershipsWorkspace initialItems={[plans[1]!, plans[0]!]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
@@ -123,7 +127,7 @@ describe('membership pricing workspace', () => {
 		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
 			target: { value: 'ARCHIVED' },
 		});
-		fireEvent.click(screen.getByRole('button', { name: 'Close', exact: true }));
+		fireEvent.click(screen.getByRole('button', { name: /^Close$/ }));
 		expect(fetchMock).not.toHaveBeenCalled();
 		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
 		expect(screen.getByRole('combobox', { name: 'Status' })).toHaveProperty('value', 'ACTIVE');
