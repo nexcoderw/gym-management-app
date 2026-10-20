@@ -97,7 +97,9 @@ describe('members registry UI', () => {
 
 		expect(screen.getByRole('heading', { name: 'Example Active Member' })).toBeTruthy();
 
-		expect(screen.getByText('Active')).toBeTruthy();
+		expect(
+			within(screen.getByRole('article', { name: 'Example Active Member' })).getByText('Active'),
+		).toBeTruthy();
 		expect(screen.getByText('+250 700 000 001')).toBeTruthy();
 		expect(screen.getByText('1 loaded active profile')).toBeTruthy();
 		expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
@@ -182,7 +184,9 @@ describe('members registry UI', () => {
 	});
 
 	it('requests member ordering from the backend', async () => {
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [activeMember, secondMember], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(
+			Response.json({ items: [activeMember, secondMember], nextCursor: null }),
+		);
 		render(
 			<MembersWorkspace initialItems={[secondMember, activeMember]} initialNextCursor={null} />,
 		);
@@ -206,9 +210,7 @@ describe('members registry UI', () => {
 	});
 
 	it('discards closed drafts and applies status, order, and dates in one request', async () => {
-		fetchMock.mockResolvedValueOnce(
-			Response.json({ items: [archivedMember], nextCursor: null }),
-		);
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [archivedMember], nextCursor: null }));
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
