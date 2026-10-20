@@ -49,6 +49,14 @@ the approved plain-text copy. A separate delivery worker sends queued manual ema
 the scheduler no longer creates automatic reminders. The upcoming list shows queued work; recent
 activity distinguishes provider acceptance from inbox delivery. SMS is not enabled.
 
+The report BFF exposes `GET /api/reports/payments/summary` and
+`GET /api/reports/payments/pdf`. Both require `fromDate` and `toDate` as inclusive
+Africa/Kigali calendar dates and forward only those dates to the fixed Nest owner-report endpoints.
+Nest authorizes the live owner session and gym scope. The summary validates whole-RWF totals;
+the PDF adapter checks the content type and signature, caps the response at 32 MiB, and returns a
+safe attachment filename. Both responses are private and `no-store`. The report-page form and
+download controls are a separate frontend task; these BFF routes do not yet add them.
+
 ## Local ports
 
 | Service    | Port |
