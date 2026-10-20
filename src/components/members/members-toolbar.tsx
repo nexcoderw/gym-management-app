@@ -31,7 +31,6 @@ const orders: readonly MenuOption<MemberOrder>[] = [
 ];
 
 export function MembersToolbar({
-	visibleCount,
 	loadedCount,
 	totalCount,
 	hasMore,
@@ -45,7 +44,6 @@ export function MembersToolbar({
 	onTermChange,
 	onFiltersApply,
 }: {
-	readonly visibleCount: number;
 	readonly loadedCount: number;
 	readonly totalCount: number;
 	readonly hasMore: boolean;
@@ -95,8 +93,8 @@ export function MembersToolbar({
 			? 'Loading member profiles…'
 			: error && loadedCount === 0
 				? 'Member profiles unavailable'
-				: needle
-					? `${visibleCount} matching profile${visibleCount === 1 ? '' : 's'} loaded for “${needle}”`
+				: needle.length >= 3
+					? `${totalCount} matching profile${totalCount === 1 ? '' : 's'} for “${needle}”`
 					: `${loadedCount} of ${totalCount} ${status.toLowerCase()} profile${totalCount === 1 ? '' : 's'} shown`;
 
 	return (
@@ -104,8 +102,8 @@ export function MembersToolbar({
 			summary={`${summary}${hasMore && !error ? ' · More profiles available' : ''}`}
 			term={term}
 			searchLabel="Search members"
-			searchInputLabel="Search loaded members"
-			searchPlaceholder="Search members…"
+			searchInputLabel="Search members by name, phone or email"
+			searchPlaceholder="Search members (3+ characters)…"
 			onTermChange={onTermChange}
 			filtersOpen={filtersOpen}
 			onOpenFilters={openFilters}
