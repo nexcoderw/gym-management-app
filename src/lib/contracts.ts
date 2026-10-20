@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// PostgreSQL UUID columns may contain canonical IDs without RFC version/variant bits.
+export const databaseIdSchema = z.guid();
+
 export const memberPeriodUnitSchema = z.enum(['DAYS', 'WEEKS', 'MONTHS', 'YEARS']);
 
 const periodLimits = {
@@ -56,7 +59,7 @@ export type OwnerSession = z.infer<typeof sessionSchema>;
 
 export const reminderActivityItemSchema = z.strictObject({
 	id: z.uuid(),
-	memberId: z.uuid(),
+	memberId: databaseIdSchema,
 	memberName: z.string().min(1).max(160),
 	planName: z.string().min(1).max(120),
 	kind: z.enum(['THREE_DAYS_BEFORE', 'EXPIRY_DAY']),
@@ -108,7 +111,7 @@ export const membershipPlanInputSchema = z
 export const memberStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
 
 export const memberSchema = z.strictObject({
-	id: z.uuid(),
+	id: databaseIdSchema,
 	name: z.string().min(1).max(160),
 	phoneNumber: z.string().min(1).max(40),
 	email: z.email().nullable(),
@@ -120,7 +123,7 @@ export const memberSchema = z.strictObject({
 
 export const memberListSchema = z.strictObject({
 	items: z.array(memberSchema).max(50),
-	nextCursor: z.uuid().nullable(),
+	nextCursor: databaseIdSchema.nullable(),
 });
 
 const memberStartDateSchema = z
@@ -186,8 +189,8 @@ export const memberRegistrationInputSchema = z.strictObject({
 });
 
 export const memberSubscriptionSchema = z.strictObject({
-	id: z.uuid(),
-	memberId: z.uuid(),
+	id: databaseIdSchema,
+	memberId: databaseIdSchema,
 	membershipPlanId: z.uuid(),
 	planName: z.string().min(1),
 	price: z.number().int().min(0),
@@ -220,7 +223,7 @@ export const memberArchiveInputSchema = z.strictObject({ updatedAt: z.iso.dateti
 
 export const memberSubscriptionListSchema = z.strictObject({
 	items: z.array(memberSubscriptionSchema).max(50),
-	nextCursor: z.uuid().nullable(),
+	nextCursor: databaseIdSchema.nullable(),
 });
 
 export type MemberProfileInput = z.output<typeof memberProfileInputSchema>;
@@ -254,9 +257,9 @@ export const paymentStatusSchema = z.enum([
 export const paymentOrderSchema = z.enum(['NEWEST', 'OLDEST', 'AMOUNT_HIGH', 'AMOUNT_LOW']);
 
 export const paymentSchema = z.strictObject({
-	id: z.uuid(),
+	id: databaseIdSchema,
 	receiptNumber: z.string().min(1),
-	memberId: z.uuid(),
+	memberId: databaseIdSchema,
 	memberName: z.string().min(1),
 	amount: z.number().int().min(1).max(1_000_000_000),
 	currency: z.literal('RWF'),
@@ -271,7 +274,7 @@ export const paymentSchema = z.strictObject({
 	createdAt: z.iso.datetime(),
 	allocations: z.array(
 		z.strictObject({
-			subscriptionId: z.uuid(),
+			subscriptionId: databaseIdSchema,
 			planName: z.string().min(1),
 			amount: z.number().int().min(1),
 			startDate: z.iso.date(),
@@ -292,13 +295,13 @@ export const paymentSchema = z.strictObject({
 
 export const paymentListSchema = z.strictObject({
 	items: z.array(paymentSchema).max(50),
-	nextCursor: z.uuid().nullable(),
+	nextCursor: databaseIdSchema.nullable(),
 });
 
 export const paymentInputSchema = z
 	.strictObject({
-		memberId: z.uuid('Choose a member.'),
-		subscriptionId: z.uuid('Choose a membership registration.'),
+		memberId: databaseIdSchema,
+		subscriptionId: databaseIdSchema,
 		amount: z.number().int().min(1, 'Enter an amount greater than zero.').max(1_000_000_000),
 		method: paymentMethodSchema,
 		occurredAt: z.iso.datetime(),
@@ -326,7 +329,7 @@ export const paymentInputSchema = z
 /** One command creates a dated registration and its full-price payment. */
 export const registerPaymentInputSchema = z
 	.strictObject({
-		memberId: z.uuid().optional(),
+		memberId: databaseIdSchema.optional(),
 		member: memberRegistrationInputSchema
 			.omit({
 				subscription: true,
