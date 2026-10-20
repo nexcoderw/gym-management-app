@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
 	databaseIdSchema,
+	listSearchSchema,
 	membershipPlanInputSchema,
 	membershipPlanOrderSchema,
 } from '@/lib/contracts';
@@ -13,6 +14,7 @@ import { errorResponse } from '@/lib/server/upstream';
 
 const querySchema = z.strictObject({
 	status: z.enum(['ACTIVE', 'ARCHIVED', 'ALL']).default('ACTIVE'),
+	search: listSearchSchema.optional(),
 	order: membershipPlanOrderSchema.default('PRICE_ASC'),
 	limit: z.coerce.number<number>().int().min(1).max(24).default(24),
 	cursor: databaseIdSchema.optional(),
