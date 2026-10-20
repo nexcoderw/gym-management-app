@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { memberRegistrationInputSchema, memberStatusSchema } from '@/lib/contracts';
+import {
+	databaseIdSchema,
+	memberRegistrationInputSchema,
+	memberStatusSchema,
+} from '@/lib/contracts';
 import { createMember } from '@/lib/server/endpoints/members/create-member';
 import { listMembers } from '@/lib/server/endpoints/members/list-members';
 import { requireOwnerCsrfToken } from '@/lib/server/owner-csrf';
@@ -12,7 +16,7 @@ export const runtime = 'nodejs';
 const querySchema = z.strictObject({
 	status: memberStatusSchema.default('ACTIVE'),
 	limit: z.coerce.number<number>().int().min(1).max(50).default(20),
-	cursor: z.uuid().optional(),
+	cursor: databaseIdSchema.optional(),
 });
 
 export async function GET(request: Request): Promise<Response> {
