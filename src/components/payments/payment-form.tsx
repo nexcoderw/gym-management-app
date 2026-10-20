@@ -481,7 +481,7 @@ function formatRwf(amount: number): string {
 }
 
 async function loadMembers(cursor: string | null, signal: AbortSignal) {
-	const query = new URLSearchParams({ status: 'ACTIVE', limit: '50' });
+	const query = new URLSearchParams({ status: 'ACTIVE', limit: '24' });
 	if (cursor) query.set('cursor', cursor);
 	return paymentRequest(`${routes.membersApi}?${query}`, memberListSchema, { signal });
 }
