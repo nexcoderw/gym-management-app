@@ -58,7 +58,7 @@ export function RemindersToolbar({
 			term={term}
 			searchLabel="Search reminders"
 			searchInputLabel="Search expiring memberships"
-			searchPlaceholder="Search members or plans…"
+			searchPlaceholder="Search members or plans (3+ characters)…"
 			onTermChange={onTermChange}
 			filtersOpen={filtersOpen}
 			onOpenFilters={openFilters}
@@ -85,7 +85,11 @@ export function RemindersToolbar({
 							if (option) setDraftStatus(option.value);
 						}}
 					>
-						{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+						{statuses.map((item) => (
+							<option key={item.value} value={item.value}>
+								{item.label}
+							</option>
+						))}
 					</Select>
 					<Select
 						label="Order"
@@ -97,7 +101,11 @@ export function RemindersToolbar({
 							if (option) setDraftOrder(option.value);
 						}}
 					>
-						{orders.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+						{orders.map((item) => (
+							<option key={item.value} value={item.value}>
+								{item.label}
+							</option>
+						))}
 					</Select>
 				</div>
 			</FilterSheet>
