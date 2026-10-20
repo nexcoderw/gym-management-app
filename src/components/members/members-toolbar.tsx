@@ -33,6 +33,7 @@ const orders: readonly MenuOption<MemberOrder>[] = [
 export function MembersToolbar({
 	visibleCount,
 	loadedCount,
+	totalCount,
 	hasMore,
 	status,
 	order,
@@ -46,6 +47,7 @@ export function MembersToolbar({
 }: {
 	readonly visibleCount: number;
 	readonly loadedCount: number;
+	readonly totalCount: number;
 	readonly hasMore: boolean;
 	readonly status: MemberStatus;
 	readonly order: MemberOrder;
@@ -95,7 +97,7 @@ export function MembersToolbar({
 				? 'Member profiles unavailable'
 				: needle
 					? `${visibleCount} matching profile${visibleCount === 1 ? '' : 's'} loaded for “${needle}”`
-					: `${loadedCount} loaded ${status.toLowerCase()} profile${loadedCount === 1 ? '' : 's'}`;
+					: `${loadedCount} of ${totalCount} ${status.toLowerCase()} profile${totalCount === 1 ? '' : 's'} shown`;
 
 	return (
 		<FilterToolbar
