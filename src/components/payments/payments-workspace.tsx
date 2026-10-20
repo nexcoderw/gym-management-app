@@ -2,7 +2,6 @@
 
 import {
 	Add01Icon,
-	ArrowDown01Icon,
 	Cancel01Icon,
 	Invoice01Icon,
 	RefreshIcon,
@@ -13,6 +12,7 @@ import { Button } from '@/components/shared/button';
 import { Dialog } from '@/components/shared/dialog';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
+import { Pagination } from '@/components/shared/pagination';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
@@ -43,6 +43,7 @@ export function PaymentsWorkspace({
 }) {
 	const [items, setItems] = useState(initialItems);
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
+	const [currentPage, setCurrentPage] = useState(1);
 	const [errorStatus, setErrorStatus] = useState(initialErrorStatus);
 	const [status, setStatus] = useState<PaymentStatusFilter>('ALL');
 	const [method, setMethod] = useState<PaymentMethodFilter>('ALL');
@@ -75,6 +76,9 @@ export function PaymentsWorkspace({
 				value.toLocaleLowerCase('en').includes(needle),
 			),
 	);
+	const loadedPages = Math.max(1, Math.ceil(visible.length / 24));
+	const displayedPage = Math.min(currentPage, loadedPages);
+	const pageItems = visible.slice((displayedPage - 1) * 24, displayedPage * 24);
 
 	function notify(message: string, tone: ToastNotice['tone']) {
 		noticeId.current += 1;
@@ -114,15 +118,18 @@ export function PaymentsWorkspace({
 				signal: active.signal,
 			});
 			if (currentId !== requestId.current) return;
-			setItems((existing) =>
-				append
-					? [
-							...existing,
-							...page.items.filter((payment) => !existing.some((known) => known.id === payment.id)),
-						]
-					: page.items,
-			);
+			const nextItems = append
+				? [...items, ...page.items.filter((payment) => !items.some((known) => known.id === payment.id))]
+				: page.items;
+			setItems(nextItems);
 			setNextCursor(page.nextCursor);
+			setCurrentPage(
+				append
+					? Math.max(1, Math.ceil(nextItems.filter((payment) =>
+							!needle || [payment.memberName, payment.receiptNumber, payment.providerReference ?? ''].some((value) => value.toLocaleLowerCase('en').includes(needle)),
+						).length / 24))
+					: 1,
+			);
 			setErrorStatus(null);
 		} catch (error: unknown) {
 			if (active.signal.aborted || currentId !== requestId.current) return;
@@ -148,6 +155,15 @@ export function PaymentsWorkspace({
 	}
 	function changeTerm(value: string) {
 		setTerm(value);
+		setCurrentPage(1);
+	}
+
+	function changePage(page: number) {
+		if (page <= loadedPages) {
+			setCurrentPage(page);
+		} else if (page === loadedPages + 1 && nextCursor !== null) {
+			void load({ status, method, order, fromDate, toDate }, true);
+		}
 	}
 
 	async function create(input: RegisterPaymentInput) {
@@ -167,6 +183,7 @@ export function PaymentsWorkspace({
 			setToDate('');
 			setItems([created]);
 			setNextCursor(null);
+			setCurrentPage(1);
 			setErrorStatus(null);
 			notify(
 				created.status === 'PENDING'
@@ -263,7 +280,7 @@ export function PaymentsWorkspace({
 						description={
 							filteredEmpty
 								? nextCursor !== null && term.trim() !== ''
-									? 'No loaded payments match. Load more payments or change your search.'
+									? 'No loaded payments match. Open the next page or change your search.'
 									: 'Change your search or filters to see more of the ledger.'
 								: 'Add a member or choose an existing one, select a plan and record its payment.'
 						}
@@ -310,7 +327,7 @@ export function PaymentsWorkspace({
 								</tr>
 							</thead>
 							<tbody>
-								{visible.map((payment) => (
+								{pageItems.map((payment) => (
 									<tr key={payment.id}>
 										<td>
 											<button
@@ -362,17 +379,15 @@ export function PaymentsWorkspace({
 						</table>
 					</div>
 				)}
-				{nextCursor !== null && !failure ? (
-					<div className={styles.more}>
-						<Button
-							icon={ArrowDown01Icon}
-							variant="secondary"
-							pending={loading === 'more'}
-							onClick={() => void load({ status, method, order, fromDate, toDate }, true)}
-						>
-							Load more
-						</Button>
-					</div>
+				{!failure ? (
+					<Pagination
+						label="Payments"
+						page={displayedPage}
+						loadedPages={loadedPages}
+						hasNext={nextCursor !== null}
+						pending={loading !== 'idle'}
+						onPageChange={changePage}
+					/>
 				) : null}
 			</section>
 			{dialogOpen ? (
