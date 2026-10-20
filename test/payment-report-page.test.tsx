@@ -21,6 +21,18 @@ const summary = {
 	grossRwf: '45000',
 	refundedRwf: '5000',
 	netRwf: '40000',
+	planTotals: [
+		{
+			planId: '33333333-3333-4333-8333-333333333333',
+			planName: 'Gold Plan',
+			grossRwf: '30000',
+		},
+		{
+			planId: '44444444-4444-4444-8444-444444444444',
+			planName: 'Bronze Plan',
+			grossRwf: '15000',
+		},
+	],
 	generatedAt: '2026-02-01T08:00:00.000Z',
 };
 const getSummary = vi.mocked(getPaymentReportSummary);
@@ -50,6 +62,9 @@ describe('payment report page', () => {
 		expect(screen.getByText(`${new Intl.NumberFormat('en-RW').format(40_000)} RWF`)).toBeTruthy();
 		expect(screen.getByText(`${new Intl.NumberFormat('en-RW').format(45_000)} RWF`)).toBeTruthy();
 		expect(screen.getByRole('button', { name: 'Download full PDF' })).toBeTruthy();
+		expect(screen.getByRole('heading', { name: 'Gross payments by plan' })).toBeTruthy();
+		expect(screen.getByText('Gold Plan')).toBeTruthy();
+		expect(screen.getByText('Bronze Plan')).toBeTruthy();
 	});
 
 	it('rejects invalid ranges without an upstream request', async () => {
@@ -71,6 +86,7 @@ describe('payment report page', () => {
 			grossRwf: '0',
 			refundedRwf: '0',
 			netRwf: '0',
+			planTotals: [],
 		});
 		render(
 			await ReportPage({
