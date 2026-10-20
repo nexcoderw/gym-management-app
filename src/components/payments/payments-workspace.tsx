@@ -1,6 +1,7 @@
 'use client';
 
 import { Add01Icon, Cancel01Icon, Invoice01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
@@ -20,6 +21,7 @@ import {
 } from '@/lib/contracts';
 import { PaymentForm } from './payment-form';
 import { paymentErrorMessage, paymentRequest, PaymentRequestError } from './payment-requests';
+import { kigaliCalendarDate, subscriptionCountdown } from './payment-subscription-remaining';
 import {
 	PaymentToolbar,
 	type PaymentFilterSelection,
@@ -32,10 +34,12 @@ export function PaymentsWorkspace({
 	initialItems,
 	initialNextCursor,
 	initialErrorStatus,
+	initialToday,
 }: {
 	readonly initialItems: Payment[];
 	readonly initialNextCursor: string | null;
 	readonly initialErrorStatus: number | null;
+	readonly initialToday: string;
 }) {
 	const [items, setItems] = useState(initialItems);
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
@@ -49,6 +53,7 @@ export function PaymentsWorkspace({
 	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
+	const [today, setToday] = useState(initialToday);
 	const [loading, setLoading] = useState<'idle' | 'page' | 'more'>('idle');
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [details, setDetails] = useState<Payment | null>(null);
@@ -60,13 +65,17 @@ export function PaymentsWorkspace({
 	const requestId = useRef(0);
 	const controller = useRef<AbortController | null>(null);
 	const dismissToast = useCallback(() => setNotice(null), []);
-	useEffect(
-		() => () => {
+	useEffect(() => {
+		const calendarTimer = window.setInterval(
+			() => setToday(kigaliCalendarDate(new Date())),
+			60_000,
+		);
+		return () => {
+			window.clearInterval(calendarTimer);
 			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			controller.current?.abort();
-		},
-		[],
-	);
+		};
+	}, []);
 	const visible = items;
 	const loadedPages = Math.max(1, Math.ceil(visible.length / 24));
 	const displayedPage = Math.min(currentPage, loadedPages);
@@ -313,33 +322,23 @@ export function PaymentsWorkspace({
 							<caption className={styles.srOnly}>Payments for the current gym</caption>
 							<thead>
 								<tr>
-									<th scope="col">Receipt</th>
 									<th scope="col">Member</th>
 									<th scope="col">Plan</th>
 									<th scope="col">Start date</th>
-									<th scope="col">End date</th>
-									<th scope="col">Date</th>
+									<th scope="col">Days left</th>
+									<th scope="col">Recorded on</th>
 									<th scope="col">Method</th>
-									<th scope="col">Status</th>
 									<th scope="col" className={styles.amount}>
 										Amount
+									</th>
+									<th scope="col" className={styles.receiptColumn}>
+										<span className={styles.srOnly}>Receipt action</span>
 									</th>
 								</tr>
 							</thead>
 							<tbody>
 								{pageItems.map((payment) => (
 									<tr key={payment.id}>
-										<td>
-											<button
-												type="button"
-												className={styles.receipt}
-												disabled={detailsLoading !== null}
-												onClick={() => void openDetails(payment.id)}
-												aria-label={`View payment ${payment.receiptNumber}`}
-											>
-												{payment.receiptNumber}
-											</button>
-										</td>
 										<td>{payment.memberName}</td>
 										<td>{payment.allocations.map((item) => item.planName).join(', ')}</td>
 										<td>
@@ -350,11 +349,27 @@ export function PaymentsWorkspace({
 											))}
 										</td>
 										<td>
-											{payment.allocations.map((item) => (
-												<time key={`${item.subscriptionId}-end`} dateTime={item.endDate}>
-													{item.endDate}
-												</time>
-											))}
+											<div className={styles.remainingList}>
+												{payment.allocations.length === 0 ? '—' : null}
+												{payment.allocations.map((item) => {
+													const remaining = subscriptionCountdown(
+														item.startDate,
+														item.endDate,
+														today,
+													);
+													return (
+														<span
+															key={item.subscriptionId}
+															className={styles.remaining}
+															data-tone={remaining.tone}
+														>
+															<span className={styles.srOnly}>{item.planName}: </span>
+															{remaining.label}
+															<span className={styles.srOnly}>; ends {item.endDate}</span>
+														</span>
+													);
+												})}
+											</div>
 										</td>
 										<td>
 											<time dateTime={payment.occurredAt}>
@@ -365,13 +380,20 @@ export function PaymentsWorkspace({
 											</time>
 										</td>
 										<td>{methodLabel(payment.method)}</td>
-										<td>
-											<span className={styles.status} data-status={payment.status}>
-												{statusLabel(payment.status)}
-											</span>
-										</td>
 										<td className={styles.amount}>
 											{new Intl.NumberFormat('en-RW').format(payment.amount)} <span>RWF</span>
+										</td>
+										<td className={styles.receiptColumn}>
+											<button
+												type="button"
+												className={styles.receiptAction}
+												disabled={detailsLoading !== null}
+												onClick={() => void openDetails(payment.id)}
+												aria-label={`View receipt ${payment.receiptNumber}`}
+											>
+												<HugeiconsIcon icon={Invoice01Icon} size={16} aria-hidden="true" />
+												Receipt
+											</button>
 										</td>
 									</tr>
 								))}
@@ -449,7 +471,7 @@ export function PaymentsWorkspace({
 								<dt>Allocated to</dt>
 								<dd>
 									{allocation.planName} · {new Intl.NumberFormat('en-RW').format(allocation.amount)}{' '}
-									RWF
+									RWF · {allocation.startDate} to {allocation.endDate} (inclusive)
 								</dd>
 							</div>
 						))}
