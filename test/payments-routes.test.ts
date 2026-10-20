@@ -131,17 +131,23 @@ describe('payment BFF routes', () => {
 		expect(await result.json()).toMatchObject({ nextCursor: syntheticId });
 	});
 
-	it('forwards payment search and transaction date filters', async () => {
+	it('forwards transaction date filters without search', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
 		const result = await listPayments(
 			new Request(
-				'https://manager.test/api/payments?search=soho&fromDate=2026-01-01&toDate=2026-10-19',
+				'https://manager.test/api/payments?fromDate=2026-01-01&toDate=2026-10-19',
 			),
 		);
 		expect(result.status).toBe(200);
 		expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
-			'search=soho&fromDate=2026-01-01&toDate=2026-10-19',
+			'fromDate=2026-01-01&toDate=2026-10-19',
 		);
+	});
+
+	it('rejects a search parameter instead of forwarding it', async () => {
+		const result = await listPayments(new Request('https://manager.test/api/payments?search=soho'));
+		expect(result.status).toBe(400);
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it('forwards only the payment DTO with an idempotency key', async () => {
