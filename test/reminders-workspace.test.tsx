@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RemindersWorkspace } from '@/components/reminders/reminders-workspace';
 import type { ReminderActivityItem } from '@/lib/contracts';
@@ -22,9 +22,35 @@ const reminder: ReminderActivityItem = {
 	deliveredAt: null,
 };
 
+const showModalDescriptor = Object.getOwnPropertyDescriptor(
+	HTMLDialogElement.prototype,
+	'showModal',
+);
+const closeDescriptor = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'close');
+
+beforeEach(() => {
+	Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+		configurable: true,
+		value(this: HTMLDialogElement) {
+			this.open = true;
+		},
+	});
+	Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+		configurable: true,
+		value(this: HTMLDialogElement) {
+			this.open = false;
+		},
+	});
+});
+
 afterEach(() => {
 	cleanup();
 	refresh.mockReset();
+	if (showModalDescriptor)
+		Object.defineProperty(HTMLDialogElement.prototype, 'showModal', showModalDescriptor);
+	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+	if (closeDescriptor) Object.defineProperty(HTMLDialogElement.prototype, 'close', closeDescriptor);
+	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
 });
 
 describe('reminders activity workspace', () => {
@@ -45,20 +71,41 @@ describe('reminders activity workspace', () => {
 						id: '33333333-3333-4333-8333-333333333333',
 						memberName: 'Other Member',
 						status: 'DELIVERED',
+						dueDate: '2030-01-25',
 					},
 				]}
 				errorStatus={null}
 			/>,
 		);
+		fireEvent.click(screen.getByRole('button', { name: 'Search reminders' }));
 		fireEvent.change(screen.getByRole('searchbox', { name: 'Search reminder activity' }), {
 			target: { value: 'Other' },
 		});
 		expect(screen.queryByText('Example Member')).toBeNull();
 		expect(screen.getByText('Other Member')).toBeTruthy();
-		fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'ACCEPTED' } });
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		let sheet = screen.getByRole('dialog');
+		expect(within(sheet).getByRole('button', { name: 'Apply' }).hasAttribute('disabled')).toBe(
+			true,
+		);
+		fireEvent.change(within(sheet).getByLabelText('Status'), { target: { value: 'ACCEPTED' } });
+		expect(screen.getByText('Other Member')).toBeTruthy();
+		fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		sheet = screen.getByRole('dialog');
+		expect((within(sheet).getByLabelText('Status') as HTMLSelectElement).value).toBe('ALL');
+		fireEvent.change(within(sheet).getByLabelText('Status'), { target: { value: 'ACCEPTED' } });
+		fireEvent.click(within(sheet).getByRole('button', { name: 'Apply' }));
 		expect(screen.getByRole('heading', { name: 'No matching reminders' })).toBeTruthy();
 		fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 		expect(screen.getByText('Example Member')).toBeTruthy();
+
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		sheet = screen.getByRole('dialog');
+		fireEvent.change(within(sheet).getByLabelText('Order'), { target: { value: 'OLDEST' } });
+		fireEvent.click(within(sheet).getByRole('button', { name: 'Apply' }));
+		const rows = within(screen.getByRole('table')).getAllByRole('row');
+		expect(within(rows[1]!).getByText('Other Member')).toBeTruthy();
 	});
 
 	it('distinguishes an empty feed from a failed read', () => {
