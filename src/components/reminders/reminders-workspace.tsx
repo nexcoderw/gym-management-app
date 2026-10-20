@@ -14,7 +14,6 @@ import {
 	queuedReminderSchema,
 	upcomingReminderSchema,
 	type ManualReminderInput,
-	type ReminderActivityItem,
 	type UpcomingReminderItem,
 } from '@/lib/contracts';
 
@@ -28,22 +27,6 @@ const dateFormatter = new Intl.DateTimeFormat('en-RW', {
 
 function formattedDate(value: string): string {
 	return dateFormatter.format(new Date(`${value}T12:00:00Z`));
-}
-
-function occasionLabel(kind: ReminderActivityItem['kind']): string {
-	if (kind === 'THREE_DAYS_BEFORE') return 'Three days before';
-	if (kind === 'EXPIRY_DAY') return 'Expiry day';
-	return 'Sent by owner';
-}
-
-function statusLabel(status: ReminderActivityItem['status']): string {
-	switch (status) {
-		case 'ACCEPTED': return 'Submitted to email provider';
-		case 'DELIVERED': return 'Delivered';
-		case 'BOUNCED': return 'Bounced';
-		case 'FAILED': return 'Delivery failed';
-		case 'UNCERTAIN': return 'Needs review';
-	}
 }
 
 function matchesStatus(item: UpcomingReminderItem, status: ReminderStatusFilter): boolean {
@@ -65,14 +48,10 @@ async function readError(response: Response): Promise<string> {
 }
 
 export function RemindersWorkspace({
-	items,
-	errorStatus,
 	upcoming: initialUpcoming = [],
 	nextCursor: initialNextCursor = null,
 	upcomingErrorStatus = null,
 }: {
-	readonly items: readonly ReminderActivityItem[];
-	readonly errorStatus: number | null;
 	readonly upcoming?: readonly UpcomingReminderItem[];
 	readonly nextCursor?: string | null;
 	readonly upcomingErrorStatus?: number | null;
@@ -146,7 +125,7 @@ export function RemindersWorkspace({
 			}
 			setUpcoming((current) => current.map((item) => item.subscriptionId === subscriptionId ? { ...item, canSend: false, manualStatus: 'QUEUED' } : item));
 			setSelected(null);
-			setNotice({ id: Date.now(), tone: 'success', message: 'Email reminder queued for delivery. Check recent activity for its status.' });
+			setNotice({ id: Date.now(), tone: 'success', message: 'Email reminder queued for delivery.' });
 		} catch (error: unknown) {
 			setNotice({ id: Date.now(), tone: 'error', message: error instanceof Error ? error.message : 'Could not submit the email.' });
 		} finally { setSending(false); }
@@ -154,7 +133,7 @@ export function RemindersWorkspace({
 
 	return (
 		<div className={styles.page}>
-			<PageHeader title="Reminders" description="Review memberships expiring in the next 14 days and email delivery activity." actions={upcomingErrorStatus === null && upcoming.length > 0 ? <Button icon={RefreshIcon} variant="secondary" pending={refreshing} onClick={refresh}>Refresh</Button> : undefined} />
+			<PageHeader title="Reminders" description="Review memberships expiring in the next 14 days." actions={upcomingErrorStatus === null && upcoming.length > 0 ? <Button icon={RefreshIcon} variant="secondary" pending={refreshing} onClick={refresh}>Refresh</Button> : undefined} />
 			<section className={styles.workspace} aria-label="Expiring memberships">
 				{upcomingErrorStatus !== null ? (
 					<EmptyState icon={Mail01Icon} role="alert" title={upcomingErrorStatus === 401 ? 'Your session has expired' : 'Expiring memberships unavailable'} description={upcomingErrorStatus === 401 ? 'Sign in again to view upcoming expiries.' : 'We could not load upcoming expiries. Please try again.'} action={upcomingErrorStatus === 401 ? <ButtonLink href={routes.login} icon={ArrowRight01Icon}>Open sign in</ButtonLink> : <Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>Refresh</Button>} />
@@ -162,16 +141,10 @@ export function RemindersWorkspace({
 					<>
 						{upcoming.length > 0 ? <RemindersToolbar count={visible.length} total={upcoming.length} term={search} status={status} order={order} onTermChange={(value) => { setSearch(value); setCurrentPage(1); }} onFiltersApply={(nextStatus, nextOrder) => { setStatus(nextStatus); setOrder(nextOrder); setCurrentPage(1); }} /> : null}
 						{visible.length === 0 ? <EmptyState icon={Mail01Icon} title={upcoming.length === 0 ? 'No memberships nearing expiry' : 'No matching members'} description={upcoming.length === 0 ? 'Memberships ending within the next 14 days will appear here.' : 'Try another search or filter.'} action={upcoming.length === 0 ? <Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>Refresh reminders</Button> : <Button icon={Cancel01Icon} variant="secondary" onClick={() => { setSearch(''); setStatus('ALL'); setOrder('SOONEST'); }}>Clear filters</Button>} /> : (
-							<div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Memberships ending in the next 14 days</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Expires</th><th scope="col">Time left</th><th scope="col">Reminder</th><th scope="col">Action</th></tr></thead><tbody>{pageItems.map((item) => <tr key={item.subscriptionId}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td>{item.daysRemaining === 0 ? 'Today' : `${item.daysRemaining} day${item.daysRemaining === 1 ? '' : 's'}`}</td><td><span className={styles.status} data-status={item.manualStatus ?? 'NONE'}>{item.manualStatus === null ? item.canSend ? 'Ready' : 'Email unavailable' : item.manualStatus === 'QUEUED' || item.manualStatus === 'PROCESSING' ? 'Queued' : item.manualStatus === 'ACCEPTED' || item.manualStatus === 'DELIVERED' ? 'Submitted' : 'Review activity'}</span></td><td>{item.canSend ? <Button icon={Mail01Icon} width="small" onClick={() => setSelected(item)}>Send reminder</Button> : <span className={styles.muted}>—</span>}</td></tr>)}</tbody></table></div>
+							<div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Memberships ending in the next 14 days</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Expires</th><th scope="col">Time left</th><th scope="col">Reminder</th><th scope="col">Action</th></tr></thead><tbody>{pageItems.map((item) => <tr key={item.subscriptionId}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td>{item.daysRemaining === 0 ? 'Today' : `${item.daysRemaining} day${item.daysRemaining === 1 ? '' : 's'}`}</td><td><span className={styles.status} data-status={item.manualStatus ?? 'NONE'}>{item.manualStatus === null ? item.canSend ? 'Ready' : 'Email unavailable' : item.manualStatus === 'QUEUED' || item.manualStatus === 'PROCESSING' ? 'Queued' : item.manualStatus === 'ACCEPTED' ? 'Provider accepted' : item.manualStatus === 'DELIVERED' ? 'Delivered' : 'Needs review'}</span></td><td>{item.canSend ? <Button icon={Mail01Icon} width="small" onClick={() => setSelected(item)}>Send reminder</Button> : <span className={styles.muted}>—</span>}</td></tr>)}</tbody></table></div>
 						)}
 						<Pagination label="Reminders" page={displayedPage} loadedPages={loadedPages} hasNext={nextCursor !== null} pending={loadingMore} onPageChange={changePage} />
 					</>
-				)}
-			</section>
-			<section className={styles.workspace} aria-label="Recent email reminder activity">
-				<h2 className={styles.sectionTitle}>Recent email activity</h2>
-				{errorStatus !== null ? <p className={styles.note} role="alert">Recent delivery activity could not be loaded. Refresh to try again.</p> : items.length === 0 ? <p className={styles.note}>No reminders have been submitted to the email provider yet.</p> : (
-					<><div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Recent reminder delivery activity</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Occasion</th><th scope="col">Expires</th><th scope="col">Due</th><th scope="col">Delivery status</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td>{occasionLabel(item.kind)}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td><time dateTime={item.dueDate}>{formattedDate(item.dueDate)}</time></td><td><span className={styles.status} data-status={item.status}>{statusLabel(item.status)}</span></td></tr>)}</tbody></table></div><p className={styles.note}>Submitted means the email provider accepted the message; it does not confirm inbox delivery. Showing the 50 most recent occasions.</p></>
 				)}
 			</section>
 			{selected !== null ? (
