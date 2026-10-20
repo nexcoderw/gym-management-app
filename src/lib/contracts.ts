@@ -9,6 +9,30 @@ export const listSearchSchema = z
 	.max(80)
 	.regex(/^[^\p{Cc}\p{Cf}]+$/u);
 
+export const paymentReportQuerySchema = z
+	.strictObject({
+		fromDate: z.iso.date(),
+		toDate: z.iso.date(),
+	})
+	.refine(({ fromDate, toDate }) => fromDate <= toDate, {
+		message: 'The end date must be on or after the start date.',
+		path: ['toDate'],
+	});
+
+export const paymentReportSummarySchema = z.strictObject({
+	fromDate: z.iso.date(),
+	toDate: z.iso.date(),
+	currency: z.literal('RWF'),
+	paymentCount: z.number().int().nonnegative(),
+	settledPaymentCount: z.number().int().nonnegative(),
+	grossRwf: z.string().regex(/^\d+$/u),
+	refundedRwf: z.string().regex(/^\d+$/u),
+	netRwf: z.string().regex(/^\d+$/u),
+	generatedAt: z.iso.datetime(),
+});
+
+export type PaymentReportSummary = z.infer<typeof paymentReportSummarySchema>;
+
 export const memberPeriodUnitSchema = z.enum(['DAYS', 'WEEKS', 'MONTHS', 'YEARS']);
 
 const periodLimits = {
