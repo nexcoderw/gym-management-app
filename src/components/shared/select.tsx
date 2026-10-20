@@ -9,6 +9,7 @@ import styles from './select.module.css';
 interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
 	readonly children: ReactNode;
 	readonly error?: string;
+	readonly focusStyle?: 'subtle';
 	readonly hint?: string;
 	readonly icon: IconSvgElement;
 	readonly label: string;
@@ -18,6 +19,7 @@ export function Select({
 	children,
 	className,
 	error,
+	focusStyle,
 	hint,
 	icon,
 	id,
@@ -31,7 +33,11 @@ export function Select({
 	return (
 		<div className={styles.field}>
 			<label htmlFor={selectId}>{label}</label>
-			<div className={styles.control} data-invalid={error ? 'true' : undefined}>
+			<div
+				className={styles.control}
+				data-invalid={error ? 'true' : undefined}
+				data-focus-style={focusStyle}
+			>
 				<span className={styles.leadingIcon} aria-hidden="true">
 					<HugeiconsIcon icon={icon} size={18} strokeWidth={1.7} />
 				</span>
