@@ -65,23 +65,8 @@
 	color: var(--text-success);
 }
 
-.sectionTitle {
-	margin: var(--space-5) 0 0;
-	font-size: 1.25rem;
-}
-
 .muted {
 	color: var(--text-secondary);
-}
-
-.note {
-	margin: 0;
-	color: var(--text-secondary);
-}
-
-.note {
-	font-size: var(--text-caption);
-	line-height: 1.5;
 }
 
 .srOnly {
