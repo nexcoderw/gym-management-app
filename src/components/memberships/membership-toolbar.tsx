@@ -1,16 +1,12 @@
-'use client';
+F'use client';
 
-import {
-	ArrowDown01Icon,
-	Cancel01Icon,
-	FilterIcon,
-	Search01Icon,
-	Tick02Icon,
-} from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { ArrowDown01Icon, Cancel01Icon, FilterIcon, Search01Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
+import { FilterSheet } from '@/components/shared/filter-sheet';
+import { Select } from '@/components/shared/select';
 import styles from './membership-toolbar.module.css';
 
 export type MembershipFilter = 'ACTIVE' | 'ARCHIVED';
@@ -35,8 +31,7 @@ export function MembershipToolbar({
 	status,
 	order,
 	onTermChange,
-	onStatusChange,
-	onOrderChange,
+	onFiltersApply,
 }: {
 	readonly count: number;
 	readonly total: number;
@@ -45,10 +40,12 @@ export function MembershipToolbar({
 	readonly status: MembershipFilter;
 	readonly order: MembershipOrder;
 	readonly onTermChange: (value: string) => void;
-	readonly onStatusChange: (value: MembershipFilter) => void;
-	readonly onOrderChange: (value: MembershipOrder) => void;
+	readonly onFiltersApply: (status: MembershipFilter, order: MembershipOrder) => void;
 }) {
 	const [searchOpen, setSearchOpen] = useState(false);
+	const [filtersOpen, setFiltersOpen] = useState(false);
+	const [draftStatus, setDraftStatus] = useState(status);
+	const [draftOrder, setDraftOrder] = useState(order);
 	const searchId = useId();
 	const toggle = useRef<HTMLButtonElement>(null);
 	const input = useRef<HTMLInputElement>(null);
@@ -57,6 +54,17 @@ export function MembershipToolbar({
 		onTermChange('');
 		setSearchOpen(false);
 		toggle.current?.focus();
+	}
+
+	function openFilters() {
+		setDraftStatus(status);
+		setDraftOrder(order);
+		setFiltersOpen(true);
+	}
+
+	function applyFilters() {
+		onFiltersApply(draftStatus, draftOrder);
+		setFiltersOpen(false);
 	}
 
 	return (
@@ -111,130 +119,58 @@ export function MembershipToolbar({
 						</>
 					) : null}
 				</div>
-				<FilterMenu
-					label="Status"
+				<Button
 					icon={FilterIcon}
-					value={status}
-					options={statuses}
-					onChange={onStatusChange}
-				/>
-				<FilterMenu
-					label="Order"
-					icon={ArrowDown01Icon}
-					value={order}
-					options={orders}
-					onChange={onOrderChange}
-				/>
+					variant="secondary"
+					width="small"
+					aria-haspopup="dialog"
+					aria-expanded={filtersOpen}
+					onClick={openFilters}
+				>
+					Filters
+				</Button>
 			</div>
-		</header>
-	);
-}
-
-function FilterMenu<T extends string>({
-	label,
-	icon,
-	value,
-	options,
-	onChange,
-}: {
-	readonly label: string;
-	readonly icon: IconSvgElement;
-	readonly value: T;
-	readonly options: readonly { readonly value: T; readonly label: string }[];
-	readonly onChange: (value: T) => void;
-}) {
-	const [open, setOpen] = useState(false);
-	const wrapper = useRef<HTMLDivElement>(null);
-	const menuId = useId();
-	const currentLabel = options.find((option) => option.value === value)?.label ?? label;
-
-	useEffect(() => {
-		if (!open) return;
-		function outside(event: PointerEvent) {
-			if (event.target instanceof Node && wrapper.current?.contains(event.target)) return;
-			setOpen(false);
-		}
-		document.addEventListener('pointerdown', outside);
-		return () => document.removeEventListener('pointerdown', outside);
-	}, [open]);
-
-	function close() {
-		setOpen(false);
-		wrapper.current?.querySelector<HTMLButtonElement>('[data-trigger]')?.focus();
-	}
-
-	function handleKeys(event: KeyboardEvent<HTMLDivElement>) {
-		if (!open) return;
-		if (event.key === 'Escape') {
-			event.preventDefault();
-			close();
-			return;
-		}
-		const buttons = Array.from(
-			event.currentTarget.querySelectorAll<HTMLButtonElement>('[data-option]'),
-		);
-		const index = buttons.findIndex((button) => button === document.activeElement);
-		const last = buttons.length - 1;
-		const moves: Record<string, number> = {
-			ArrowDown: index >= last ? 0 : index + 1,
-			ArrowUp: index <= 0 ? last : index - 1,
-			Home: 0,
-			End: last,
-		};
-		const next = moves[event.key];
-		if (next === undefined) return;
-		event.preventDefault();
-		buttons[next]?.focus();
-	}
-
-	return (
-		<div
-			ref={wrapper}
-			className={styles.filter}
-			onKeyDown={handleKeys}
-			onBlur={(event) => {
-				if (
-					!(event.relatedTarget instanceof Node) ||
-					!event.currentTarget.contains(event.relatedTarget)
-				) {
-					setOpen(false);
-				}
-			}}
-		>
-			<Button
-				iconOnly
-				icon={icon}
-				variant="secondary"
-				data-trigger
-				aria-expanded={open}
-				aria-controls={open ? menuId : undefined}
-				onClick={() => setOpen((current) => !current)}
+			<FilterSheet
+				open={filtersOpen}
+				title="Filter memberships"
+				description="Choose which plans to show and how to order them."
+				applyDisabled={draftStatus === status && draftOrder === order}
+				onClose={() => setFiltersOpen(false)}
+				onApply={applyFilters}
 			>
-				{`${label}: ${currentLabel}`}
-			</Button>
-			{open ? (
-				<div id={menuId} className={styles.menu} role="group" aria-label={label}>
-					<p>{label}</p>
-					{options.map((option) => (
-						<button
-							key={option.value}
-							type="button"
-							data-option
-							aria-pressed={option.value === value}
-							autoFocus={option.value === value}
-							onClick={() => {
-								onChange(option.value);
-								close();
-							}}
-						>
-							<span aria-hidden="true">
-								{option.value === value ? <HugeiconsIcon icon={Tick02Icon} size={16} /> : null}
-							</span>
-							{option.label}
-						</button>
-					))}
+				<div className={styles.filterFields}>
+					<Select
+						label="Status"
+						icon={FilterIcon}
+						value={draftStatus}
+						onChange={(event) => {
+							const selected = statuses.find((option) => option.value === event.target.value);
+							if (selected) setDraftStatus(selected.value);
+						}}
+					>
+						{statuses.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</Select>
+					<Select
+						label="Order"
+						icon={ArrowDown01Icon}
+						value={draftOrder}
+						onChange={(event) => {
+							const selected = orders.find((option) => option.value === event.target.value);
+							if (selected) setDraftOrder(selected.value);
+						}}
+					>
+						{orders.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</Select>
 				</div>
-			) : null}
-		</div>
+			</FilterSheet>
+		</header>
 	);
 }
