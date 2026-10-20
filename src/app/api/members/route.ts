@@ -18,7 +18,6 @@ export const runtime = 'nodejs';
 const querySchema = z.strictObject({
 	status: memberStatusSchema.default('ACTIVE'),
 	order: memberOrderSchema.default('NEWEST'),
-	search: z.string().max(80).optional(),
 	fromDate: listDateSchema.optional(),
 	toDate: listDateSchema.optional(),
 	limit: z.coerce.number<number>().int().min(1).max(24).default(24),
