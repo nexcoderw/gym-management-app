@@ -65,10 +65,9 @@ describe('membership pricing workspace', () => {
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
 	});
 
-	it('queries server-side search, status filtering and ordering', async () => {
+	it('searches loaded plans while requesting status and ordering from the backend', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[0]], nextCursor: null }));
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[2]], nextCursor: null }));
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[1], plans[0]], nextCursor: null }));
 		render(<MembershipsWorkspace initialItems={[plans[1]!, plans[0]!]} initialNextCursor={null} />);
 
@@ -85,8 +84,8 @@ describe('membership pricing workspace', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search memberships' }));
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'not a plan' } });
-		await waitFor(() => expect(String(fetchMock.mock.calls[2]?.[0])).toContain('search=not+a+plan'));
 		expect(await screen.findByRole('heading', { name: 'No matching memberships' })).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 		fireEvent.click(screen.getByRole('button', { name: 'Show active' }));
 		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
