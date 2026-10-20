@@ -97,11 +97,13 @@ describe('reminders workspace', () => {
 		fireEvent.change(screen.getByRole('searchbox', { name: 'Search expiring memberships' }), {
 			target: { value: 'Second' },
 		});
-		const registry = screen.getByRole('table', { name: /memberships ending/iu });
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
 		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('search=Second');
-		await waitFor(() => expect(within(registry).queryByText('Example Member')).toBeNull());
-		expect(within(registry).getByText('Second Member')).toBeTruthy();
+		await waitFor(() => {
+			const registry = screen.getByRole('table', { name: /memberships ending/iu });
+			expect(within(registry).queryByText('Example Member')).toBeNull();
+			expect(within(registry).getByText('Second Member')).toBeTruthy();
+		});
 		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
 		const sheet = screen.getByRole('dialog', { name: 'Filter reminders' });
 		expect(within(sheet).getByRole('button', { name: 'Apply' }).hasAttribute('disabled')).toBe(
@@ -110,6 +112,31 @@ describe('reminders workspace', () => {
 		fireEvent.change(within(sheet).getByLabelText('Status'), { target: { value: 'READY' } });
 		fireEvent.click(within(sheet).getByRole('button', { name: 'Apply' }));
 		expect(screen.getByRole('heading', { name: 'No matching members' })).toBeTruthy();
+	});
+
+	it('shows the shared search state instead of stale reminders during a new search', async () => {
+		let completeRequest: (response: Response) => void = () => {
+			throw new Error('The reminder request was not started.');
+		};
+		const fetchMock = vi.fn<typeof fetch>().mockImplementationOnce(
+			() =>
+				new Promise<Response>((resolve) => {
+					completeRequest = resolve;
+				}),
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		render(<RemindersWorkspace upcoming={[upcoming]} />);
+		fireEvent.click(screen.getByRole('button', { name: 'Search reminders' }));
+		fireEvent.change(screen.getByRole('searchbox', { name: 'Search expiring memberships' }), {
+			target: { value: 'Monthly' },
+		});
+
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+		expect(screen.getByRole('heading', { name: 'Searching upcoming reminders' })).toBeTruthy();
+		expect(screen.queryByRole('table', { name: /memberships ending/iu })).toBeNull();
+
+		completeRequest(Response.json({ items: [upcoming], nextCursor: null }));
+		expect(await screen.findByRole('table', { name: /memberships ending/iu })).toBeTruthy();
 	});
 
 	it('does not present stale reminders as matching results after a failed search', async () => {
