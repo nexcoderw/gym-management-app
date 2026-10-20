@@ -46,6 +46,14 @@ describe('reminder activity BFF route', () => {
 		);
 	});
 
+	it('accepts activity linked to a PostgreSQL UUID member', async () => {
+		const synthetic = { ...item, memberId: '11ab9b64-19b3-ee0d-19c8-e2c69b0722da' };
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [synthetic] }));
+		const response = await GET(new Request('https://manager.test/api/reminders/activity'));
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({ items: [synthetic] });
+	});
+
 	it('rejects caller-selected query parameters before contacting Nest', async () => {
 		const response = await GET(
 			new Request('https://manager.test/api/reminders/activity?organizationId=other'),
