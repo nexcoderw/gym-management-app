@@ -122,7 +122,7 @@ export function MembersWorkspace({
 	});
 
 	const [term, setTerm] = useState('');
-	const appliedSearch = useRef('');
+	const [appliedSearch, setAppliedSearch] = useState('');
 	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [order, setOrder] = useState<MemberOrder>('newest');
 	const [fromDate, setFromDate] = useState('');
@@ -157,7 +157,7 @@ export function MembersWorkspace({
 		selectedOrder = order,
 		from = fromDate,
 		to = toDate,
-		search = appliedSearch.current,
+		search = appliedSearch,
 	) {
 		const currentRequest = ++requestNumber.current;
 
@@ -224,9 +224,9 @@ export function MembersWorkspace({
 		setTerm(value);
 		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		const search = value.trim().length >= 3 ? value.trim() : '';
-		if (search === appliedSearch.current) return;
+		if (search === appliedSearch) return;
 		searchTimer.current = setTimeout(() => {
-			appliedSearch.current = search;
+			setAppliedSearch(search);
 			void loadMembers(view.status, 1, order, fromDate, toDate, search);
 		}, 250);
 	}
@@ -235,7 +235,7 @@ export function MembersWorkspace({
 	const busy = view.loading !== 'idle';
 	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
 	const canLoadMore = view.page < view.totalPages;
-	const searching = appliedSearch.current !== '';
+	const searching = appliedSearch !== '';
 	const filtered = searching || fromDate !== '' || toDate !== '';
 
 	return (
@@ -260,11 +260,12 @@ export function MembersWorkspace({
 					onTermChange={changeTerm}
 					onFiltersApply={(status, selectedOrder, from, to) => {
 						if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-						appliedSearch.current = term.trim().length >= 3 ? term.trim() : '';
+						const search = term.trim().length >= 3 ? term.trim() : '';
+						setAppliedSearch(search);
 						setOrder(selectedOrder);
 						setFromDate(from);
 						setToDate(to);
-						void loadMembers(status, 1, selectedOrder, from, to, appliedSearch.current);
+						void loadMembers(status, 1, selectedOrder, from, to, search);
 					}}
 				/>
 
@@ -320,7 +321,7 @@ export function MembersWorkspace({
 									variant="secondary"
 									onClick={() => {
 										if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-										appliedSearch.current = '';
+										setAppliedSearch('');
 										setTerm('');
 										setFromDate('');
 										setToDate('');
