@@ -1,6 +1,8 @@
-import { z } from 'zod';
-
-import { memberArchiveInputSchema, memberUpdateInputSchema } from '@/lib/contracts';
+import {
+	databaseIdSchema,
+	memberArchiveInputSchema,
+	memberUpdateInputSchema,
+} from '@/lib/contracts';
 import { archiveMember } from '@/lib/server/endpoints/members/archive-member';
 import { getMember } from '@/lib/server/endpoints/members/get-member';
 import { updateMember } from '@/lib/server/endpoints/members/update-member';
@@ -14,7 +16,7 @@ const privateHeaders = { 'Cache-Control': 'no-store' };
 
 export async function GET(_request: Request, context: Context): Promise<Response> {
 	try {
-		const id = z.uuid().parse((await context.params).memberId);
+		const id = databaseIdSchema.parse((await context.params).memberId);
 		return Response.json(await getMember(id), { headers: privateHeaders });
 	} catch (error: unknown) {
 		return failure(error);
@@ -25,7 +27,7 @@ export async function PATCH(request: Request, context: Context): Promise<Respons
 	try {
 		const origin = requireSameOrigin(request);
 		const csrf = await requireOwnerCsrfToken();
-		const id = z.uuid().parse((await context.params).memberId);
+		const id = databaseIdSchema.parse((await context.params).memberId);
 		const input = memberUpdateInputSchema.parse(await readJson(request));
 		const result = await updateMember(id, input, input.updatedAt, csrf, origin);
 		return Response.json(result, { headers: privateHeaders });
@@ -38,7 +40,7 @@ export async function DELETE(request: Request, context: Context): Promise<Respon
 	try {
 		const origin = requireSameOrigin(request);
 		const csrf = await requireOwnerCsrfToken();
-		const id = z.uuid().parse((await context.params).memberId);
+		const id = databaseIdSchema.parse((await context.params).memberId);
 		const input = memberArchiveInputSchema.parse(await readJson(request));
 		await archiveMember(id, input.updatedAt, csrf, origin);
 		return new Response(null, { status: 204, headers: privateHeaders });
