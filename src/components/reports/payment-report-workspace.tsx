@@ -44,8 +44,8 @@ function safeDateInput(value: string): string {
 }
 
 function barWidth(amount: string, highest: bigint): string {
-	if (highest === 0n) return '0%';
-	return `${Number((BigInt(amount) * 10_000n) / highest) / 100}%`;
+	if (highest === BigInt(0)) return '0%';
+	return `${Number((BigInt(amount) * BigInt(10_000)) / highest) / 100}%`;
 }
 
 export function PaymentReportWorkspace({
@@ -64,7 +64,7 @@ export function PaymentReportWorkspace({
 	const highestPlanTotal = summary?.planTotals.reduce((highest, plan) => {
 		const amount = BigInt(plan.grossRwf);
 		return amount > highest ? amount : highest;
-	}, 0n) ?? 0n;
+	}, BigInt(0)) ?? BigInt(0);
 
 	return (
 		<div className={styles.workspace}>
