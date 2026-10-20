@@ -81,7 +81,7 @@ export function PaymentToolbar({
 						ref={toggle}
 						type="button"
 						className={styles.searchToggle}
-						aria-label="Search all payments"
+						aria-label="Search loaded payments"
 						aria-expanded={searchOpen}
 						aria-controls={searchOpen ? searchId : undefined}
 						onClick={() => (searchOpen ? input.current?.focus() : setSearchOpen(true))}
@@ -95,7 +95,7 @@ export function PaymentToolbar({
 								id={searchId}
 								type="search"
 								value={term}
-								aria-label="Search all payments by member, receipt or reference"
+								aria-label="Search loaded payments by member, receipt or reference"
 								placeholder="Search payments…"
 								autoComplete="off"
 								autoFocus
