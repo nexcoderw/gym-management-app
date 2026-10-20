@@ -86,10 +86,10 @@ export function FilterSheet({
 				</header>
 				<div className={styles.content}>{children}</div>
 				<footer className={styles.footer}>
-					<Button icon={Cancel01Icon} variant="secondary" onClick={onClose}>
+					<Button icon={Cancel01Icon} variant="secondary" width="full" onClick={onClose}>
 						Close
 					</Button>
-					<Button icon={Tick02Icon} type="submit" disabled={applyDisabled}>
+					<Button icon={Tick02Icon} type="submit" width="full" disabled={applyDisabled}>
 						Apply
 					</Button>
 				</footer>
