@@ -5,61 +5,6 @@
 	min-width: 0;
 }
 
-.toolbar {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: var(--space-3);
-}
-
-.searchField,
-.filterField {
-	display: flex;
-	align-items: center;
-	gap: var(--space-3);
-	min-height: 3rem;
-	padding-inline: var(--space-4);
-	border: 1px solid var(--border);
-	border-radius: var(--radius-pill);
-	background: var(--surface-primary);
-}
-
-.searchField {
-	flex: 1 1 18rem;
-	min-width: 0;
-	color: var(--text-secondary);
-}
-
-.searchField:focus-within,
-.filterField:focus-within {
-	border-color: var(--action-primary);
-	outline: 3px solid var(--focus-ring);
-}
-
-.searchField input,
-.filterField select {
-	min-height: 2.75rem;
-	padding: 0;
-	border: 0;
-	background: transparent;
-	font: inherit;
-	outline: 0;
-}
-
-.searchField input {
-	width: 100%;
-	min-width: 0;
-}
-
-.filterField label {
-	color: var(--text-secondary);
-}
-
-.filterField select {
-	color: var(--text-primary);
-	font-weight: 700;
-}
-
 .tableScroll {
 	max-width: 100%;
 	overflow-x: auto;
