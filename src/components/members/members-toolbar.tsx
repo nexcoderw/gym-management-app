@@ -2,15 +2,18 @@
 
 import {
 	ArrowDown01Icon,
+	Calendar03Icon,
 	Cancel01Icon,
 	FilterIcon,
 	Search01Icon,
-	Tick02Icon,
 } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { useId, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
+import { FilterSheet } from '@/components/shared/filter-sheet';
+import { Input } from '@/components/shared/input';
+import { Select } from '@/components/shared/select';
 import type { MemberStatus } from '@/lib/contracts';
 
 import styles from './members-toolbar.module.css';
@@ -46,10 +49,7 @@ export function MembersToolbar({
 	pending,
 	error,
 	onTermChange,
-	onStatusChange,
-	onOrderChange,
-	onFromDateChange,
-	onToDateChange,
+	onFiltersApply,
 }: {
 	readonly visibleCount: number;
 	readonly loadedCount: number;
@@ -62,12 +62,38 @@ export function MembersToolbar({
 	readonly pending: boolean;
 	readonly error: boolean;
 	readonly onTermChange: (term: string) => void;
-	readonly onStatusChange: (status: MemberStatus) => void;
-	readonly onOrderChange: (order: MemberOrder) => void;
-	readonly onFromDateChange: (value: string) => void;
-	readonly onToDateChange: (value: string) => void;
+	readonly onFiltersApply: (
+		status: MemberStatus,
+		order: MemberOrder,
+		fromDate: string,
+		toDate: string,
+	) => void;
 }) {
+	const [filtersOpen, setFiltersOpen] = useState(false);
+	const [draftStatus, setDraftStatus] = useState(status);
+	const [draftOrder, setDraftOrder] = useState(order);
+	const [draftFromDate, setDraftFromDate] = useState(fromDate);
+	const [draftToDate, setDraftToDate] = useState(toDate);
 	const needle = term.trim();
+	const datesInvalid = draftFromDate !== '' && draftToDate !== '' && draftFromDate > draftToDate;
+	const filtersChanged =
+		draftStatus !== status ||
+		draftOrder !== order ||
+		draftFromDate !== fromDate ||
+		draftToDate !== toDate;
+
+	function openFilters() {
+		setDraftStatus(status);
+		setDraftOrder(order);
+		setDraftFromDate(fromDate);
+		setDraftToDate(toDate);
+		setFiltersOpen(true);
+	}
+
+	function applyFilters() {
+		onFiltersApply(draftStatus, draftOrder, draftFromDate, draftToDate);
+		setFiltersOpen(false);
+	}
 
 	const summary =
 		pending && loadedCount === 0
@@ -87,43 +113,74 @@ export function MembersToolbar({
 
 			<div className={styles.tools}>
 				<MemberSearch term={term} onTermChange={onTermChange} />
-				<label className={styles.dateFilter}>
-					<span>From</span>
-					<input
-						type="date"
-						value={fromDate}
-						max={toDate || undefined}
-						aria-label="Members registered from"
-						onChange={(event) => onFromDateChange(event.target.value)}
-					/>
-				</label>
-				<label className={styles.dateFilter}>
-					<span>To</span>
-					<input
-						type="date"
-						value={toDate}
-						min={fromDate || undefined}
-						aria-label="Members registered through"
-						onChange={(event) => onToDateChange(event.target.value)}
-					/>
-				</label>
-
-				<ToolbarMenu
-					label="Filter by status"
+				<Button
+					iconOnly
 					icon={FilterIcon}
-					value={status}
-					options={statuses}
-					onChange={onStatusChange}
-				/>
-
-				<ToolbarMenu
-					label="Sort members"
-					icon={ArrowDown01Icon}
-					value={order}
-					options={orders}
-					onChange={onOrderChange}
-				/>
+					variant="secondary"
+					aria-haspopup="dialog"
+					aria-expanded={filtersOpen}
+					onClick={openFilters}
+				>
+					Filters
+				</Button>
 			</div>
+			<FilterSheet
+				open={filtersOpen}
+				title="Filter members"
+				description="Choose which members to show and how to order them."
+				applyDisabled={!filtersChanged || datesInvalid}
+				onClose={() => setFiltersOpen(false)}
+				onApply={applyFilters}
+			>
+				<div className={styles.filterFields}>
+					<Select
+						label="Status"
+						icon={FilterIcon}
+						value={draftStatus}
+						onChange={(event) => {
+							const selected = statuses.find((option) => option.value === event.target.value);
+							if (selected) setDraftStatus(selected.value);
+						}}
+					>
+						{statuses.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</Select>
+					<Select
+						label="Order"
+						icon={ArrowDown01Icon}
+						value={draftOrder}
+						onChange={(event) => {
+							const selected = orders.find((option) => option.value === event.target.value);
+							if (selected) setDraftOrder(selected.value);
+						}}
+					>
+						{orders.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
+					</Select>
+					<Input
+						label="Registered from"
+						icon={Calendar03Icon}
+						type="date"
+						value={draftFromDate}
+						max={draftToDate || undefined}
+						onChange={(event) => setDraftFromDate(event.target.value)}
+					/>
+					<Input
+						label="Registered through"
+						icon={Calendar03Icon}
+						type="date"
+						value={draftToDate}
+						min={draftFromDate || undefined}
+						onChange={(event) => setDraftToDate(event.target.value)}
+					/>
+				</div>
+			</FilterSheet>
 		</div>
 	);
 }
@@ -198,139 +255,6 @@ function MemberSearch({
 						Close search
 					</Button>
 				</>
-			) : null}
-		</div>
-	);
-}
-
-function ToolbarMenu<T extends string>({
-	label,
-	icon,
-	value,
-	options,
-	onChange,
-}: {
-	readonly label: string;
-	readonly icon: IconSvgElement;
-	readonly value: T;
-	readonly options: readonly MenuOption<T>[];
-	readonly onChange: (value: T) => void;
-}) {
-	const [open, setOpen] = useState(false);
-	const menuId = useId();
-	const wrapper = useRef<HTMLDivElement>(null);
-
-	const currentLabel = options.find((option) => option.value === value)?.label ?? label;
-
-	useEffect(() => {
-		if (!open) return;
-
-		function outside(event: PointerEvent) {
-			if (event.target instanceof Node && wrapper.current?.contains(event.target)) {
-				return;
-			}
-
-			setOpen(false);
-		}
-
-		document.addEventListener('pointerdown', outside);
-
-		return () => document.removeEventListener('pointerdown', outside);
-	}, [open]);
-
-	function close() {
-		setOpen(false);
-		wrapper.current?.querySelector<HTMLButtonElement>('[data-trigger]')?.focus();
-	}
-
-	function choose(next: T) {
-		close();
-		if (next !== value) onChange(next);
-	}
-
-	function handleKeys(event: KeyboardEvent<HTMLDivElement>) {
-		if (!open) return;
-
-		if (event.key === 'Escape') {
-			event.preventDefault();
-			close();
-			return;
-		}
-
-		const buttons = Array.from(
-			event.currentTarget.querySelectorAll<HTMLButtonElement>('[data-option]'),
-		);
-
-		const index = buttons.findIndex((button) => button === document.activeElement);
-		const last = buttons.length - 1;
-
-		const moves: Record<string, number> = {
-			ArrowDown: index >= last ? 0 : index + 1,
-			ArrowUp: index <= 0 ? last : index - 1,
-			Home: 0,
-			End: last,
-		};
-
-		const next = moves[event.key];
-
-		if (next === undefined) return;
-
-		event.preventDefault();
-		buttons[next]?.focus();
-	}
-
-	return (
-		<div
-			ref={wrapper}
-			className={styles.filter}
-			onKeyDown={handleKeys}
-			onBlur={(event) => {
-				const destination = event.relatedTarget;
-
-				if (!(destination instanceof Node) || !event.currentTarget.contains(destination)) {
-					setOpen(false);
-				}
-			}}
-		>
-			<Button
-				iconOnly
-				icon={icon}
-				variant="secondary"
-				data-trigger
-				aria-label={`${label}: ${currentLabel}`}
-				aria-expanded={open}
-				aria-controls={open ? menuId : undefined}
-				onClick={() => setOpen((current) => !current)}
-			>
-				{`${label}: ${currentLabel}`}
-			</Button>
-
-			{open ? (
-				<div id={menuId} className={styles.menu} role="group" aria-label={label}>
-					<p className={styles.menuHeading}>{label}</p>
-
-					{options.map((option) => {
-						const selected = option.value === value;
-
-						return (
-							<button
-								key={option.value}
-								type="button"
-								className={styles.option}
-								data-option
-								aria-pressed={selected}
-								autoFocus={selected}
-								onClick={() => choose(option.value)}
-							>
-								<span className={styles.check} aria-hidden="true">
-									{selected ? <HugeiconsIcon icon={Tick02Icon} size={16} /> : null}
-								</span>
-
-								{option.label}
-							</button>
-						);
-					})}
-				</div>
 			) : null}
 		</div>
 	);
