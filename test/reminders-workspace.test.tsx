@@ -4,29 +4,16 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RemindersWorkspace } from '@/components/reminders/reminders-workspace';
-import type { ReminderActivityItem, UpcomingReminderItem } from '@/lib/contracts';
+import type { UpcomingReminderItem } from '@/lib/contracts';
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
 
-const activity: ReminderActivityItem = {
-	id: '11111111-1111-4111-8111-111111111111',
+const upcoming: UpcomingReminderItem = {
+	subscriptionId: '33333333-3333-4333-8333-333333333333',
 	memberId: '22222222-2222-4222-8222-222222222222',
 	memberName: 'Example Member',
 	planName: 'Monthly',
-	kind: 'THREE_DAYS_BEFORE',
-	status: 'ACCEPTED',
-	dueDate: '2030-01-28',
-	endDate: '2030-01-31',
-	acceptedAt: '2030-01-28T08:00:00.000Z',
-	deliveredAt: null,
-};
-
-const upcoming: UpcomingReminderItem = {
-	subscriptionId: '33333333-3333-4333-8333-333333333333',
-	memberId: activity.memberId,
-	memberName: activity.memberName,
-	planName: activity.planName,
 	endDate: '2030-01-31',
 	daysRemaining: 10,
 	canSend: true,
@@ -58,14 +45,23 @@ afterEach(() => {
 });
 
 describe('reminders workspace', () => {
-	it('keeps email acceptance distinct from inbox delivery', () => {
-		render(<RemindersWorkspace items={[activity]} errorStatus={null} upcoming={[upcoming]} />);
-		expect(screen.getByText('Submitted to email provider')).toBeTruthy();
-		expect(screen.getByText(/does not confirm inbox delivery/iu)).toBeTruthy();
+	it('shows upcoming reminders without the recent email activity section', () => {
+		render(<RemindersWorkspace upcoming={[upcoming]} />);
+		expect(screen.getByRole('table', { name: /memberships ending/iu })).toBeTruthy();
+		expect(screen.queryByRole('heading', { name: 'Recent email activity' })).toBeNull();
+	});
+
+	it('distinguishes provider acceptance from confirmed delivery in the reminders table', () => {
+		render(<RemindersWorkspace upcoming={[
+			{ ...upcoming, canSend: false, manualStatus: 'ACCEPTED' },
+			{ ...upcoming, subscriptionId: '44444444-4444-4444-8444-444444444444', canSend: false, manualStatus: 'DELIVERED' },
+		]} />);
+		expect(screen.getByText('Provider accepted')).toBeTruthy();
+		expect(screen.getByText('Delivered')).toBeTruthy();
 	});
 
 	it('searches upcoming members and stages status and ordering in the shared sheet', () => {
-		render(<RemindersWorkspace items={[]} errorStatus={null} upcoming={[upcoming, { ...upcoming, subscriptionId: '44444444-4444-4444-8444-444444444444', memberName: 'Second Member', canSend: false }]} />);
+		render(<RemindersWorkspace upcoming={[upcoming, { ...upcoming, subscriptionId: '44444444-4444-4444-8444-444444444444', memberName: 'Second Member', canSend: false }]} />);
 		fireEvent.click(screen.getByRole('button', { name: 'Search reminders' }));
 		fireEvent.change(screen.getByRole('searchbox', { name: 'Search expiring memberships' }), { target: { value: 'Second' } });
 		const registry = screen.getByRole('table', { name: /memberships ending/iu });
@@ -82,7 +78,7 @@ describe('reminders workspace', () => {
 	it('prefills an editable email and queues only the approved copy', async () => {
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ id: '55555555-5555-4555-8555-555555555555', status: 'QUEUED' }), { status: 202, headers: { 'Content-Type': 'application/json' } }));
 		vi.stubGlobal('fetch', fetchMock);
-		render(<RemindersWorkspace items={[]} errorStatus={null} upcoming={[upcoming]} />);
+		render(<RemindersWorkspace upcoming={[upcoming]} />);
 		fireEvent.click(screen.getByRole('button', { name: 'Send reminder' }));
 		expect(fetchMock).not.toHaveBeenCalled();
 		const dialog = screen.getByRole('dialog', { name: 'Send email reminder' });
@@ -104,7 +100,7 @@ describe('reminders workspace', () => {
 	it('keeps invalid message copy in the dialog without making a request', () => {
 		const fetchMock = vi.fn<typeof fetch>();
 		vi.stubGlobal('fetch', fetchMock);
-		render(<RemindersWorkspace items={[]} errorStatus={null} upcoming={[upcoming]} />);
+		render(<RemindersWorkspace upcoming={[upcoming]} />);
 		fireEvent.click(screen.getByRole('button', { name: 'Send reminder' }));
 		const dialog = screen.getByRole('dialog', { name: 'Send email reminder' });
 		fireEvent.change(within(dialog).getByLabelText('Message'), { target: { value: '   ' } });
@@ -114,9 +110,9 @@ describe('reminders workspace', () => {
 	});
 
 	it('separates an empty upcoming list from a failed read', () => {
-		const view = render(<RemindersWorkspace items={[]} errorStatus={null} upcoming={[]} />);
+		const view = render(<RemindersWorkspace upcoming={[]} />);
 		expect(screen.getByRole('heading', { name: 'No memberships nearing expiry' })).toBeTruthy();
-		view.rerender(<RemindersWorkspace items={[]} errorStatus={null} upcomingErrorStatus={503} />);
+		view.rerender(<RemindersWorkspace upcomingErrorStatus={503} />);
 		expect(screen.getByRole('alert')).toBeTruthy();
 		expect(screen.queryByRole('heading', { name: 'No memberships nearing expiry' })).toBeNull();
 	});
