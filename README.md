@@ -40,12 +40,13 @@ the new form uses the atomic registration route. Unchanged retries reuse the key
 Cash is confirmed immediately; external methods remain pending until verified. Void and refund
 controls are not part of this frontend slice.
 
-The Reminders page reads the latest 50 automatic email reminder occasions from Nest through the
-fixed `GET /api/reminders/activity` BFF route. Nest authenticates the owner, authorizes the gym from
-its portal origin and returns only safe activity fields. The page distinguishes provider acceptance
-from confirmed delivery, and separates an empty feed from an unavailable service. Search and status
-filters apply to the loaded 50 rows only. There is no manual send control or SMS delivery in this
-slice; the scheduler, sender and reconciler are separate backend processes.
+The Reminders page lists memberships expiring within 14 days. An authorized gym owner can open an
+editable, prefilled email for a member and explicitly submit one reminder per registration. The
+fixed BFF route validates the subject and body, Origin and CSRF before forwarding to Nest. Nest
+rechecks membership, tenant scope, recipient, opt-out, suppression and expiry, then queues exactly
+the approved plain-text copy. A separate delivery worker sends queued manual emails through Resend;
+the scheduler no longer creates automatic reminders. The upcoming list shows queued work; recent
+activity distinguishes provider acceptance from inbox delivery. SMS is not enabled.
 
 ## Local ports
 
