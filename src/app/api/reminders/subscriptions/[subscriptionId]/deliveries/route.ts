@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
+import { manualReminderInputSchema } from '@/lib/contracts';
 import { queueManualReminder } from '@/lib/server/endpoints/reminders/queue-manual-reminder';
 import { requireOwnerCsrfToken } from '@/lib/server/owner-csrf';
-import { RequestError, requireSameOrigin } from '@/lib/server/request';
+import { RequestError, readJson, requireSameOrigin } from '@/lib/server/request';
 import { errorResponse } from '@/lib/server/upstream';
 
 export const runtime = 'nodejs';
@@ -18,7 +19,8 @@ export async function POST(
 		if (!z.guid().safeParse(subscriptionId).success) {
 			throw new RequestError(400, 'Invalid membership registration.');
 		}
-		return Response.json(await queueManualReminder(subscriptionId, csrfToken, origin), {
+		const input = manualReminderInputSchema.parse(await readJson(request));
+		return Response.json(await queueManualReminder(subscriptionId, input, csrfToken, origin), {
 			status: 202,
 			headers: { 'Cache-Control': 'no-store' },
 		});
