@@ -74,11 +74,6 @@
 	color: var(--text-secondary);
 }
 
-.loadMore {
-	display: flex;
-	justify-content: center;
-}
-
 .note {
 	margin: 0;
 	color: var(--text-secondary);
