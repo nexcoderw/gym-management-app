@@ -90,7 +90,7 @@ export function MembersToolbar({
 
 	const summary =
 		pending && loadedCount === 0
-			? 'Loading member profiles…'
+			? 'Updating member results…'
 			: error && loadedCount === 0
 				? 'Member profiles unavailable'
 				: needle.length >= 3
