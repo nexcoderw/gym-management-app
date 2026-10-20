@@ -59,18 +59,17 @@ describe('members listing BFF', () => {
 		});
 	});
 
-	it('forwards server-side search, ordering and registration dates', async () => {
+	it('forwards ordering and registration dates without search', async () => {
 		listMembersMock.mockResolvedValueOnce({ items: [], nextCursor: null });
 		const response = await GET(
 			new Request(
-				'https://manager.test/api/members?search=soho&order=NAME_ASC&fromDate=2026-01-01&toDate=2026-10-19',
+				'https://manager.test/api/members?order=NAME_ASC&fromDate=2026-01-01&toDate=2026-10-19',
 			),
 		);
 		expect(response.status).toBe(200);
 		expect(listMembersMock).toHaveBeenCalledWith({
 			status: 'ACTIVE',
 			order: 'NAME_ASC',
-			search: 'soho',
 			fromDate: '2026-01-01',
 			toDate: '2026-10-19',
 			limit: 24,
@@ -78,6 +77,7 @@ describe('members listing BFF', () => {
 	});
 
 	it.each([
+		'?search=soho',
 		'?status=ALL',
 		'?limit=0',
 		'?limit=51',
