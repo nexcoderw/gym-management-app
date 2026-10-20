@@ -1,0 +1,79 @@
+.pagination {
+	display: flex;
+	align-items: center;
+	justify-self: end;
+	gap: var(--space-1);
+	max-width: 100%;
+	min-width: 0;
+	overflow-x: auto;
+	padding: var(--space-1);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-primary);
+	box-shadow: var(--shadow-card);
+}
+
+.number,
+.arrow {
+	display: grid;
+	place-items: center;
+	flex: 0 0 auto;
+	min-width: 2.75rem;
+	min-height: 2.75rem;
+	padding: 0 var(--space-2);
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: transparent;
+	color: var(--text-secondary);
+	font-size: var(--text-small);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+}
+
+.arrow {
+	font-size: 1.5rem;
+	font-weight: 400;
+}
+
+.number:hover:not(:disabled),
+.arrow:hover:not(:disabled) {
+	background: var(--surface-hover);
+	color: var(--action-primary);
+}
+
+.number[aria-current='page'] {
+	background: var(--action-primary);
+	color: var(--text-on-action);
+	cursor: default;
+}
+
+.number:disabled:not([aria-current='page']),
+.arrow:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.number:focus-visible,
+.arrow:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: -3px;
+}
+
+.ellipsis {
+	min-width: var(--space-4);
+	color: var(--text-secondary);
+	text-align: center;
+}
+
+@media (max-width: 40rem) {
+	.pagination {
+		gap: 0;
+	}
+
+	.number,
+	.arrow {
+		min-width: 2.5rem;
+		min-height: 2.75rem;
+	}
+}
