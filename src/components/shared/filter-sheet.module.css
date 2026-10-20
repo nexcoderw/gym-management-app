@@ -80,8 +80,8 @@
 }
 
 .footer {
-	display: flex;
-	justify-content: flex-end;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: var(--space-3);
 	padding: var(--space-5) var(--space-6);
 	border-block-start: 1px solid var(--border);
@@ -108,10 +108,6 @@
 	.content,
 	.footer {
 		padding-inline: var(--space-4);
-	}
-
-	.footer > * {
-		flex: 1 1 0;
 	}
 }
 
