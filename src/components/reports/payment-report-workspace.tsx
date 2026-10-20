@@ -43,6 +43,11 @@ function safeDateInput(value: string): string {
 	return /^\d{4}-\d{2}-\d{2}$/u.test(value) ? value : '';
 }
 
+function barWidth(amount: string, highest: bigint): string {
+	if (highest === 0n) return '0%';
+	return `${Number((BigInt(amount) * 10_000n) / highest) / 100}%`;
+}
+
 export function PaymentReportWorkspace({
 	fromDate,
 	toDate,
@@ -56,6 +61,10 @@ export function PaymentReportWorkspace({
 		? new URLSearchParams({ fromDate: summary.fromDate, toDate: summary.toDate })
 		: null;
 	const downloadHref = reportQuery ? `${routes.paymentReportPdfApi}?${reportQuery}` : null;
+	const highestPlanTotal = summary?.planTotals.reduce((highest, plan) => {
+		const amount = BigInt(plan.grossRwf);
+		return amount > highest ? amount : highest;
+	}, 0n) ?? 0n;
 
 	return (
 		<div className={styles.workspace}>
@@ -143,9 +152,49 @@ export function PaymentReportWorkspace({
 							</div>
 						</dl>
 					</div>
+					<section className={styles.planSection} aria-labelledby="plan-revenue-title">
+						<div className={styles.planHeading}>
+							<div>
+								<h3 id="plan-revenue-title">Gross payments by plan</h3>
+								<p>Settled allocations by the plan name recorded at registration.</p>
+							</div>
+							<span>Gross allocation</span>
+						</div>
+						{summary.planTotals.length > 0 ? (
+							<ol className={styles.planChart} aria-label="Gross payment allocation by plan">
+								{summary.planTotals.map((plan) => (
+									<li key={`${plan.planId ?? 'other'}-${plan.planName}`}>
+										<div className={styles.planLine}>
+											<strong>{plan.planName}</strong>
+											<span>{formatAmount(plan.grossRwf)}</span>
+										</div>
+										<div className={styles.barTrack} aria-hidden="true">
+											<span
+												className={styles.barFill}
+												style={{ inlineSize: barWidth(plan.grossRwf, highestPlanTotal) }}
+											/>
+										</div>
+									</li>
+								))}
+							</ol>
+						) : (
+							<p className={styles.noPlanRevenue}>
+								No settled membership payments were allocated in this period.
+							</p>
+						)}
+						<p className={styles.planNote}>
+							Amounts are before refunds. Refunds reduce the net total above but are not attributed
+							to individual plans.
+						</p>
+						{summary.planTotals.some((plan) => plan.planId === null) ? (
+							<p className={styles.planNote}>
+								Other plans combines additional plans beyond the 24 largest by gross allocation.
+							</p>
+						) : null}
+					</section>
 					<p className={styles.generatedAt}>
-						Summary generated {timestampFormat.format(new Date(summary.generatedAt))} (Kigali
-						time). The PDF is generated when downloaded and contains the full payment list, without
+						Summary generated {timestampFormat.format(new Date(summary.generatedAt))} (Kigali time).
+						The PDF is generated when downloaded and contains the full payment list, without
 						pagination.
 					</p>
 				</section>
