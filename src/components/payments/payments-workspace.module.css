@@ -8,13 +8,6 @@
 	min-width: 0;
 }
 
-.loading {
-	margin: 0;
-	padding: var(--space-8);
-	color: var(--text-secondary);
-	text-align: center;
-}
-
 .tableScroll {
 	max-width: 100%;
 	overflow-x: auto;
