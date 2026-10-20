@@ -12,6 +12,7 @@ import { Button } from '@/components/shared/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Pagination } from '@/components/shared/pagination';
+import { ResultsLoadingState } from '@/components/shared/results-loading-state';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
@@ -272,9 +273,7 @@ export function MembershipsWorkspace({
 				) : null}
 
 				{loadingAction === 'refresh' && visiblePlans.length === 0 ? (
-					<p className={styles.loading} role="status">
-						Loading memberships…
-					</p>
+					<ResultsLoadingState subject="memberships" searching={term.trim().length >= 3} />
 				) : visiblePlans.length === 0 ? (
 					<EmptyState
 						icon={PackageAdd01Icon}
