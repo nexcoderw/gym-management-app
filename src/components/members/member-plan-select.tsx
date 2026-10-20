@@ -124,7 +124,7 @@ async function requestPlans(
 	cursor: string | null,
 	signal: AbortSignal,
 ): Promise<ReturnType<typeof membershipPlanListSchema.parse>> {
-	const query = new URLSearchParams({ status: 'ACTIVE', limit: '50' });
+	const query = new URLSearchParams({ status: 'ACTIVE', limit: '24' });
 	if (cursor !== null) query.set('cursor', cursor);
 	return memberRequest(`${routes.membershipPlansApi}?${query}`, membershipPlanListSchema, {
 		signal,
