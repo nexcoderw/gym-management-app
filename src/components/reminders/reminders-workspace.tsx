@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/shared/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
+import { Pagination } from '@/components/shared/pagination';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
@@ -80,6 +81,7 @@ export function RemindersWorkspace({
 	const [refreshing, startRefresh] = useTransition();
 	const [upcoming, setUpcoming] = useState<readonly UpcomingReminderItem[]>(initialUpcoming);
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
+	const [currentPage, setCurrentPage] = useState(1);
 	const [loadingMore, setLoadingMore] = useState(false);
 	const [search, setSearch] = useState('');
 	const [status, setStatus] = useState<ReminderStatusFilter>('ALL');
@@ -94,6 +96,9 @@ export function RemindersWorkspace({
 		.sort((left, right) => order === 'SOONEST'
 			? left.endDate.localeCompare(right.endDate) || left.subscriptionId.localeCompare(right.subscriptionId)
 			: right.endDate.localeCompare(left.endDate) || right.subscriptionId.localeCompare(left.subscriptionId));
+	const loadedPages = Math.max(1, Math.ceil(visible.length / 24));
+	const displayedPage = Math.min(currentPage, loadedPages);
+	const pageItems = visible.slice((displayedPage - 1) * 24, displayedPage * 24);
 
 	function refresh() { startRefresh(() => router.refresh()); }
 
@@ -106,11 +111,21 @@ export function RemindersWorkspace({
 			const parsed = upcomingReminderSchema.safeParse(await response.json());
 			if (!parsed.success) throw new Error('The reminder list could not be verified.');
 			const page = parsed.data;
-			setUpcoming((current) => [...current, ...page.items.filter((item) => !current.some((existing) => existing.subscriptionId === item.subscriptionId))]);
+			const nextItems = [...upcoming, ...page.items.filter((item) => !upcoming.some((existing) => existing.subscriptionId === item.subscriptionId))];
+			setUpcoming(nextItems);
 			setNextCursor(page.nextCursor);
+			setCurrentPage(Math.max(1, Math.ceil(nextItems.filter((item) => matchesStatus(item, status) && (query === '' || [item.memberName, item.planName].some((value) => value.toLocaleLowerCase('en').includes(query)))).length / 24)));
 		} catch (error: unknown) {
 			setNotice({ id: Date.now(), tone: 'error', message: error instanceof Error ? error.message : 'Could not load more members.' });
 		} finally { setLoadingMore(false); }
+	}
+
+	function changePage(page: number) {
+		if (page <= loadedPages) {
+			setCurrentPage(page);
+		} else if (page === loadedPages + 1 && nextCursor !== null) {
+			void loadMore();
+		}
 	}
 
 	async function sendReminder(input: ManualReminderInput) {
@@ -145,11 +160,11 @@ export function RemindersWorkspace({
 					<EmptyState icon={Mail01Icon} role="alert" title={upcomingErrorStatus === 401 ? 'Your session has expired' : 'Expiring memberships unavailable'} description={upcomingErrorStatus === 401 ? 'Sign in again to view upcoming expiries.' : 'We could not load upcoming expiries. Please try again.'} action={upcomingErrorStatus === 401 ? <ButtonLink href={routes.login} icon={ArrowRight01Icon}>Open sign in</ButtonLink> : <Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>Refresh</Button>} />
 				) : (
 					<>
-						{upcoming.length > 0 ? <RemindersToolbar count={visible.length} total={upcoming.length} term={search} status={status} order={order} onTermChange={setSearch} onFiltersApply={(nextStatus, nextOrder) => { setStatus(nextStatus); setOrder(nextOrder); }} /> : null}
+						{upcoming.length > 0 ? <RemindersToolbar count={visible.length} total={upcoming.length} term={search} status={status} order={order} onTermChange={(value) => { setSearch(value); setCurrentPage(1); }} onFiltersApply={(nextStatus, nextOrder) => { setStatus(nextStatus); setOrder(nextOrder); setCurrentPage(1); }} /> : null}
 						{visible.length === 0 ? <EmptyState icon={Mail01Icon} title={upcoming.length === 0 ? 'No memberships nearing expiry' : 'No matching members'} description={upcoming.length === 0 ? 'Memberships ending within the next 14 days will appear here.' : 'Try another search or filter.'} action={upcoming.length === 0 ? <Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>Refresh reminders</Button> : <Button icon={Cancel01Icon} variant="secondary" onClick={() => { setSearch(''); setStatus('ALL'); setOrder('SOONEST'); }}>Clear filters</Button>} /> : (
-							<div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Memberships ending in the next 14 days</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Expires</th><th scope="col">Time left</th><th scope="col">Reminder</th><th scope="col">Action</th></tr></thead><tbody>{visible.map((item) => <tr key={item.subscriptionId}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td>{item.daysRemaining === 0 ? 'Today' : `${item.daysRemaining} day${item.daysRemaining === 1 ? '' : 's'}`}</td><td><span className={styles.status} data-status={item.manualStatus ?? 'NONE'}>{item.manualStatus === null ? item.canSend ? 'Ready' : 'Email unavailable' : item.manualStatus === 'QUEUED' || item.manualStatus === 'PROCESSING' ? 'Queued' : item.manualStatus === 'ACCEPTED' || item.manualStatus === 'DELIVERED' ? 'Submitted' : 'Review activity'}</span></td><td>{item.canSend ? <Button icon={Mail01Icon} width="small" onClick={() => setSelected(item)}>Send reminder</Button> : <span className={styles.muted}>—</span>}</td></tr>)}</tbody></table></div>
+							<div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Memberships ending in the next 14 days</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Expires</th><th scope="col">Time left</th><th scope="col">Reminder</th><th scope="col">Action</th></tr></thead><tbody>{pageItems.map((item) => <tr key={item.subscriptionId}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td>{item.daysRemaining === 0 ? 'Today' : `${item.daysRemaining} day${item.daysRemaining === 1 ? '' : 's'}`}</td><td><span className={styles.status} data-status={item.manualStatus ?? 'NONE'}>{item.manualStatus === null ? item.canSend ? 'Ready' : 'Email unavailable' : item.manualStatus === 'QUEUED' || item.manualStatus === 'PROCESSING' ? 'Queued' : item.manualStatus === 'ACCEPTED' || item.manualStatus === 'DELIVERED' ? 'Submitted' : 'Review activity'}</span></td><td>{item.canSend ? <Button icon={Mail01Icon} width="small" onClick={() => setSelected(item)}>Send reminder</Button> : <span className={styles.muted}>—</span>}</td></tr>)}</tbody></table></div>
 						)}
-						{nextCursor !== null ? <div className={styles.loadMore}><Button icon={ArrowRight01Icon} variant="secondary" pending={loadingMore} onClick={() => void loadMore()}>Load more</Button></div> : null}
+						<Pagination label="Reminders" page={displayedPage} loadedPages={loadedPages} hasNext={nextCursor !== null} pending={loadingMore} onPageChange={changePage} />
 					</>
 				)}
 			</section>
