@@ -28,6 +28,13 @@ export const paymentReportSummarySchema = z.strictObject({
 	grossRwf: z.string().regex(/^\d+$/u),
 	refundedRwf: z.string().regex(/^\d+$/u),
 	netRwf: z.string().regex(/^\d+$/u),
+	planTotals: z.array(
+		z.strictObject({
+			planId: databaseIdSchema.nullable(),
+			planName: z.string().min(1).max(120),
+			grossRwf: z.string().regex(/^\d+$/u),
+		}),
+	).max(25),
 	generatedAt: z.iso.datetime(),
 });
 
