@@ -120,12 +120,6 @@
 	color: var(--text-danger);
 }
 
-.more {
-	display: flex;
-	justify-content: center;
-	padding: var(--space-4);
-}
-
 .srOnly {
 	position: absolute;
 	width: 1px;
