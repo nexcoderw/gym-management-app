@@ -15,13 +15,6 @@
 	gap: var(--space-4);
 }
 
-.loading {
-	margin: 0;
-	padding: var(--space-6);
-	color: var(--text-secondary);
-	text-align: center;
-}
-
 @container (min-width: 30rem) {
 	.list {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
