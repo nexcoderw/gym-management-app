@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PaymentReportDownload } from '@/components/reports/payment-report-download';
 
 const fetchMock = vi.fn<typeof fetch>();
+const createObjectURLDescriptor = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+const revokeObjectURLDescriptor = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
 const props = {
 	href: '/api/reports/payments/pdf?fromDate=2026-01-01&toDate=2026-01-31',
 	fromDate: '2026-01-01',
@@ -17,7 +19,17 @@ beforeEach(() => {
 	vi.stubGlobal('fetch', fetchMock);
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+	cleanup();
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
+	if (createObjectURLDescriptor)
+		Object.defineProperty(URL, 'createObjectURL', createObjectURLDescriptor);
+	else Reflect.deleteProperty(URL, 'createObjectURL');
+	if (revokeObjectURLDescriptor)
+		Object.defineProperty(URL, 'revokeObjectURL', revokeObjectURLDescriptor);
+	else Reflect.deleteProperty(URL, 'revokeObjectURL');
+});
 
 describe('payment report download', () => {
 	it('downloads a PDF through the same-origin route', async () => {
@@ -41,9 +53,6 @@ describe('payment report download', () => {
 			credentials: 'same-origin',
 		});
 		expect(createObjectURL).toHaveBeenCalledOnce();
-		click.mockRestore();
-		Reflect.deleteProperty(URL, 'createObjectURL');
-		Reflect.deleteProperty(URL, 'revokeObjectURL');
 	});
 
 	it('asks for a shorter range when the export exceeds the backend limit', async () => {
