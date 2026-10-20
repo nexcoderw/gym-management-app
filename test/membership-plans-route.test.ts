@@ -29,12 +29,24 @@ describe('membership plan listing BFF', () => {
 		});
 	});
 
-	it.each(['?limit=25', '?order=UNKNOWN', '?search=bronze', '?organizationId=other'])(
+	it('forwards a validated plan-name search', async () => {
+		listPlans.mockResolvedValueOnce({ items: [], nextCursor: null });
+		const response = await GET(
+			new Request('https://manager.test/api/membership-plans?search=Bronze'),
+		);
+		expect(response.status).toBe(200);
+		expect(listPlans).toHaveBeenCalledWith({
+			status: 'ACTIVE',
+			order: 'PRICE_ASC',
+			limit: 24,
+			search: 'Bronze',
+		});
+	});
+
+	it.each(['?limit=25', '?order=UNKNOWN', '?search=br', '?organizationId=other'])(
 		'rejects invalid query %s',
 		async (query) => {
-			const response = await GET(
-				new Request(`https://manager.test/api/membership-plans${query}`),
-			);
+			const response = await GET(new Request(`https://manager.test/api/membership-plans${query}`));
 			expect(response.status).toBe(400);
 			expect(listPlans).not.toHaveBeenCalled();
 		},
