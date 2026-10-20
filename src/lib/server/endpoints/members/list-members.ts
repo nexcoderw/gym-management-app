@@ -5,6 +5,7 @@ import { z, ZodError } from 'zod';
 import {
 	databaseIdSchema,
 	listDateSchema,
+	listSearchSchema,
 	memberListSchema,
 	memberOrderSchema,
 	memberStatusSchema,
@@ -14,6 +15,7 @@ import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 const filtersSchema = z
 	.strictObject({
 		status: memberStatusSchema.default('ACTIVE'),
+		search: listSearchSchema.optional(),
 		order: memberOrderSchema.default('NEWEST'),
 		fromDate: listDateSchema.optional(),
 		toDate: listDateSchema.optional(),
@@ -36,6 +38,7 @@ export async function listMembers(filters: MemberListFilters = {}) {
 		limit: String(parsed.limit),
 	});
 	if (parsed.fromDate) query.set('fromDate', parsed.fromDate);
+	if (parsed.search) query.set('search', parsed.search);
 	if (parsed.toDate) query.set('toDate', parsed.toDate);
 	if (parsed.page !== undefined) query.set('page', String(parsed.page));
 
