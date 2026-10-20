@@ -8,6 +8,8 @@ export const routes = {
 	reminders: '/reminders',
 	reminderActivityApi: '/api/reminders/activity',
 	report: '/report',
+	paymentReportSummaryApi: '/api/reports/payments/summary',
+	paymentReportPdfApi: '/api/reports/payments/pdf',
 	membershipPlansApi: '/api/membership-plans',
 	membershipPlanApi: (planId: string) => `/api/membership-plans/${encodeURIComponent(planId)}`,
 	membersApi: '/api/members',
