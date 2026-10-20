@@ -5,6 +5,7 @@ import { z, ZodError } from 'zod';
 import {
 	databaseIdSchema,
 	listDateSchema,
+	listSearchSchema,
 	paymentListSchema,
 	paymentMethodSchema,
 	paymentOrderSchema,
@@ -14,6 +15,7 @@ import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 
 export const paymentFiltersSchema = z.strictObject({
 	status: paymentStatusSchema.optional(),
+	search: listSearchSchema.optional(),
 	method: paymentMethodSchema.optional(),
 	memberId: databaseIdSchema.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
@@ -27,6 +29,7 @@ export async function listPayments(filters: z.input<typeof paymentFiltersSchema>
 	const parsed = paymentFiltersSchema.parse(filters);
 	const query = new URLSearchParams({ order: parsed.order, limit: String(parsed.limit) });
 	if (parsed.status !== undefined) query.set('status', parsed.status);
+	if (parsed.search !== undefined) query.set('search', parsed.search);
 	if (parsed.method !== undefined) query.set('method', parsed.method);
 	if (parsed.memberId !== undefined) query.set('memberId', parsed.memberId);
 	if (parsed.fromDate) query.set('fromDate', parsed.fromDate);
