@@ -12,7 +12,7 @@ export default async function MembershipsPage() {
 	let initialError: string | undefined;
 
 	try {
-		const page = await listMembershipPlans({ status: 'ALL', limit: 50 });
+		const page = await listMembershipPlans({ status: 'ACTIVE', order: 'PRICE_ASC', limit: 24 });
 		initialItems = page.items;
 		initialNextCursor = page.nextCursor;
 	} catch {
