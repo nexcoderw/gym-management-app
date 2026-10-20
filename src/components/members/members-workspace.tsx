@@ -8,7 +8,7 @@ import {
 	UserGroupIcon,
 } from '@hugeicons/core-free-icons';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button, ButtonLink } from '@/components/shared/button';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -40,13 +40,21 @@ class MembersRequestError extends Error {
 
 async function readMembers(
 	status: MemberStatus,
+	order: MemberOrder,
+	term: string,
+	fromDate: string,
+	toDate: string,
 	cursor: string | null,
 	signal: AbortSignal,
 ): Promise<MemberList> {
 	const query = new URLSearchParams({
 		status,
-		limit: '20',
+		limit: '24',
+		order: order.replace('-', '_').toUpperCase(),
 	});
+	if (term.trim()) query.set('search', term.trim());
+	if (fromDate) query.set('fromDate', fromDate);
+	if (toDate) query.set('toDate', toDate);
 
 	if (cursor !== null) {
 		query.set('cursor', cursor);
@@ -110,6 +118,8 @@ export function MembersWorkspace({
 
 	const [term, setTerm] = useState('');
 	const [order, setOrder] = useState<MemberOrder>('newest');
+	const [fromDate, setFromDate] = useState('');
+	const [toDate, setToDate] = useState('');
 	const [dialog, setDialog] = useState<MemberDialogState | null>(null);
 	const [notice, setNotice] = useState<ToastNotice | null>(null);
 	const noticeId = useRef(0);
@@ -120,20 +130,37 @@ export function MembersWorkspace({
 
 	function saved() {
 		setDialog(null);
-		void loadMembers(view.status);
+		void loadMembers(view.status, false, order, term, fromDate, toDate);
 	}
 
 	const activeController = useRef<AbortController | null>(null);
 	const requestNumber = useRef(0);
+	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		return () => {
 			requestNumber.current += 1;
 			activeController.current?.abort();
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		};
 	}, []);
 
-	async function loadMembers(status: MemberStatus, append = false) {
+	function changeTerm(value: string) {
+		setTerm(value);
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+		searchTimer.current = setTimeout(() => {
+			void loadMembers(view.status, false, order, value, fromDate, toDate);
+		}, 300);
+	}
+
+	async function loadMembers(
+		status: MemberStatus,
+		append = false,
+		selectedOrder = order,
+		search = term,
+		from = fromDate,
+		to = toDate,
+	) {
 		if (append && (view.nextCursor === null || view.loading !== 'idle')) {
 			return;
 		}
@@ -155,7 +182,15 @@ export function MembersWorkspace({
 		}));
 
 		try {
-			const result = await readMembers(status, cursor, controller.signal);
+			const result = await readMembers(
+				status,
+				selectedOrder,
+				search,
+				from,
+				to,
+				cursor,
+				controller.signal,
+			);
 
 			if (currentRequest !== requestNumber.current) return;
 
@@ -195,41 +230,13 @@ export function MembersWorkspace({
 		}
 	}
 
-	const visibleMembers = useMemo(() => {
-		const needle = term.trim().toLocaleLowerCase('en');
-
-		const filtered = view.items.filter((member) => {
-			if (!needle) return true;
-
-			return (
-				member.name.toLocaleLowerCase('en').includes(needle) ||
-				member.phoneNumber.toLocaleLowerCase('en').includes(needle) ||
-				(member.email ?? '').toLocaleLowerCase('en').includes(needle)
-			);
-		});
-
-		return filtered.sort((left, right) => {
-			const nameOrder = left.name.localeCompare(right.name, 'en', {
-				numeric: true,
-			});
-
-			switch (order) {
-				case 'name-asc':
-					return nameOrder || left.id.localeCompare(right.id);
-				case 'name-desc':
-					return -nameOrder || left.id.localeCompare(right.id);
-				case 'oldest':
-					return left.createdAt.localeCompare(right.createdAt) || nameOrder;
-				case 'newest':
-					return right.createdAt.localeCompare(left.createdAt) || nameOrder;
-			}
-		});
-	}, [view.items, term, order]);
+	const visibleMembers = view.items;
 
 	const busy = view.loading !== 'idle';
 	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
 	const canLoadMore = view.nextCursor !== null;
 	const searching = term.trim() !== '';
+	const filtered = searching || fromDate !== '' || toDate !== '';
 
 	return (
 		<div className={styles.page}>
@@ -246,11 +253,30 @@ export function MembersWorkspace({
 					status={view.status}
 					order={order}
 					term={term}
+					fromDate={fromDate}
+					toDate={toDate}
 					pending={busy}
 					error={failure !== null}
-					onTermChange={setTerm}
-					onStatusChange={(status) => void loadMembers(status)}
-					onOrderChange={setOrder}
+					onTermChange={changeTerm}
+					onStatusChange={(status) => {
+					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+					void loadMembers(status);
+				}}
+					onOrderChange={(value) => {
+					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+					setOrder(value);
+					void loadMembers(view.status, false, value);
+				}}
+					onFromDateChange={(value) => {
+					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+					setFromDate(value);
+					void loadMembers(view.status, false, order, term, value);
+				}}
+					onToDateChange={(value) => {
+					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+					setToDate(value);
+					void loadMembers(view.status, false, order, term, fromDate, value);
+				}}
 				/>
 
 				{failure !== null ? (
@@ -267,7 +293,7 @@ export function MembersWorkspace({
 								icon={RefreshIcon}
 								variant="secondary"
 								pending={busy}
-								onClick={() => void loadMembers(view.status, view.items.length > 0 && canLoadMore)}
+								onClick={() => void loadMembers(view.status)}
 							>
 								Try again
 							</Button>
@@ -285,43 +311,38 @@ export function MembersWorkspace({
 					<EmptyState
 						icon={UserGroupIcon}
 						title={
-							view.status === 'ACTIVE' ? 'Register your first member' : 'No archived members found'
+							filtered
+								? 'No matching members'
+								: view.status === 'ACTIVE'
+									? 'Register your first member'
+									: 'No archived members found'
 						}
 						description={
-							view.status === 'ACTIVE'
-								? 'Add their contact details and choose the membership plan they are joining.'
-								: 'Archived member profiles will appear here.'
+							filtered
+								? 'Try another search or date range.'
+								: view.status === 'ACTIVE'
+									? 'Add their contact details and choose the membership plan they are joining.'
+									: 'Archived member profiles will appear here.'
 						}
 						action={
-							view.status === 'ACTIVE' ? (
+							filtered ? (
+								<Button
+									icon={Cancel01Icon}
+									variant="secondary"
+									onClick={() => {
+										if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+										setTerm('');
+										setFromDate('');
+										setToDate('');
+										void loadMembers(view.status, false, order, '', '', '');
+									}}
+								>
+									Clear filters
+								</Button>
+							) : view.status === 'ACTIVE' ? (
 								<ButtonLink href={routes.payments} icon={Add01Icon} variant="primary">
 									Add member
 								</ButtonLink>
-							) : undefined
-						}
-					/>
-				) : null}
-
-				{view.loading !== 'page' &&
-				failure === null &&
-				view.items.length > 0 &&
-				visibleMembers.length === 0 ? (
-					<EmptyState
-						icon={UserGroupIcon}
-						title="No matching members"
-						description={
-							<>
-								No loaded profiles match “{term.trim()}”.
-								{canLoadMore
-									? ' Search only checks loaded members. You can load more profiles.'
-									: ' Try another name, phone number or email.'}
-							</>
-						}
-						action={
-							searching ? (
-								<Button icon={Cancel01Icon} variant="secondary" onClick={() => setTerm('')}>
-									Clear search
-								</Button>
 							) : undefined
 						}
 					/>
