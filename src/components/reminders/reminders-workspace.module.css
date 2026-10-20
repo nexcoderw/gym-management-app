@@ -60,6 +60,25 @@
 	color: var(--text-success);
 }
 
+.status[data-status='NONE'] {
+	background: var(--surface-hover);
+	color: var(--text-success);
+}
+
+.sectionTitle {
+	margin: var(--space-5) 0 0;
+	font-size: 1.25rem;
+}
+
+.muted {
+	color: var(--text-secondary);
+}
+
+.loadMore {
+	display: flex;
+	justify-content: center;
+}
+
 .note {
 	margin: 0;
 	color: var(--text-secondary);
