@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
 	databaseIdSchema,
+	listDateSchema,
 	paymentInputSchema,
 	paymentMethodSchema,
 	paymentOrderSchema,
@@ -20,7 +21,10 @@ const querySchema = z.strictObject({
 	method: paymentMethodSchema.optional(),
 	memberId: databaseIdSchema.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
-	limit: z.coerce.number<number>().int().min(1).max(50).default(50),
+	search: z.string().max(80).optional(),
+	fromDate: listDateSchema.optional(),
+	toDate: listDateSchema.optional(),
+	limit: z.coerce.number<number>().int().min(1).max(24).default(24),
 	cursor: databaseIdSchema.optional(),
 });
 
