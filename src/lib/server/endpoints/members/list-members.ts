@@ -2,13 +2,13 @@ import 'server-only';
 
 import { z, ZodError } from 'zod';
 
-import { memberListSchema, memberStatusSchema } from '@/lib/contracts';
+import { databaseIdSchema, memberListSchema, memberStatusSchema } from '@/lib/contracts';
 import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 
 const filtersSchema = z.strictObject({
 	status: memberStatusSchema.default('ACTIVE'),
 	limit: z.number().int().min(1).max(50).default(20),
-	cursor: z.uuid().optional(),
+	cursor: databaseIdSchema.optional(),
 });
 
 export type MemberListFilters = z.input<typeof filtersSchema>;
