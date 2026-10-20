@@ -1,16 +1,18 @@
 import { z } from 'zod';
+
+import { databaseIdSchema } from '@/lib/contracts';
 import { listMemberSubscriptions } from '@/lib/server/endpoints/members/list-member-subscriptions';
 import { errorResponse } from '@/lib/server/upstream';
 
 export const runtime = 'nodejs';
-const querySchema = z.strictObject({ cursor: z.uuid().optional() });
+const querySchema = z.strictObject({ cursor: databaseIdSchema.optional() });
 
 export async function GET(
 	request: Request,
 	context: { readonly params: Promise<{ readonly memberId: string }> },
 ): Promise<Response> {
 	try {
-		const id = z.uuid().parse((await context.params).memberId);
+		const id = databaseIdSchema.parse((await context.params).memberId);
 		const params = new URL(request.url).searchParams;
 		if ([...params.keys()].length !== new Set(params.keys()).size) {
 			return Response.json(
