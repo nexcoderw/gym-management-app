@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { databaseIdSchema, memberListSchema, memberSchema } from '@/lib/contracts';
+import {
+	databaseIdSchema,
+	memberListSchema,
+	memberSchema,
+	numberedMemberListSchema,
+} from '@/lib/contracts';
 
 const syntheticMemberId = '11ab9b64-19b3-ee0d-19c8-e2c69b0722da';
 
@@ -78,6 +83,18 @@ describe('member listing contracts', () => {
 			items: [],
 			nextCursor: null,
 		});
+	});
+
+	it('requires a total and page number for direct member navigation', () => {
+		const response = {
+			items: [member],
+			nextCursor: null,
+			totalItems: 325,
+			totalPages: 17,
+			page: 17,
+		};
+		expect(numberedMemberListSchema.parse(response)).toEqual(response);
+		expect(() => numberedMemberListSchema.parse({ items: [], nextCursor: null })).toThrow();
 	});
 
 	it('rejects oversized member pages', () => {
