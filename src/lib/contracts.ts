@@ -156,6 +156,15 @@ export const memberSchema = z.strictObject({
 export const memberListSchema = z.strictObject({
 	items: z.array(memberSchema).max(50),
 	nextCursor: databaseIdSchema.nullable(),
+	totalItems: z.number().int().nonnegative().optional(),
+	totalPages: z.number().int().nonnegative().optional(),
+	page: z.number().int().positive().nullable().optional(),
+});
+
+export const numberedMemberListSchema = memberListSchema.extend({
+	totalItems: z.number().int().nonnegative(),
+	totalPages: z.number().int().nonnegative(),
+	page: z.number().int().positive(),
 });
 
 const memberStartDateSchema = z
@@ -266,6 +275,7 @@ export type MembershipPlanInput = z.infer<typeof membershipPlanInputSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type MemberStatus = z.infer<typeof memberStatusSchema>;
 export type MemberList = z.infer<typeof memberListSchema>;
+export type NumberedMemberList = z.infer<typeof numberedMemberListSchema>;
 export type MemberRegistrationInput = z.output<typeof memberRegistrationInputSchema>;
 export type MemberRegistrationDraft = z.input<typeof memberRegistrationInputSchema>;
 export type MemberRegistrationResponse = z.infer<typeof memberRegistrationResponseSchema>;
