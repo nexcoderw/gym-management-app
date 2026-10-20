@@ -59,13 +59,18 @@ export function PaymentsWorkspace({
 	const [notice, setNotice] = useState<ToastNotice | null>(null);
 	const requestId = useRef(0);
 	const controller = useRef<AbortController | null>(null);
-	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const dismissToast = useCallback(() => setNotice(null), []);
 	useEffect(() => () => {
 		controller.current?.abort();
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 	}, []);
-	const visible = items;
+	const needle = term.trim().toLocaleLowerCase('en');
+	const visible = items.filter(
+		(payment) =>
+			!needle ||
+			[payment.memberName, payment.receiptNumber, payment.providerReference ?? ''].some(
+				(value) => value.toLocaleLowerCase('en').includes(needle),
+			),
+	);
 
 	function notify(message: string, tone: ToastNotice['tone']) {
 		noticeId.current += 1;
@@ -77,7 +82,6 @@ export function PaymentsWorkspace({
 			status: PaymentStatusFilter;
 			method: PaymentMethodFilter;
 			order: PaymentOrder;
-			search?: string;
 			fromDate?: string;
 			toDate?: string;
 		},
@@ -98,7 +102,6 @@ export function PaymentsWorkspace({
 		const query = new URLSearchParams({ order: next.order, limit: '24' });
 		if (next.status !== 'ALL') query.set('status', next.status);
 		if (next.method !== 'ALL') query.set('method', next.method);
-		if (next.search?.trim()) query.set('search', next.search.trim());
 		if (next.fromDate) query.set('fromDate', next.fromDate);
 		if (next.toDate) query.set('toDate', next.toDate);
 		if (append && nextCursor) query.set('cursor', nextCursor);
@@ -132,26 +135,19 @@ export function PaymentsWorkspace({
 	}
 
 	function changeStatus(value: PaymentStatusFilter) {
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		setStatus(value);
-		void load({ status: value, method, order, search: term, fromDate, toDate });
+		void load({ status: value, method, order, fromDate, toDate });
 	}
 	function changeMethod(value: PaymentMethodFilter) {
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		setMethod(value);
-		void load({ status, method: value, order, search: term, fromDate, toDate });
+		void load({ status, method: value, order, fromDate, toDate });
 	}
 	function changeOrder(value: PaymentOrder) {
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		setOrder(value);
-		void load({ status, method, order: value, search: term, fromDate, toDate });
+		void load({ status, method, order: value, fromDate, toDate });
 	}
 	function changeTerm(value: string) {
 		setTerm(value);
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-		searchTimer.current = setTimeout(() => {
-			void load({ status, method, order, search: value, fromDate, toDate });
-		}, 300);
 	}
 
 	async function create(input: RegisterPaymentInput) {
@@ -166,7 +162,6 @@ export function PaymentsWorkspace({
 			setStatus('ALL');
 			setMethod('ALL');
 			setOrder('NEWEST');
-			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			setTerm('');
 			setFromDate('');
 			setToDate('');
@@ -246,14 +241,12 @@ export function PaymentsWorkspace({
 						onMethodChange={changeMethod}
 						onOrderChange={changeOrder}
 						onFromDateChange={(value) => {
-							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 							setFromDate(value);
-							void load({ status, method, order, search: term, fromDate: value, toDate });
+							void load({ status, method, order, fromDate: value, toDate });
 						}}
 						onToDateChange={(value) => {
-							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 							setToDate(value);
-							void load({ status, method, order, search: term, fromDate, toDate: value });
+							void load({ status, method, order, fromDate, toDate: value });
 						}}
 					/>
 				) : null}
@@ -271,7 +264,7 @@ export function PaymentsWorkspace({
 							<Button
 								icon={RefreshIcon}
 								pending={loading !== 'idle'}
-								onClick={() => void load({ status, method, order, search: term, fromDate, toDate })}
+								onClick={() => void load({ status, method, order, fromDate, toDate })}
 							>
 								Refresh payments
 							</Button>
@@ -283,7 +276,9 @@ export function PaymentsWorkspace({
 						title={filteredEmpty ? 'No matching payments' : 'Record your first payment'}
 						description={
 							filteredEmpty
-								? 'Change your search or filters to see more of the ledger.'
+								? nextCursor !== null && term.trim() !== ''
+									? 'No loaded payments match. Load more payments or change your search.'
+									: 'Change your search or filters to see more of the ledger.'
 								: 'Add a member or choose an existing one, select a plan and record its payment.'
 						}
 						action={
@@ -293,7 +288,6 @@ export function PaymentsWorkspace({
 									variant="secondary"
 									onClick={() => {
 										setTerm('');
-										if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 										setStatus('ALL');
 										setMethod('ALL');
 										setFromDate('');
@@ -388,7 +382,7 @@ export function PaymentsWorkspace({
 							icon={ArrowDown01Icon}
 							variant="secondary"
 							pending={loading === 'more'}
-							onClick={() => void load({ status, method, order, search: term, fromDate, toDate }, true)}
+							onClick={() => void load({ status, method, order, fromDate, toDate }, true)}
 						>
 							Load more
 						</Button>
