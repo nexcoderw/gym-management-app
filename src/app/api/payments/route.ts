@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
 	databaseIdSchema,
 	listDateSchema,
+	listSearchSchema,
 	paymentInputSchema,
 	paymentMethodSchema,
 	paymentOrderSchema,
@@ -18,6 +19,7 @@ export const runtime = 'nodejs';
 
 const querySchema = z.strictObject({
 	status: paymentStatusSchema.optional(),
+	search: listSearchSchema.optional(),
 	method: paymentMethodSchema.optional(),
 	memberId: databaseIdSchema.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
