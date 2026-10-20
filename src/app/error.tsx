@@ -3,12 +3,10 @@
 import { StatusPage } from '@/components/shared/status-page';
 
 export default function ErrorPage({
-	reset,
+	retry,
 }: {
 	error: Error & { digest?: string };
-	reset: () => void;
+	retry: () => void;
 }) {
-	return (
-		<StatusPage status={500} onRetry={reset} />
-	);
+	return <StatusPage status={500} onRetry={retry} />;
 }
