@@ -15,19 +15,26 @@ import { PageHeader } from '@/components/shared/page-header';
 import { Pagination } from '@/components/shared/pagination';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
-import { memberListSchema, type Member, type MemberList, type MemberStatus } from '@/lib/contracts';
+import {
+	numberedMemberListSchema,
+	type Member,
+	type MemberStatus,
+	type NumberedMemberList,
+} from '@/lib/contracts';
 
 import { MemberCard } from './member-card';
 import { MemberDialogs, type MemberDialogState } from './member-dialogs';
 import { MembersToolbar, type MemberOrder } from './members-toolbar';
 import styles from './members-workspace.module.css';
 
-type LoadingState = 'idle' | 'page' | 'more';
+type LoadingState = 'idle' | 'page';
 
 interface MembersView {
 	readonly status: MemberStatus;
 	readonly items: Member[];
-	readonly nextCursor: string | null;
+	readonly page: number;
+	readonly totalPages: number;
+	readonly totalItems: number;
 	readonly errorStatus: number | null;
 	readonly loading: LoadingState;
 }
@@ -43,20 +50,17 @@ async function readMembers(
 	order: MemberOrder,
 	fromDate: string,
 	toDate: string,
-	cursor: string | null,
+	page: number,
 	signal: AbortSignal,
-): Promise<MemberList> {
+): Promise<NumberedMemberList> {
 	const query = new URLSearchParams({
 		status,
-		limit: '24',
+		limit: '20',
+		page: String(page),
 		order: order.replace('-', '_').toUpperCase(),
 	});
 	if (fromDate) query.set('fromDate', fromDate);
 	if (toDate) query.set('toDate', toDate);
-
-	if (cursor !== null) {
-		query.set('cursor', cursor);
-	}
 
 	const response = await fetch(`${routes.membersApi}?${query.toString()}`, {
 		method: 'GET',
@@ -69,7 +73,7 @@ async function readMembers(
 	}
 
 	const body: unknown = await response.json();
-	return memberListSchema.parse(body);
+	return numberedMemberListSchema.parse(body);
 }
 
 function errorDetails(status: number) {
@@ -100,22 +104,27 @@ function errorDetails(status: number) {
 export function MembersWorkspace({
 	initialItems,
 	initialNextCursor,
+	initialTotalPages = initialNextCursor === null ? 1 : 2,
+	initialTotalItems = initialItems.length,
 	initialErrorStatus = null,
 }: {
 	readonly initialItems: Member[];
 	readonly initialNextCursor: string | null;
+	readonly initialTotalPages?: number;
+	readonly initialTotalItems?: number;
 	readonly initialErrorStatus?: number | null;
 }) {
 	const [view, setView] = useState<MembersView>({
 		status: 'ACTIVE',
 		items: initialItems,
-		nextCursor: initialNextCursor,
+		page: 1,
+		totalPages: initialTotalPages,
+		totalItems: initialTotalItems,
 		errorStatus: initialErrorStatus,
 		loading: 'idle',
 	});
 
 	const [term, setTerm] = useState('');
-	const [currentPage, setCurrentPage] = useState(1);
 	const [order, setOrder] = useState<MemberOrder>('newest');
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
@@ -129,7 +138,7 @@ export function MembersWorkspace({
 
 	function saved() {
 		setDialog(null);
-		void loadMembers(view.status, false, order, fromDate, toDate);
+		void loadMembers(view.status, view.page, order, fromDate, toDate);
 	}
 
 	const activeController = useRef<AbortController | null>(null);
@@ -144,16 +153,11 @@ export function MembersWorkspace({
 
 	async function loadMembers(
 		status: MemberStatus,
-		append = false,
+		page = 1,
 		selectedOrder = order,
 		from = fromDate,
 		to = toDate,
 	) {
-		if (append && (view.nextCursor === null || view.loading !== 'idle')) {
-			return;
-		}
-
-		const cursor = append ? view.nextCursor : null;
 		const currentRequest = ++requestNumber.current;
 
 		activeController.current?.abort();
@@ -162,36 +166,27 @@ export function MembersWorkspace({
 		activeController.current = controller;
 
 		setView((current) => ({
+			...current,
 			status,
-			items: append ? current.items : [],
-			nextCursor: append ? current.nextCursor : null,
+			items: [],
 			errorStatus: null,
-			loading: append ? 'more' : 'page',
+			loading: 'page',
 		}));
 
 		try {
-			const result = await readMembers(status, selectedOrder, from, to, cursor, controller.signal);
+			const result = await readMembers(status, selectedOrder, from, to, page, controller.signal);
 
 			if (currentRequest !== requestNumber.current) return;
 
-			const knownIds = new Set(view.items.map((member) => member.id));
-			const nextItems = append
-				? [...view.items, ...result.items.filter((member) => !knownIds.has(member.id))]
-				: result.items;
 			setView({
 				status,
-				items: nextItems,
-				nextCursor: result.nextCursor,
+				items: result.items,
+				page: result.page,
+				totalPages: result.totalPages,
+				totalItems: result.totalItems,
 				errorStatus: null,
 				loading: 'idle',
 			});
-			setCurrentPage(
-				append
-					? Math.max(1, Math.ceil(nextItems.filter((member) =>
-							!term.trim() || [member.name, member.phoneNumber, member.email ?? ''].some((value) => value.toLocaleLowerCase('en').includes(term.trim().toLocaleLowerCase('en'))),
-						).length / 24))
-					: 1,
-			);
 		} catch (error: unknown) {
 			if (controller.signal.aborted || currentRequest !== requestNumber.current) {
 				return;
@@ -204,7 +199,8 @@ export function MembersWorkspace({
 			setView((current) => ({
 				...current,
 				items: accessLost ? [] : current.items,
-				nextCursor: accessLost ? null : current.nextCursor,
+				totalPages: accessLost ? 0 : current.totalPages,
+				totalItems: accessLost ? 0 : current.totalItems,
 				errorStatus,
 				loading: 'idle',
 			}));
@@ -223,23 +219,11 @@ export function MembersWorkspace({
 				value.toLocaleLowerCase('en').includes(needle),
 			),
 	);
-	const loadedPages = Math.max(1, Math.ceil(visibleMembers.length / 24));
-	const displayedPage = Math.min(currentPage, loadedPages);
-	const pageMembers = visibleMembers.slice((displayedPage - 1) * 24, displayedPage * 24);
-
 	const busy = view.loading !== 'idle';
 	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
-	const canLoadMore = view.nextCursor !== null;
+	const canLoadMore = view.page < view.totalPages;
 	const searching = term.trim() !== '';
 	const filtered = searching || fromDate !== '' || toDate !== '';
-
-	function changePage(page: number) {
-		if (page <= loadedPages) {
-			setCurrentPage(page);
-		} else if (page === loadedPages + 1 && canLoadMore) {
-			void loadMembers(view.status, true);
-		}
-	}
 
 	return (
 		<div className={styles.page}>
@@ -252,6 +236,7 @@ export function MembersWorkspace({
 				<MembersToolbar
 					visibleCount={visibleMembers.length}
 					loadedCount={view.items.length}
+					totalCount={view.totalItems}
 					hasMore={canLoadMore}
 					status={view.status}
 					order={order}
@@ -260,15 +245,12 @@ export function MembersWorkspace({
 					toDate={toDate}
 					pending={busy}
 					error={failure !== null}
-					onTermChange={(value) => {
-						setTerm(value);
-						setCurrentPage(1);
-					}}
+					onTermChange={setTerm}
 					onFiltersApply={(status, selectedOrder, from, to) => {
 						setOrder(selectedOrder);
 						setFromDate(from);
 						setToDate(to);
-						void loadMembers(status, false, selectedOrder, from, to);
+						void loadMembers(status, 1, selectedOrder, from, to);
 					}}
 				/>
 
@@ -313,7 +295,7 @@ export function MembersWorkspace({
 						description={
 							filtered
 								? searching && canLoadMore
-									? 'No loaded profiles match. Open the next page or try another search.'
+									? 'No members on this page match. Open the next page or try another search.'
 									: 'Try another search or date range.'
 								: view.status === 'ACTIVE'
 									? 'Add their contact details and choose the membership plan they are joining.'
@@ -328,7 +310,7 @@ export function MembersWorkspace({
 										setTerm('');
 										setFromDate('');
 										setToDate('');
-										if (fromDate || toDate) void loadMembers(view.status, false, order, '', '');
+										if (fromDate || toDate) void loadMembers(view.status, 1, order, '', '');
 									}}
 								>
 									Clear filters
@@ -344,7 +326,7 @@ export function MembersWorkspace({
 
 				{visibleMembers.length > 0 ? (
 					<ul className={styles.grid} role="list">
-						{pageMembers.map((member) => (
+						{visibleMembers.map((member) => (
 							<li key={member.id} className={styles.item}>
 								<MemberCard
 									member={member}
@@ -360,11 +342,10 @@ export function MembersWorkspace({
 				{view.loading !== 'page' && failure === null ? (
 					<Pagination
 						label="Members"
-						page={displayedPage}
-						loadedPages={loadedPages}
-						hasNext={canLoadMore}
+						page={view.page}
+						totalPages={view.totalPages}
 						pending={busy}
-						onPageChange={changePage}
+						onPageChange={(page) => void loadMembers(view.status, page)}
 					/>
 				) : null}
 			</section>
