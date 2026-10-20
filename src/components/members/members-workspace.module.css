@@ -55,12 +55,6 @@
 	overflow-wrap: anywhere;
 }
 
-.more {
-	display: flex;
-	justify-content: center;
-	padding-block: var(--space-4);
-}
-
 .signIn {
 	display: inline-flex;
 	align-items: center;
