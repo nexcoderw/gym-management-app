@@ -56,15 +56,37 @@ const archivedMember: Member = {
 };
 
 const fetchMock = vi.fn<typeof fetch>();
+const showModalDescriptor = Object.getOwnPropertyDescriptor(
+	HTMLDialogElement.prototype,
+	'showModal',
+);
+const closeDescriptor = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, 'close');
 
 beforeEach(() => {
 	fetchMock.mockReset();
 	vi.stubGlobal('fetch', fetchMock);
+	Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+		configurable: true,
+		value(this: HTMLDialogElement) {
+			this.open = true;
+		},
+	});
+	Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+		configurable: true,
+		value(this: HTMLDialogElement) {
+			this.open = false;
+		},
+	});
 });
 
 afterEach(() => {
 	cleanup();
 	vi.unstubAllGlobals();
+	if (showModalDescriptor)
+		Object.defineProperty(HTMLDialogElement.prototype, 'showModal', showModalDescriptor);
+	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+	if (closeDescriptor) Object.defineProperty(HTMLDialogElement.prototype, 'close', closeDescriptor);
+	else Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
 });
 
 describe('members registry UI', () => {
@@ -144,9 +166,13 @@ describe('members registry UI', () => {
 
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
-
-		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		expect(screen.getByRole('button', { name: 'Apply' }).hasAttribute('disabled')).toBe(true);
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
 		expect(await screen.findByRole('heading', { name: 'Example Archived Member' })).toBeTruthy();
 
@@ -165,9 +191,11 @@ describe('members registry UI', () => {
 
 		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Zoe Member');
 
-		fireEvent.click(screen.getByRole('button', { name: 'Sort members: Newest first' }));
-
-		fireEvent.click(screen.getByRole('button', { name: 'Name: A to Z' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		fireEvent.change(screen.getByRole('combobox', { name: 'Order' }), {
+			target: { value: 'name-asc' },
+		});
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
 		await waitFor(() => expect(String(fetchMock.mock.calls[0]?.[0])).toContain('order=NAME_ASC'));
 		await waitFor(() =>
@@ -175,6 +203,46 @@ describe('members registry UI', () => {
 				'Example Active Member',
 			),
 		);
+	});
+
+	it('discards closed drafts and applies status, order, and dates in one request', async () => {
+		fetchMock.mockResolvedValueOnce(
+			Response.json({ items: [archivedMember], nextCursor: null }),
+		);
+		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
+
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		fireEvent.click(screen.getByRole('button', { name: /^Close$/ }));
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		expect(screen.getByRole('combobox', { name: 'Status' })).toHaveProperty('value', 'ACTIVE');
+		expect(screen.getByRole('button', { name: 'Apply' }).hasAttribute('disabled')).toBe(true);
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		fireEvent.change(screen.getByRole('combobox', { name: 'Order' }), {
+			target: { value: 'name-desc' },
+		});
+		fireEvent.change(screen.getByLabelText('Registered from'), {
+			target: { value: '2030-01-01' },
+		});
+		fireEvent.change(screen.getByLabelText('Registered through'), {
+			target: { value: '2030-01-31' },
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		const request = String(fetchMock.mock.calls[0]?.[0]);
+		expect(request).toContain('status=ARCHIVED');
+		expect(request).toContain('order=NAME_DESC');
+		expect(request).toContain('fromDate=2030-01-01');
+		expect(request).toContain('toDate=2030-01-31');
+		expect(await screen.findByRole('heading', { name: 'Example Archived Member' })).toBeTruthy();
 	});
 
 	it('refreshes details and loads plan history when opening a member', async () => {
@@ -264,8 +332,11 @@ describe('members registry UI', () => {
 
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
-		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
 		await waitFor(() => {
 			expect(screen.getByText('Access denied')).toBeTruthy();
@@ -294,12 +365,17 @@ describe('members registry UI', () => {
 
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Active' }));
-		fireEvent.click(screen.getByRole('button', { name: /^Archived$/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ARCHIVED' },
+		});
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
-		fireEvent.click(screen.getByRole('button', { name: 'Filter by status: Archived' }));
-
-		fireEvent.click(screen.getByRole('button', { name: /^Active$/ }));
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+			target: { value: 'ACTIVE' },
+		});
+		fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
 		expect(await screen.findByRole('heading', { name: 'Example Active Member' })).toBeTruthy();
 
