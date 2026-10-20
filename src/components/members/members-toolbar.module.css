@@ -99,92 +99,10 @@
 	border: 0;
 }
 
-.filter {
-	position: relative;
-	flex: 0 0 auto;
-}
-
-.dateFilter {
-	display: flex;
-	align-items: center;
-	gap: var(--space-1);
-	min-height: 2.75rem;
-	padding-inline: var(--space-3);
-	border: 1px solid var(--border);
-	border-radius: var(--radius-pill);
-	background: var(--surface-primary);
-	color: var(--text-secondary);
-	font-size: var(--text-small);
-}
-
-.dateFilter input {
-	min-width: 0;
-	border: 0;
-	background: transparent;
-	color: var(--text-primary);
-	font: inherit;
-}
-
-.dateFilter:focus-within {
-	outline: 3px solid var(--focus-ring);
-	outline-offset: 2px;
-}
-
-.menu {
-	position: absolute;
-	inset-block-start: calc(100% + var(--space-2));
-	inset-inline-end: 0;
-	z-index: 10;
+.filterFields {
 	display: grid;
-	gap: var(--space-1);
-	min-width: 13rem;
-	max-width: min(18rem, 90vw);
-	padding: var(--space-2);
-	border: 1px solid var(--border);
-	border-radius: var(--radius-control);
-	background: var(--surface-primary);
-	box-shadow: var(--shadow-card-hover);
-}
-
-.menuHeading {
-	margin: 0;
-	padding: var(--space-1) var(--space-3);
-	color: var(--text-secondary);
-	font-size: var(--text-caption);
-	font-weight: 700;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-}
-
-.option {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	min-height: 2.75rem;
-	padding: var(--space-2) var(--space-3);
-	border: 0;
-	border-radius: var(--radius-control);
-	background: none;
-	color: var(--text-primary);
-	font-size: var(--text-body);
-	font-weight: 500;
-	text-align: start;
-	cursor: pointer;
-}
-
-.option:hover {
-	background: var(--surface-subtle);
-}
-
-.option[aria-pressed='true'] {
-	background: var(--surface-hover);
-	color: var(--action-primary);
-	font-weight: 700;
-}
-
-.check {
-	display: inline-flex;
-	flex: 0 0 1rem;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-5) var(--space-4);
 }
 
 @media (max-width: 39.99rem) {
@@ -195,6 +113,10 @@
 	.searchInput {
 		font-size: 1rem;
 	}
+
+	.filterFields {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -204,8 +126,7 @@
 }
 
 @media (forced-colors: active) {
-	.search,
-	.menu {
+	.search {
 		border-color: CanvasText;
 	}
 }
