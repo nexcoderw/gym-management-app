@@ -56,6 +56,15 @@ const archivedMember: Member = {
 };
 
 const fetchMock = vi.fn<typeof fetch>();
+function numberedPage(items: Member[], page = 1, totalItems = items.length) {
+	return Response.json({
+		items,
+		nextCursor: null,
+		totalItems,
+		totalPages: Math.ceil(totalItems / 20),
+		page,
+	});
+}
 const showModalDescriptor = Object.getOwnPropertyDescriptor(
 	HTMLDialogElement.prototype,
 	'showModal',
@@ -101,7 +110,7 @@ describe('members registry UI', () => {
 			within(screen.getByRole('article', { name: 'Example Active Member' })).getByText('Active'),
 		).toBeTruthy();
 		expect(screen.getByText('+250 700 000 001')).toBeTruthy();
-		expect(screen.getByText('1 loaded active profile')).toBeTruthy();
+		expect(screen.getByText('1 of 1 active profile shown')).toBeTruthy();
 		expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
@@ -159,12 +168,7 @@ describe('members registry UI', () => {
 	});
 
 	it('switches between active and archived profiles', async () => {
-		fetchMock.mockResolvedValueOnce(
-			Response.json({
-				items: [archivedMember],
-				nextCursor: null,
-			}),
-		);
+		fetchMock.mockResolvedValueOnce(numberedPage([archivedMember]));
 
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
@@ -184,9 +188,7 @@ describe('members registry UI', () => {
 	});
 
 	it('requests member ordering from the backend', async () => {
-		fetchMock.mockResolvedValueOnce(
-			Response.json({ items: [activeMember, secondMember], nextCursor: null }),
-		);
+		fetchMock.mockResolvedValueOnce(numberedPage([activeMember, secondMember]));
 		render(
 			<MembersWorkspace initialItems={[secondMember, activeMember]} initialNextCursor={null} />,
 		);
@@ -210,7 +212,7 @@ describe('members registry UI', () => {
 	});
 
 	it('discards closed drafts and applies status, order, and dates in one request', async () => {
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [archivedMember], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(numberedPage([archivedMember]));
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
@@ -270,7 +272,7 @@ describe('members registry UI', () => {
 	it('confirms archival and refreshes the registry only after success', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json(activeMember));
 		fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(numberedPage([]));
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 		fireEvent.click(screen.getByRole('button', { name: `Archive ${activeMember.name}` }));
 		const confirm = await screen.findByRole('button', { name: /^Archive member$/ });
@@ -296,34 +298,35 @@ describe('members registry UI', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
-	it('loads the next cursor page without duplicates', async () => {
-		const firstPage = Array.from({ length: 24 }, (_, index) => ({
+	it('jumps to the last numbered page and back to the first', async () => {
+		const firstPage = Array.from({ length: 20 }, (_, index) => ({
 			...activeMember,
 			id: `11111111-1111-4111-8111-${String(index + 1).padStart(12, '0')}`,
 			name: `Member ${index + 1}`,
 		}));
-		fetchMock.mockResolvedValueOnce(
-			Response.json({
-				items: [firstPage[0], secondMember],
-				nextCursor: null,
-			}),
-		);
+		fetchMock.mockResolvedValueOnce(numberedPage([secondMember], 17, 321));
+		fetchMock.mockResolvedValueOnce(numberedPage(firstPage, 1, 321));
 
 		render(
 			<MembersWorkspace
 				initialItems={firstPage}
-				initialNextCursor="44444444-4444-4444-8444-444444444444"
+				initialNextCursor={null}
+				initialTotalPages={17}
+				initialTotalItems={321}
 			/>,
 		);
 
-		expect(screen.getAllByRole('article')).toHaveLength(24);
-		fireEvent.click(screen.getByRole('button', { name: 'Page 2' }));
+		expect(screen.getAllByRole('article')).toHaveLength(20);
+		expect(screen.getByRole('button', { name: 'Page 17' })).toBeTruthy();
+		fireEvent.click(screen.getByRole('button', { name: 'Last page' }));
 
 		expect(await screen.findByRole('heading', { name: 'Zoe Member' })).toBeTruthy();
 		expect(screen.getAllByRole('article')).toHaveLength(1);
-		fireEvent.click(screen.getByRole('button', { name: 'Page 1' }));
-		expect(screen.getAllByRole('article')).toHaveLength(24);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('page=17');
+		fireEvent.click(screen.getByRole('button', { name: 'First page' }));
+		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(20));
+		expect(String(fetchMock.mock.calls[1]?.[0])).toContain('page=1');
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
 	it('does not present service failures as an empty gym', () => {
@@ -365,12 +368,7 @@ describe('members registry UI', () => {
 						finishFirstRequest = resolve;
 					}),
 			)
-			.mockResolvedValueOnce(
-				Response.json({
-					items: [activeMember],
-					nextCursor: null,
-				}),
-			);
+			.mockResolvedValueOnce(numberedPage([activeMember]));
 
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
@@ -388,12 +386,7 @@ describe('members registry UI', () => {
 
 		expect(await screen.findByRole('heading', { name: 'Example Active Member' })).toBeTruthy();
 
-		finishFirstRequest?.(
-			Response.json({
-				items: [archivedMember],
-				nextCursor: null,
-			}),
-		);
+		finishFirstRequest?.(numberedPage([archivedMember]));
 
 		await waitFor(() => {
 			expect(screen.queryByRole('heading', { name: 'Example Archived Member' })).toBeNull();
