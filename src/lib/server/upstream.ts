@@ -10,6 +10,7 @@ const MAXIMUM_RESPONSE_BYTES = 64 * 1024;
 const MAXIMUM_PDF_BYTES = 32 * 1024 * 1024;
 const READ_TIMEOUT_MS = 30_000;
 const COMMAND_TIMEOUT_MS = 45_000;
+const PDF_TIMEOUT_MS = 90_000;
 type OwnerUpstreamPath = `/owner/${string}` | `/owner-enrollment/${string}`;
 interface OwnerRequestInit {
 	readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -43,7 +44,7 @@ export async function upstreamJson<T>(
 	return { data: schema.parse(value), response };
 }
 
-/** Only server endpoint adapters can request a PDF; browser headers and destinations never pass through. */
+/** Only server adapters request PDFs; browser headers and destinations never pass through. */
 export async function upstreamPdf(path: OwnerUpstreamPath): Promise<Uint8Array<ArrayBuffer>> {
 	const response = await requestOwnerUpstream(path, {}, 'application/pdf');
 	if (
@@ -85,7 +86,12 @@ async function requestOwnerUpstream(
 	}
 	let response: Response;
 	try {
-		const timeoutMs = (init.method ?? 'GET') === 'GET' ? READ_TIMEOUT_MS : COMMAND_TIMEOUT_MS;
+		const timeoutMs =
+			accept === 'application/pdf'
+				? PDF_TIMEOUT_MS
+				: (init.method ?? 'GET') === 'GET'
+					? READ_TIMEOUT_MS
+					: COMMAND_TIMEOUT_MS;
 		response = await fetch(`${environment.GYM_API_BASE_URL}/api/v1${path}`, {
 			method: init.method ?? 'GET',
 			headers,
