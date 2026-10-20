@@ -7,9 +7,18 @@ import { environment } from './environment';
 import { resolveManagerOrigin } from './manager-origin';
 
 const MAXIMUM_RESPONSE_BYTES = 64 * 1024;
+const MAXIMUM_PDF_BYTES = 32 * 1024 * 1024;
 const READ_TIMEOUT_MS = 30_000;
 const COMMAND_TIMEOUT_MS = 45_000;
 type OwnerUpstreamPath = `/owner/${string}` | `/owner-enrollment/${string}`;
+interface OwnerRequestInit {
+	readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+	readonly body?: unknown;
+	readonly csrfToken?: string;
+	readonly ifMatch?: string;
+	readonly idempotencyKey?: string;
+	readonly origin?: string;
+}
 const ALLOWED_COOKIE_NAMES = new Set([
 	'nexcode-owner-session',
 	'nexcode-owner-csrf',
@@ -19,16 +28,43 @@ const ALLOWED_COOKIE_NAMES = new Set([
 
 export async function upstreamJson<T>(
 	path: OwnerUpstreamPath,
-	init: {
-		readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
-		readonly body?: unknown;
-		readonly csrfToken?: string;
-		readonly ifMatch?: string;
-		readonly idempotencyKey?: string;
-		readonly origin?: string;
-	},
+	init: OwnerRequestInit,
 	schema: z.ZodType<T>,
 ): Promise<{ readonly data: T; readonly response: Response }> {
+	const response = await requestOwnerUpstream(path, init, 'application/json');
+	if (
+		response.status !== 204 &&
+		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json'
+	) {
+		await response.body?.cancel();
+		throw new UpstreamError(502, 'The service returned an incompatible response.');
+	}
+	const value = response.status === 204 ? undefined : await boundedJson(response.body);
+	return { data: schema.parse(value), response };
+}
+
+/** Only server endpoint adapters can request a PDF; browser headers and destinations never pass through. */
+export async function upstreamPdf(path: OwnerUpstreamPath): Promise<Uint8Array<ArrayBuffer>> {
+	const response = await requestOwnerUpstream(path, {}, 'application/pdf');
+	if (
+		response.status !== 200 ||
+		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/pdf'
+	) {
+		await response.body?.cancel();
+		throw new UpstreamError(502, 'The service returned an incompatible response.');
+	}
+	const bytes = await boundedBytes(response.body, MAXIMUM_PDF_BYTES);
+	if (bytes.length < 5 || new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-') {
+		throw new UpstreamError(502, 'The service returned an incompatible response.');
+	}
+	return bytes;
+}
+
+async function requestOwnerUpstream(
+	path: OwnerUpstreamPath,
+	init: OwnerRequestInit,
+	accept: 'application/json' | 'application/pdf',
+): Promise<Response> {
 	const cookieStore = await cookies();
 	const cookieHeader = cookieStore
 		.getAll()
@@ -39,7 +75,7 @@ export async function upstreamJson<T>(
 		init.origin ??
 		environment.MANAGER_ORIGIN ??
 		resolveManagerOrigin(await requestHeaders(), false);
-	const headers = new Headers({ Accept: 'application/json', Origin: origin });
+	const headers = new Headers({ Accept: accept, Origin: origin });
 	if (cookieHeader !== '') headers.set('Cookie', cookieHeader);
 	if (init.body !== undefined) headers.set('Content-Type', 'application/json');
 	if (init.csrfToken !== undefined) headers.set('x-owner-csrf-token', init.csrfToken);
@@ -65,15 +101,7 @@ export async function upstreamJson<T>(
 		const message = await upstreamErrorMessage(response);
 		throw new UpstreamError(response.status, message);
 	}
-	if (
-		response.status !== 204 &&
-		response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json'
-	) {
-		await response.body?.cancel();
-		throw new UpstreamError(502, 'The service returned an incompatible response.');
-	}
-	const value = response.status === 204 ? undefined : await boundedJson(response.body);
-	return { data: schema.parse(value), response };
+	return response;
 }
 
 export class UpstreamError extends Error {
@@ -170,6 +198,40 @@ async function boundedJson(body: ReadableStream<Uint8Array> | null): Promise<unk
 		text += decoder.decode();
 		return JSON.parse(text) as unknown;
 	} catch (error) {
+		if (error instanceof UpstreamError) throw error;
+		throw new UpstreamError(502, 'The service returned an incompatible response.');
+	} finally {
+		reader.releaseLock();
+	}
+}
+
+async function boundedBytes(
+	body: ReadableStream<Uint8Array> | null,
+	maximumBytes: number,
+): Promise<Uint8Array<ArrayBuffer>> {
+	if (body === null) throw new UpstreamError(502, 'The service returned an incompatible response.');
+	const reader = body.getReader();
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			size += value.byteLength;
+			if (size > maximumBytes) {
+				await reader.cancel();
+				throw new UpstreamError(502, 'The service returned an incompatible response.');
+			}
+			chunks.push(value);
+		}
+		const result = new Uint8Array(size);
+		let offset = 0;
+		for (const chunk of chunks) {
+			result.set(chunk, offset);
+			offset += chunk.byteLength;
+		}
+		return result;
+	} catch (error: unknown) {
 		if (error instanceof UpstreamError) throw error;
 		throw new UpstreamError(502, 'The service returned an incompatible response.');
 	} finally {
