@@ -247,13 +247,10 @@ export function MembershipsWorkspace({
 						status={filter}
 						order={order}
 						onTermChange={changeTerm}
-						onStatusChange={(value) => {
-							setFilter(value);
-							void loadPage(value, order);
-						}}
-						onOrderChange={(value) => {
-							setOrder(value);
-							void loadPage(filter, value);
+						onFiltersApply={(status, selectedOrder) => {
+							setFilter(status);
+							setOrder(selectedOrder);
+							void loadPage(status, selectedOrder);
 						}}
 					/>
 				) : null}
