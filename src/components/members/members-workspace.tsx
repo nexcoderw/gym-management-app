@@ -8,6 +8,7 @@ import { Button, ButtonLink } from '@/components/shared/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Pagination } from '@/components/shared/pagination';
+import { ResultsLoadingState } from '@/components/shared/results-loading-state';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
@@ -292,9 +293,7 @@ export function MembersWorkspace({
 				) : null}
 
 				{view.loading === 'page' ? (
-					<div className={styles.message} role="status">
-						<p>Loading member profiles…</p>
-					</div>
+					<ResultsLoadingState subject="members" searching={searching} />
 				) : null}
 
 				{view.loading !== 'page' && failure === null && visibleMembers.length === 0 ? (
