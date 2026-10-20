@@ -23,10 +23,11 @@ history are snapshots, not payment receipts or period-multiplied charges.
 The browser talks only to same-origin BFF routes; it never receives the
 upstream API origin or stores invitation/session tokens in Web Storage.
 
-Membership plans, members and payments use tenant-scoped server-side status/date filters, ordering
-and cursor pagination with a maximum of 24 results per request. Member registration dates and payment
+Membership plans, members and payments use tenant-scoped server-side status/date filters and ordering.
+Members use numbered pagination with 20 profiles per page and a filtered total for direct first/last
+page navigation. Other lists retain bounded cursor pagination. Member registration dates and payment
 transaction dates can be filtered by inclusive Africa/Kigali calendar days. Search filters only rows
-loaded in the manager; use Load more to search additional pages. Server-side filters and ordering apply
+loaded in the manager; visit another page to search its members. Server-side filters and ordering apply
 to the full matching gym dataset before each page is returned.
 
 The Payments workspace lists gym-scoped ledger entries with status, method, date and order filters,
