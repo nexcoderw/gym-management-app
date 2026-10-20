@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import {
 	databaseIdSchema,
+	listDateSchema,
+	memberOrderSchema,
 	memberRegistrationInputSchema,
 	memberStatusSchema,
 } from '@/lib/contracts';
@@ -15,7 +17,11 @@ export const runtime = 'nodejs';
 
 const querySchema = z.strictObject({
 	status: memberStatusSchema.default('ACTIVE'),
-	limit: z.coerce.number<number>().int().min(1).max(50).default(20),
+	order: memberOrderSchema.default('NEWEST'),
+	search: z.string().max(80).optional(),
+	fromDate: listDateSchema.optional(),
+	toDate: listDateSchema.optional(),
+	limit: z.coerce.number<number>().int().min(1).max(24).default(24),
 	cursor: databaseIdSchema.optional(),
 });
 
