@@ -79,17 +79,38 @@ describe('reminders workspace', () => {
 		expect(screen.getByRole('heading', { name: 'No matching members' })).toBeTruthy();
 	});
 
-	it('queues a manual reminder only after confirmation and disables repeat sends', async () => {
+	it('prefills an editable email and queues only the approved copy', async () => {
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ id: '55555555-5555-4555-8555-555555555555', status: 'QUEUED' }), { status: 202, headers: { 'Content-Type': 'application/json' } }));
 		vi.stubGlobal('fetch', fetchMock);
 		render(<RemindersWorkspace items={[]} errorStatus={null} upcoming={[upcoming]} />);
 		fireEvent.click(screen.getByRole('button', { name: 'Send reminder' }));
 		expect(fetchMock).not.toHaveBeenCalled();
-		fireEvent.click(within(screen.getByRole('dialog', { name: 'Send email reminder' })).getByRole('button', { name: 'Queue reminder' }));
+		const dialog = screen.getByRole('dialog', { name: 'Send email reminder' });
+		expect(within(dialog).getByLabelText('Subject')).toHaveProperty('value', 'Your Monthly membership is ending soon');
+		fireEvent.change(within(dialog).getByLabelText('Message'), {
+			target: { value: 'Hello Example Member, please renew at the gym.' },
+		});
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Send email' }));
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
 		expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/reminders/subscriptions/33333333-3333-4333-8333-333333333333/deliveries');
+		expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+			subject: 'Your Monthly membership is ending soon',
+			body: 'Hello Example Member, please renew at the gym.',
+		});
 		await waitFor(() => expect(screen.queryByRole('button', { name: 'Send reminder' })).toBeNull());
 		expect(screen.getByText('Queued')).toBeTruthy();
+	});
+
+	it('keeps invalid message copy in the dialog without making a request', () => {
+		const fetchMock = vi.fn<typeof fetch>();
+		vi.stubGlobal('fetch', fetchMock);
+		render(<RemindersWorkspace items={[]} errorStatus={null} upcoming={[upcoming]} />);
+		fireEvent.click(screen.getByRole('button', { name: 'Send reminder' }));
+		const dialog = screen.getByRole('dialog', { name: 'Send email reminder' });
+		fireEvent.change(within(dialog).getByLabelText('Message'), { target: { value: '   ' } });
+		fireEvent.click(within(dialog).getByRole('button', { name: 'Send email' }));
+		expect(within(dialog).getByRole('alert').textContent).toMatch(/enter a message/iu);
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it('separates an empty upcoming list from a failed read', () => {
