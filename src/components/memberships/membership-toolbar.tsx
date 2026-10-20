@@ -24,7 +24,6 @@ const orders: readonly { value: MembershipOrder; label: string }[] = [
 
 export function MembershipToolbar({
 	count,
-	total,
 	hasMore,
 	term,
 	status,
@@ -33,7 +32,6 @@ export function MembershipToolbar({
 	onFiltersApply,
 }: {
 	readonly count: number;
-	readonly total: number;
 	readonly hasMore: boolean;
 	readonly term: string;
 	readonly status: MembershipFilter;
@@ -58,11 +56,11 @@ export function MembershipToolbar({
 
 	return (
 		<FilterToolbar
-			summary={`${count} of ${total} loaded memberships${hasMore ? ' · Load more to search and order all plans' : ''}`}
+			summary={`${count} loaded membership${count === 1 ? '' : 's'}${hasMore ? ' · More matching plans available' : ''}`}
 			term={term}
 			searchLabel="Search memberships"
-			searchInputLabel="Search loaded memberships by name"
-			searchPlaceholder="Search memberships…"
+			searchInputLabel="Search memberships by name"
+			searchPlaceholder="Search memberships (3+ characters)…"
 			onTermChange={onTermChange}
 			filtersOpen={filtersOpen}
 			onOpenFilters={openFilters}
