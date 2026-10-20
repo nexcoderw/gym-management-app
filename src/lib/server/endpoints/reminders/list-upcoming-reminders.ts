@@ -1,14 +1,21 @@
 import 'server-only';
 
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 
-import { upcomingReminderSchema } from '@/lib/contracts';
+import { databaseIdSchema, listSearchSchema, upcomingReminderSchema } from '@/lib/contracts';
 import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 
-export async function listUpcomingReminders(cursor?: string) {
+const filtersSchema = z.strictObject({
+	cursor: databaseIdSchema.optional(),
+	search: listSearchSchema.optional(),
+});
+
+export async function listUpcomingReminders(filters: z.input<typeof filtersSchema> = {}) {
 	try {
+		const parsed = filtersSchema.parse(filters);
 		const query = new URLSearchParams({ limit: '24' });
-		if (cursor !== undefined) query.set('cursor', cursor);
+		if (parsed.cursor !== undefined) query.set('cursor', parsed.cursor);
+		if (parsed.search !== undefined) query.set('search', parsed.search);
 		const result = await upstreamJson(
 			`/owner/reminders/upcoming?${query}`,
 			{ method: 'GET' },
