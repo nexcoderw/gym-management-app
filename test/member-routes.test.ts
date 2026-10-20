@@ -13,6 +13,7 @@ import { POST } from '@/app/api/members/route';
 import { DELETE, GET, PATCH } from '@/app/api/members/[memberId]/route';
 
 const id = '11111111-1111-4111-8111-111111111111';
+const syntheticId = '11ab9b64-19b3-ee0d-19c8-e2c69b0722da';
 const date = '2030-01-01T00:00:00.000Z';
 const member = {
 	id,
@@ -88,6 +89,15 @@ describe('member BFF operations', () => {
 		const response = await GET(new Request('https://manager.test'), context);
 		expect(response.status).toBe(401);
 		expect(await response.text()).not.toContain('hidden session detail');
+	});
+
+	it('reads a persisted member with non-RFC UUID bits', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ ...member, id: syntheticId }));
+		const response = await GET(new Request('https://manager.test'), {
+			params: Promise.resolve({ memberId: syntheticId }),
+		});
+		expect(response.status).toBe(200);
+		expect(await response.json()).toMatchObject({ id: syntheticId });
 	});
 
 	it('registers using only the fixed path, allowlisted body and idempotency header', async () => {
