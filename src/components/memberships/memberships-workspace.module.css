@@ -15,6 +15,13 @@
 	gap: var(--space-4);
 }
 
+.loading {
+	margin: 0;
+	padding: var(--space-6);
+	color: var(--text-secondary);
+	text-align: center;
+}
+
 .more {
 	display: flex;
 	justify-content: center;
