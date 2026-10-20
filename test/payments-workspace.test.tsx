@@ -77,6 +77,7 @@ describe('payments ledger search', () => {
 				initialItems={[payment]}
 				initialNextCursor={null}
 				initialErrorStatus={null}
+				initialToday="2030-01-21"
 			/>,
 		);
 
@@ -89,7 +90,7 @@ describe('payments ledger search', () => {
 
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'example member' } });
 		expect(
-			await screen.findByRole('button', { name: `View payment ${payment.receiptNumber}` }),
+			await screen.findByRole('button', { name: `View receipt ${payment.receiptNumber}` }),
 		).toBeTruthy();
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(String(fetchMock.mock.calls[1]?.[0])).toContain('search=example+member');
@@ -102,6 +103,7 @@ describe('payments ledger search', () => {
 				initialItems={[payment]}
 				initialNextCursor={null}
 				initialErrorStatus={null}
+				initialToday="2030-01-21"
 			/>,
 		);
 
@@ -139,5 +141,35 @@ describe('payments ledger search', () => {
 		expect(String(request)).toContain('order=AMOUNT_HIGH');
 		expect(String(request)).toContain('fromDate=2030-01-01');
 		expect(String(request)).toContain('toDate=2030-01-01');
+	});
+
+	it('shows subscription days and places the receipt action last', () => {
+		render(
+			<PaymentsWorkspace
+				initialItems={[payment]}
+				initialNextCursor={null}
+				initialErrorStatus={null}
+				initialToday="2030-01-21"
+			/>,
+		);
+
+		const table = screen.getByRole('table', { name: 'Payments for the current gym' });
+		const headers = within(table).getAllByRole('columnheader');
+		expect(headers.map((header) => header.textContent)).toEqual([
+			'Member',
+			'Plan',
+			'Start date',
+			'Days left',
+			'Recorded on',
+			'Method',
+			'Amount',
+			'Receipt action',
+		]);
+		const remaining = table.querySelector('[data-tone="soon"]');
+		expect(remaining?.textContent).toContain('10 days left');
+		expect(headers[7]?.cellIndex).toBe(7);
+		expect(
+			within(table).getByRole('button', { name: `View receipt ${payment.receiptNumber}` }),
+		).toBeTruthy();
 	});
 });
