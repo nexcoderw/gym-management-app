@@ -62,7 +62,7 @@ export const reminderActivityItemSchema = z.strictObject({
 	memberId: databaseIdSchema,
 	memberName: z.string().min(1).max(160),
 	planName: z.string().min(1).max(120),
-	kind: z.enum(['THREE_DAYS_BEFORE', 'EXPIRY_DAY']),
+	kind: z.enum(['THREE_DAYS_BEFORE', 'EXPIRY_DAY', 'MANUAL']),
 	status: z.enum(['ACCEPTED', 'DELIVERED', 'BOUNCED', 'FAILED', 'UNCERTAIN']),
 	dueDate: z.iso.date(),
 	endDate: z.iso.date(),
@@ -75,6 +75,31 @@ export const reminderActivitySchema = z.strictObject({
 });
 
 export type ReminderActivityItem = z.infer<typeof reminderActivityItemSchema>;
+
+export const upcomingReminderItemSchema = z.strictObject({
+	subscriptionId: databaseIdSchema,
+	memberId: databaseIdSchema,
+	memberName: z.string().min(1).max(160),
+	planName: z.string().min(1).max(120),
+	endDate: z.iso.date(),
+	daysRemaining: z.number().int().min(0).max(14),
+	canSend: z.boolean(),
+	manualStatus: z
+		.enum(['QUEUED', 'PROCESSING', 'ACCEPTED', 'DELIVERED', 'BOUNCED', 'FAILED', 'UNCERTAIN', 'SKIPPED'])
+		.nullable(),
+});
+
+export const upcomingReminderSchema = z.strictObject({
+	items: z.array(upcomingReminderItemSchema).max(24),
+	nextCursor: databaseIdSchema.nullable(),
+});
+
+export const queuedReminderSchema = z.strictObject({
+	id: databaseIdSchema,
+	status: z.literal('QUEUED'),
+});
+
+export type UpcomingReminderItem = z.infer<typeof upcomingReminderItemSchema>;
 
 export const membershipPlanStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
 
