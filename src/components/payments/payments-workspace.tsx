@@ -1,11 +1,6 @@
 'use client';
 
-import {
-	Add01Icon,
-	Cancel01Icon,
-	Invoice01Icon,
-	RefreshIcon,
-} from '@hugeicons/core-free-icons';
+import { Add01Icon, Cancel01Icon, Invoice01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/shared/button';
@@ -49,6 +44,8 @@ export function PaymentsWorkspace({
 	const [method, setMethod] = useState<PaymentMethodFilter>('ALL');
 	const [order, setOrder] = useState<PaymentOrder>('NEWEST');
 	const [term, setTerm] = useState('');
+	const appliedSearch = useRef('');
+	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
 	const [loading, setLoading] = useState<'idle' | 'page' | 'more'>('idle');
@@ -64,18 +61,12 @@ export function PaymentsWorkspace({
 	const dismissToast = useCallback(() => setNotice(null), []);
 	useEffect(
 		() => () => {
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			controller.current?.abort();
 		},
 		[],
 	);
-	const needle = term.trim().toLocaleLowerCase('en');
-	const visible = items.filter(
-		(payment) =>
-			!needle ||
-			[payment.memberName, payment.receiptNumber, payment.providerReference ?? ''].some((value) =>
-				value.toLocaleLowerCase('en').includes(needle),
-			),
-	);
+	const visible = items;
 	const loadedPages = Math.max(1, Math.ceil(visible.length / 24));
 	const displayedPage = Math.min(currentPage, loadedPages);
 	const pageItems = visible.slice((displayedPage - 1) * 24, displayedPage * 24);
@@ -95,6 +86,7 @@ export function PaymentsWorkspace({
 		},
 		append = false,
 		preserveExisting = false,
+		search = appliedSearch.current,
 	) {
 		if (append && (nextCursor === null || loading !== 'idle')) return;
 		controller.current?.abort();
@@ -108,6 +100,7 @@ export function PaymentsWorkspace({
 			setNextCursor(null);
 		}
 		const query = new URLSearchParams({ order: next.order, limit: '24' });
+		if (search) query.set('search', search);
 		if (next.status !== 'ALL') query.set('status', next.status);
 		if (next.method !== 'ALL') query.set('method', next.method);
 		if (next.fromDate) query.set('fromDate', next.fromDate);
@@ -119,17 +112,14 @@ export function PaymentsWorkspace({
 			});
 			if (currentId !== requestId.current) return;
 			const nextItems = append
-				? [...items, ...page.items.filter((payment) => !items.some((known) => known.id === payment.id))]
+				? [
+						...items,
+						...page.items.filter((payment) => !items.some((known) => known.id === payment.id)),
+					]
 				: page.items;
 			setItems(nextItems);
 			setNextCursor(page.nextCursor);
-			setCurrentPage(
-				append
-					? Math.max(1, Math.ceil(nextItems.filter((payment) =>
-							!needle || [payment.memberName, payment.receiptNumber, payment.providerReference ?? ''].some((value) => value.toLocaleLowerCase('en').includes(needle)),
-						).length / 24))
-					: 1,
-			);
+			setCurrentPage(append ? Math.max(1, Math.ceil(nextItems.length / 24)) : 1);
 			setErrorStatus(null);
 		} catch (error: unknown) {
 			if (active.signal.aborted || currentId !== requestId.current) return;
@@ -146,16 +136,25 @@ export function PaymentsWorkspace({
 	}
 
 	function applyFilters(selection: PaymentFilterSelection) {
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+		appliedSearch.current = term.trim().length >= 3 ? term.trim() : '';
 		setStatus(selection.status);
 		setMethod(selection.method);
 		setOrder(selection.order);
 		setFromDate(selection.fromDate);
 		setToDate(selection.toDate);
-		void load(selection);
+		void load(selection, false, false, appliedSearch.current);
 	}
 	function changeTerm(value: string) {
 		setTerm(value);
 		setCurrentPage(1);
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+		const search = value.trim().length >= 3 ? value.trim() : '';
+		if (search === appliedSearch.current) return;
+		searchTimer.current = setTimeout(() => {
+			appliedSearch.current = search;
+			void load({ status, method, order, fromDate, toDate }, false, false, search);
+		}, 250);
 	}
 
 	function changePage(page: number) {
@@ -178,6 +177,8 @@ export function PaymentsWorkspace({
 			setStatus('ALL');
 			setMethod('ALL');
 			setOrder('NEWEST');
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+			appliedSearch.current = '';
 			setTerm('');
 			setFromDate('');
 			setToDate('');
@@ -279,9 +280,7 @@ export function PaymentsWorkspace({
 						title={filteredEmpty ? 'No matching payments' : 'Record your first payment'}
 						description={
 							filteredEmpty
-								? nextCursor !== null && term.trim() !== ''
-									? 'No loaded payments match. Open the next page or change your search.'
-									: 'Change your search or filters to see more of the ledger.'
+								? 'Change your search or filters to see more of the ledger.'
 								: 'Add a member or choose an existing one, select a plan and record its payment.'
 						}
 						action={
@@ -291,11 +290,13 @@ export function PaymentsWorkspace({
 									variant="secondary"
 									onClick={() => {
 										setTerm('');
+										if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+										appliedSearch.current = '';
 										setStatus('ALL');
 										setMethod('ALL');
 										setFromDate('');
 										setToDate('');
-										void load({ status: 'ALL', method: 'ALL', order });
+										void load({ status: 'ALL', method: 'ALL', order }, false, false, '');
 									}}
 								>
 									Clear filters
