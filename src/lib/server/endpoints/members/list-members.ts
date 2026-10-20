@@ -2,17 +2,28 @@ import 'server-only';
 
 import { z, ZodError } from 'zod';
 
-import { databaseIdSchema, listDateSchema, memberListSchema, memberOrderSchema, memberStatusSchema } from '@/lib/contracts';
+import {
+	databaseIdSchema,
+	listDateSchema,
+	memberListSchema,
+	memberOrderSchema,
+	memberStatusSchema,
+} from '@/lib/contracts';
 import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 
-const filtersSchema = z.strictObject({
-	status: memberStatusSchema.default('ACTIVE'),
-	order: memberOrderSchema.default('NEWEST'),
-	fromDate: listDateSchema.optional(),
-	toDate: listDateSchema.optional(),
-	limit: z.number().int().min(1).max(24).default(24),
-	cursor: databaseIdSchema.optional(),
-});
+const filtersSchema = z
+	.strictObject({
+		status: memberStatusSchema.default('ACTIVE'),
+		order: memberOrderSchema.default('NEWEST'),
+		fromDate: listDateSchema.optional(),
+		toDate: listDateSchema.optional(),
+		limit: z.number().int().min(1).max(20).default(20),
+		cursor: databaseIdSchema.optional(),
+		page: z.number().int().min(1).max(100_000).optional(),
+	})
+	.refine((value) => value.cursor === undefined || value.page === undefined, {
+		message: 'Choose either page or cursor pagination.',
+	});
 
 export type MemberListFilters = z.input<typeof filtersSchema>;
 
@@ -26,6 +37,7 @@ export async function listMembers(filters: MemberListFilters = {}) {
 	});
 	if (parsed.fromDate) query.set('fromDate', parsed.fromDate);
 	if (parsed.toDate) query.set('toDate', parsed.toDate);
+	if (parsed.page !== undefined) query.set('page', String(parsed.page));
 
 	if (parsed.cursor !== undefined) {
 		query.set('cursor', parsed.cursor);
