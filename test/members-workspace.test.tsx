@@ -297,26 +297,33 @@ describe('members registry UI', () => {
 	});
 
 	it('loads the next cursor page without duplicates', async () => {
+		const firstPage = Array.from({ length: 24 }, (_, index) => ({
+			...activeMember,
+			id: `11111111-1111-4111-8111-${String(index + 1).padStart(12, '0')}`,
+			name: `Member ${index + 1}`,
+		}));
 		fetchMock.mockResolvedValueOnce(
 			Response.json({
-				items: [activeMember, secondMember],
+				items: [firstPage[0], secondMember],
 				nextCursor: null,
 			}),
 		);
 
 		render(
 			<MembersWorkspace
-				initialItems={[activeMember]}
+				initialItems={firstPage}
 				initialNextCursor="44444444-4444-4444-8444-444444444444"
 			/>,
 		);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+		expect(screen.getAllByRole('article')).toHaveLength(24);
+		fireEvent.click(screen.getByRole('button', { name: 'Page 2' }));
 
 		expect(await screen.findByRole('heading', { name: 'Zoe Member' })).toBeTruthy();
-
-		expect(screen.getAllByRole('article')).toHaveLength(2);
-		expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+		expect(screen.getAllByRole('article')).toHaveLength(1);
+		fireEvent.click(screen.getByRole('button', { name: 'Page 1' }));
+		expect(screen.getAllByRole('article')).toHaveLength(24);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not present service failures as an empty gym', () => {
