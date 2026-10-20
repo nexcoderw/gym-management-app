@@ -99,6 +99,13 @@ export const queuedReminderSchema = z.strictObject({
 	status: z.literal('QUEUED'),
 });
 
+export const manualReminderInputSchema = z.strictObject({
+	subject: z.string().min(1).max(120).regex(/^[^\r\n\p{Cc}\p{Cf}]*\S[^\r\n\p{Cc}\p{Cf}]*$/u),
+	body: z.string().min(1).max(2000).refine((value) => value.trim().length > 0),
+});
+
+export type ManualReminderInput = z.infer<typeof manualReminderInputSchema>;
+
 export type UpcomingReminderItem = z.infer<typeof upcomingReminderItemSchema>;
 
 export const membershipPlanStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
