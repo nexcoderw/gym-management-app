@@ -108,12 +108,12 @@ describe('payment BFF routes', () => {
 	it('lists with fixed, validated filters and no-store output', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [payment], nextCursor: null }));
 		const result = await listPayments(
-			new Request('https://manager.test/api/payments?status=CONFIRMED&order=NEWEST&limit=50'),
+			new Request('https://manager.test/api/payments?status=CONFIRMED&order=NEWEST&limit=24'),
 		);
 		expect(result.status).toBe(200);
 		expect(result.headers.get('cache-control')).toBe('no-store');
 		expect(fetchMock.mock.calls[0]?.[0]).toBe(
-			'https://api.manager.test/api/v1/owner/payments?order=NEWEST&limit=50&status=CONFIRMED',
+			'https://api.manager.test/api/v1/owner/payments?order=NEWEST&limit=24&status=CONFIRMED',
 		);
 	});
 
@@ -125,10 +125,23 @@ describe('payment BFF routes', () => {
 			}),
 		);
 		const result = await listPayments(
-			new Request(`https://manager.test/api/payments?order=NEWEST&limit=50&cursor=${syntheticId}`),
+			new Request(`https://manager.test/api/payments?order=NEWEST&limit=24&cursor=${syntheticId}`),
 		);
 		expect(result.status).toBe(200);
 		expect(await result.json()).toMatchObject({ nextCursor: syntheticId });
+	});
+
+	it('forwards payment search and transaction date filters', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		const result = await listPayments(
+			new Request(
+				'https://manager.test/api/payments?search=soho&fromDate=2026-01-01&toDate=2026-10-19',
+			),
+		);
+		expect(result.status).toBe(200);
+		expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+			'search=soho&fromDate=2026-01-01&toDate=2026-10-19',
+		);
 	});
 
 	it('forwards only the payment DTO with an idempotency key', async () => {
