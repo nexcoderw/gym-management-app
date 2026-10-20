@@ -34,6 +34,7 @@ describe('members listing BFF', () => {
 
 		expect(listMembersMock).toHaveBeenCalledWith({
 			status: 'ARCHIVED',
+			order: 'NEWEST',
 			limit: 20,
 			cursor,
 		});
@@ -52,8 +53,27 @@ describe('members listing BFF', () => {
 		expect(response.status).toBe(200);
 		expect(listMembersMock).toHaveBeenCalledWith({
 			status: 'ACTIVE',
-			limit: 20,
+			order: 'NEWEST',
+			limit: 24,
 			cursor: syntheticCursor,
+		});
+	});
+
+	it('forwards server-side search, ordering and registration dates', async () => {
+		listMembersMock.mockResolvedValueOnce({ items: [], nextCursor: null });
+		const response = await GET(
+			new Request(
+				'https://manager.test/api/members?search=soho&order=NAME_ASC&fromDate=2026-01-01&toDate=2026-10-19',
+			),
+		);
+		expect(response.status).toBe(200);
+		expect(listMembersMock).toHaveBeenCalledWith({
+			status: 'ACTIVE',
+			order: 'NAME_ASC',
+			search: 'soho',
+			fromDate: '2026-01-01',
+			toDate: '2026-10-19',
+			limit: 24,
 		});
 	});
 
@@ -61,6 +81,8 @@ describe('members listing BFF', () => {
 		'?status=ALL',
 		'?limit=0',
 		'?limit=51',
+		'?limit=25',
+		'?fromDate=2026-02-30',
 		'?limit=abc',
 		'?cursor=invalid',
 		'?organizationId=11111111-1111-4111-8111-111111111111',
