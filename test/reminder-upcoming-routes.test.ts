@@ -15,6 +15,7 @@ import { POST } from '@/app/api/reminders/subscriptions/[subscriptionId]/deliver
 const subscriptionId = '11111111-1111-4111-8111-111111111111';
 const context = { params: Promise.resolve({ subscriptionId }) };
 const fetchMock = vi.fn<typeof fetch>();
+const message = { subject: 'Your membership ends soon', body: 'Hello, please renew.' };
 
 beforeEach(() => {
 	session.csrf = true;
@@ -44,10 +45,25 @@ describe('upcoming reminder BFF routes', () => {
 
 	it('queues against the fixed owner path with CSRF and no tenant ID in the browser request', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ id: subscriptionId, status: 'QUEUED' }, { status: 202 }));
-		const request = new Request(`https://manager.test/api/reminders/subscriptions/${subscriptionId}/deliveries`, { method: 'POST', headers: { Origin: 'https://manager.test' } });
+		const request = new Request(`https://manager.test/api/reminders/subscriptions/${subscriptionId}/deliveries`, {
+			method: 'POST',
+			headers: { Origin: 'https://manager.test' },
+			body: JSON.stringify(message),
+		});
 		const response = await POST(request, context);
 		expect(response.status).toBe(202);
 		expect(fetchMock.mock.calls[0]?.[0]).toBe(`https://api.manager.test/api/v1/owner/reminders/subscriptions/${subscriptionId}/deliveries`);
 		expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('x-owner-csrf-token')).toBe('fictional-csrf');
+		expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual(message);
+	});
+
+	it('rejects invalid email copy before contacting Nest', async () => {
+		const invalid = new Request(`https://manager.test/api/reminders/subscriptions/${subscriptionId}/deliveries`, {
+			method: 'POST',
+			headers: { Origin: 'https://manager.test' },
+			body: JSON.stringify({ ...message, subject: 'Invalid\nSubject' }),
+		});
+		expect((await POST(invalid, context)).status).toBe(400);
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 });
