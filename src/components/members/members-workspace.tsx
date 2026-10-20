@@ -2,7 +2,6 @@
 
 import {
 	Add01Icon,
-	ArrowDown01Icon,
 	Cancel01Icon,
 	RefreshIcon,
 	UserGroupIcon,
@@ -13,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button, ButtonLink } from '@/components/shared/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
+import { Pagination } from '@/components/shared/pagination';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import { memberListSchema, type Member, type MemberList, type MemberStatus } from '@/lib/contracts';
@@ -115,6 +115,7 @@ export function MembersWorkspace({
 	});
 
 	const [term, setTerm] = useState('');
+	const [currentPage, setCurrentPage] = useState(1);
 	const [order, setOrder] = useState<MemberOrder>('newest');
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
@@ -169,30 +170,28 @@ export function MembersWorkspace({
 		}));
 
 		try {
-			const result = await readMembers(
-				status,
-				selectedOrder,
-				from,
-				to,
-				cursor,
-				controller.signal,
-			);
+			const result = await readMembers(status, selectedOrder, from, to, cursor, controller.signal);
 
 			if (currentRequest !== requestNumber.current) return;
 
-			setView((current) => {
-				const knownIds = new Set(current.items.map((member) => member.id));
-
-				return {
-					status,
-					items: append
-						? [...current.items, ...result.items.filter((member) => !knownIds.has(member.id))]
-						: result.items,
-					nextCursor: result.nextCursor,
-					errorStatus: null,
-					loading: 'idle',
-				};
+			const knownIds = new Set(view.items.map((member) => member.id));
+			const nextItems = append
+				? [...view.items, ...result.items.filter((member) => !knownIds.has(member.id))]
+				: result.items;
+			setView({
+				status,
+				items: nextItems,
+				nextCursor: result.nextCursor,
+				errorStatus: null,
+				loading: 'idle',
 			});
+			setCurrentPage(
+				append
+					? Math.max(1, Math.ceil(nextItems.filter((member) =>
+							!term.trim() || [member.name, member.phoneNumber, member.email ?? ''].some((value) => value.toLocaleLowerCase('en').includes(term.trim().toLocaleLowerCase('en'))),
+						).length / 24))
+					: 1,
+			);
 		} catch (error: unknown) {
 			if (controller.signal.aborted || currentRequest !== requestNumber.current) {
 				return;
@@ -224,12 +223,23 @@ export function MembersWorkspace({
 				value.toLocaleLowerCase('en').includes(needle),
 			),
 	);
+	const loadedPages = Math.max(1, Math.ceil(visibleMembers.length / 24));
+	const displayedPage = Math.min(currentPage, loadedPages);
+	const pageMembers = visibleMembers.slice((displayedPage - 1) * 24, displayedPage * 24);
 
 	const busy = view.loading !== 'idle';
 	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
 	const canLoadMore = view.nextCursor !== null;
 	const searching = term.trim() !== '';
 	const filtered = searching || fromDate !== '' || toDate !== '';
+
+	function changePage(page: number) {
+		if (page <= loadedPages) {
+			setCurrentPage(page);
+		} else if (page === loadedPages + 1 && canLoadMore) {
+			void loadMembers(view.status, true);
+		}
+	}
 
 	return (
 		<div className={styles.page}>
@@ -250,7 +260,10 @@ export function MembersWorkspace({
 					toDate={toDate}
 					pending={busy}
 					error={failure !== null}
-					onTermChange={setTerm}
+					onTermChange={(value) => {
+						setTerm(value);
+						setCurrentPage(1);
+					}}
 					onFiltersApply={(status, selectedOrder, from, to) => {
 						setOrder(selectedOrder);
 						setFromDate(from);
@@ -300,7 +313,7 @@ export function MembersWorkspace({
 						description={
 							filtered
 								? searching && canLoadMore
-									? 'No loaded profiles match. Load more profiles or try another search.'
+									? 'No loaded profiles match. Open the next page or try another search.'
 									: 'Try another search or date range.'
 								: view.status === 'ACTIVE'
 									? 'Add their contact details and choose the membership plan they are joining.'
@@ -331,7 +344,7 @@ export function MembersWorkspace({
 
 				{visibleMembers.length > 0 ? (
 					<ul className={styles.grid} role="list">
-						{visibleMembers.map((member) => (
+						{pageMembers.map((member) => (
 							<li key={member.id} className={styles.item}>
 								<MemberCard
 									member={member}
@@ -344,18 +357,15 @@ export function MembersWorkspace({
 					</ul>
 				) : null}
 
-				{canLoadMore && view.loading !== 'page' && failure === null ? (
-					<div className={styles.more}>
-						<Button
-							icon={ArrowDown01Icon}
-							variant="secondary"
-							pending={view.loading === 'more'}
-							disabled={busy}
-							onClick={() => void loadMembers(view.status, true)}
-						>
-							Load more
-						</Button>
-					</div>
+				{view.loading !== 'page' && failure === null ? (
+					<Pagination
+						label="Members"
+						page={displayedPage}
+						loadedPages={loadedPages}
+						hasNext={canLoadMore}
+						pending={busy}
+						onPageChange={changePage}
+					/>
 				) : null}
 			</section>
 
