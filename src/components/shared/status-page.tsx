@@ -82,6 +82,7 @@ export function StatusPage({ status, onRetry }: StatusPageProps) {
 					{state.href && state.action ? (
 						<Link
 							href={state.href}
+							prefetch={false}
 							className={onRetry ? styles.secondaryAction : styles.primaryAction}
 						>
 							{state.action}
