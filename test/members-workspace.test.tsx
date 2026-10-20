@@ -160,21 +160,23 @@ describe('members registry UI', () => {
 	it('requests member ordering from the backend', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [activeMember, secondMember], nextCursor: null }));
 		render(
-			<MembersWorkspace initialItems={[activeMember, secondMember]} initialNextCursor={null} />,
+			<MembersWorkspace initialItems={[secondMember, activeMember]} initialNextCursor={null} />,
 		);
 
-		let cards = screen.getAllByRole('article');
+		const cards = screen.getAllByRole('article');
 
-		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Example Active Member');
+		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Zoe Member');
 
 		fireEvent.click(screen.getByRole('button', { name: 'Sort members: Newest first' }));
 
 		fireEvent.click(screen.getByRole('button', { name: 'Name: A to Z' }));
 
 		await waitFor(() => expect(String(fetchMock.mock.calls[0]?.[0])).toContain('order=NAME_ASC'));
-		cards = screen.getAllByRole('article');
-
-		expect(within(cards[0]!).getByRole('heading').textContent).toBe('Example Active Member');
+		await waitFor(() =>
+			expect(within(screen.getAllByRole('article')[0]!).getByRole('heading').textContent).toBe(
+				'Example Active Member',
+			),
+		);
 	});
 
 	it('refreshes details and loads plan history when opening a member', async () => {
