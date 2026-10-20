@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 // PostgreSQL UUID columns may contain canonical IDs without RFC version/variant bits.
 export const databaseIdSchema = z.guid();
+export const listSearchSchema = z
+	.string()
+	.trim()
+	.min(3)
+	.max(80)
+	.regex(/^[^\p{Cc}\p{Cf}]+$/u);
 
 export const memberPeriodUnitSchema = z.enum(['DAYS', 'WEEKS', 'MONTHS', 'YEARS']);
 
@@ -85,7 +91,16 @@ export const upcomingReminderItemSchema = z.strictObject({
 	daysRemaining: z.number().int().min(0).max(14),
 	canSend: z.boolean(),
 	manualStatus: z
-		.enum(['QUEUED', 'PROCESSING', 'ACCEPTED', 'DELIVERED', 'BOUNCED', 'FAILED', 'UNCERTAIN', 'SKIPPED'])
+		.enum([
+			'QUEUED',
+			'PROCESSING',
+			'ACCEPTED',
+			'DELIVERED',
+			'BOUNCED',
+			'FAILED',
+			'UNCERTAIN',
+			'SKIPPED',
+		])
 		.nullable(),
 });
 
@@ -100,8 +115,16 @@ export const queuedReminderSchema = z.strictObject({
 });
 
 export const manualReminderInputSchema = z.strictObject({
-	subject: z.string().min(1).max(120).regex(/^[^\r\n\p{Cc}\p{Cf}]*\S[^\r\n\p{Cc}\p{Cf}]*$/u),
-	body: z.string().min(1).max(2000).refine((value) => value.trim().length > 0),
+	subject: z
+		.string()
+		.min(1)
+		.max(120)
+		.regex(/^[^\r\n\p{Cc}\p{Cf}]*\S[^\r\n\p{Cc}\p{Cf}]*$/u),
+	body: z
+		.string()
+		.min(1)
+		.max(2000)
+		.refine((value) => value.trim().length > 0),
 });
 
 export type ManualReminderInput = z.infer<typeof manualReminderInputSchema>;
