@@ -22,12 +22,6 @@
 	text-align: center;
 }
 
-.more {
-	display: flex;
-	justify-content: center;
-	padding: var(--space-4);
-}
-
 @container (min-width: 30rem) {
 	.list {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
