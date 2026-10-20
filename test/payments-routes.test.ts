@@ -14,6 +14,7 @@ import { GET as getPayment } from '@/app/api/payments/[paymentId]/route';
 import { POST as registerPayment } from '@/app/api/payments/registrations/route';
 
 const id = '11111111-1111-4111-8111-111111111111';
+const syntheticId = 'ef9635e3-131b-08bb-b357-c2dbb0a4565e';
 const date = '2030-01-01T00:00:00.000Z';
 const payment = {
 	id,
@@ -116,6 +117,20 @@ describe('payment BFF routes', () => {
 		);
 	});
 
+	it('accepts persisted PostgreSQL identifiers in payments and cursors', async () => {
+		fetchMock.mockResolvedValueOnce(
+			Response.json({
+				items: [{ ...payment, id: syntheticId, memberId: syntheticId }],
+				nextCursor: syntheticId,
+			}),
+		);
+		const result = await listPayments(
+			new Request(`https://manager.test/api/payments?order=NEWEST&limit=50&cursor=${syntheticId}`),
+		);
+		expect(result.status).toBe(200);
+		expect(await result.json()).toMatchObject({ nextCursor: syntheticId });
+	});
+
 	it('forwards only the payment DTO with an idempotency key', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json(payment, { status: 201 }));
 		const result = await POST(post(input));
@@ -133,6 +148,20 @@ describe('payment BFF routes', () => {
 		});
 	});
 
+	it('accepts a synthetic member and subscription for a new payment', async () => {
+		fetchMock.mockResolvedValueOnce(
+			Response.json({ ...payment, id: syntheticId, memberId: syntheticId }, { status: 201 }),
+		);
+		const result = await POST(
+			post({ ...input, memberId: syntheticId, subscriptionId: syntheticId }),
+		);
+		expect(result.status).toBe(201);
+		expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+			memberId: syntheticId,
+			subscriptionId: syntheticId,
+		});
+	});
+
 	it('reads a payment only through its validated identifier', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json(payment));
 		const valid = await getPayment(new Request('https://manager.test/api/payments'), {
@@ -144,6 +173,15 @@ describe('payment BFF routes', () => {
 		});
 		expect(invalid.status).toBe(400);
 		expect(fetchMock).toHaveBeenCalledOnce();
+	});
+
+	it('reads a payment with PostgreSQL UUID bits', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ ...payment, id: syntheticId }));
+		const response = await getPayment(new Request('https://manager.test/api/payments'), {
+			params: Promise.resolve({ paymentId: syntheticId }),
+		});
+		expect(response.status).toBe(200);
+		expect(await response.json()).toMatchObject({ id: syntheticId });
 	});
 
 	it('rejects unsafe registration payments before reaching Nest', async () => {
