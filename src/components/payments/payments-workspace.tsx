@@ -8,6 +8,7 @@ import { Dialog } from '@/components/shared/dialog';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Pagination } from '@/components/shared/pagination';
+import { ResultsLoadingState } from '@/components/shared/results-loading-state';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
@@ -255,9 +256,7 @@ export function PaymentsWorkspace({
 					/>
 				) : null}
 				{loading === 'page' ? (
-					<p className={styles.loading} role="status">
-						Loading payments…
-					</p>
+					<ResultsLoadingState subject="payments" searching={term.trim().length >= 3} />
 				) : failure ? (
 					<EmptyState
 						icon={Invoice01Icon}
