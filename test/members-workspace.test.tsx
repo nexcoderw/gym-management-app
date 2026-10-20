@@ -95,9 +95,7 @@ describe('members registry UI', () => {
 		expect(screen.queryByRole('button', { name: 'Refresh' })).toBeNull();
 	});
 
-	it('searches the backend rather than only loaded member records', async () => {
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [secondMember], nextCursor: null }));
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [activeMember, secondMember], nextCursor: null }));
+	it('searches loaded member records without another request', async () => {
 		render(
 			<MembersWorkspace initialItems={[activeMember, secondMember]} initialNextCursor={null} />,
 		);
@@ -109,17 +107,16 @@ describe('members registry UI', () => {
 		});
 
 		expect(await screen.findByRole('heading', { name: 'Zoe Member' })).toBeTruthy();
-		await waitFor(() => expect(String(fetchMock.mock.calls[0]?.[0])).toContain('search=zoe%40example.com'));
-		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(1));
+		expect(screen.getAllByRole('article')).toHaveLength(1);
+		expect(fetchMock).not.toHaveBeenCalled();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Close search' }));
 
-		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
+		expect(screen.getAllByRole('article')).toHaveLength(2);
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it('shows the correct empty state for an unmatched search', async () => {
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
-		fetchMock.mockResolvedValueOnce(Response.json({ items: [activeMember], nextCursor: null }));
 		render(<MembersWorkspace initialItems={[activeMember]} initialNextCursor={null} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search members' }));
@@ -133,7 +130,8 @@ describe('members registry UI', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 
-		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(1));
+		expect(screen.getAllByRole('article')).toHaveLength(1);
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it('switches between active and archived profiles', async () => {
