@@ -1,0 +1,225 @@
+.workspace {
+	display: grid;
+	gap: var(--space-6);
+	min-width: 0;
+}
+
+.rangePanel,
+.result {
+	min-width: 0;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-panel);
+	background: var(--surface-primary);
+}
+
+.rangePanel {
+	display: grid;
+	gap: var(--space-6);
+	padding: clamp(var(--space-5), 3vw, var(--space-8));
+}
+
+.intro h2,
+.resultHeader h2 {
+	margin: 0;
+	font-family: var(--font-heading), sans-serif;
+	font-size: 1.125rem;
+	line-height: 1.35;
+}
+
+.intro p,
+.resultHeader p {
+	margin: var(--space-2) 0 0;
+	color: var(--text-secondary);
+	font-size: var(--text-small);
+}
+
+.form {
+	min-width: 0;
+}
+
+.fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(10rem, 12rem);
+	align-items: end;
+	gap: var(--space-4);
+}
+
+.submit {
+	min-width: 0;
+}
+
+.message {
+	margin: 0;
+	padding: var(--space-3) var(--space-4);
+	border-radius: var(--radius-control);
+	background: color-mix(in srgb, var(--text-danger) 7%, var(--surface-primary));
+	color: var(--text-danger);
+	font-size: var(--text-small);
+}
+
+.message[data-status='unavailable'] {
+	background: var(--surface-subtle);
+	color: var(--text-primary);
+}
+
+.result {
+	overflow: hidden;
+}
+
+.resultHeader {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-5);
+	padding: var(--space-6) clamp(var(--space-5), 3vw, var(--space-8));
+	border-block-end: 1px solid var(--border);
+}
+
+.download {
+	display: grid;
+	justify-items: end;
+	gap: var(--space-2);
+}
+
+.downloadError {
+	max-width: 28ch;
+	margin: 0;
+	color: var(--text-danger);
+	font-size: var(--text-caption);
+	text-align: end;
+}
+
+.figures {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+	gap: var(--space-6);
+	padding: clamp(var(--space-5), 3vw, var(--space-8));
+}
+
+.primaryFigure {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	min-width: 0;
+	min-height: 15rem;
+	padding: clamp(var(--space-6), 3vw, var(--space-10));
+	border-radius: var(--radius-panel);
+	background: var(--action-primary);
+	color: var(--text-on-action);
+}
+
+.primaryFigure p {
+	margin: 0;
+	font-size: var(--text-small);
+	font-weight: 700;
+}
+
+.primaryFigure strong {
+	display: block;
+	margin-block: var(--space-3);
+	font-family: var(--font-heading), sans-serif;
+	font-size: clamp(1.8rem, 4vw, 3.25rem);
+	font-variant-numeric: tabular-nums;
+	line-height: 1.15;
+	overflow-wrap: anywhere;
+}
+
+.primaryFigure span {
+	font-size: var(--text-caption);
+	opacity: 0.85;
+}
+
+.breakdown {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-content: center;
+	gap: var(--space-6);
+	margin: 0;
+}
+
+.breakdown div {
+	min-width: 0;
+	padding-block-start: var(--space-3);
+	border-block-start: 1px solid var(--border);
+}
+
+.breakdown dt {
+	color: var(--text-secondary);
+	font-size: var(--text-caption);
+}
+
+.breakdown dd {
+	margin: var(--space-2) 0 0;
+	font-family: var(--font-heading), sans-serif;
+	font-size: clamp(1rem, 2vw, 1.35rem);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+
+.generatedAt {
+	margin: 0;
+	padding: 0 clamp(var(--space-5), 3vw, var(--space-8)) var(--space-6);
+	color: var(--text-secondary);
+	font-size: var(--text-caption);
+}
+
+.prompt {
+	display: grid;
+	place-items: center;
+	min-height: 12rem;
+	padding: var(--space-6);
+	text-align: center;
+}
+
+.prompt p {
+	max-width: 46ch;
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: var(--text-small);
+}
+
+@media (max-width: 56rem) {
+	.figures {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.primaryFigure {
+		min-height: 11rem;
+	}
+}
+
+@media (max-width: 64rem) {
+	.fields {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.submit {
+		grid-column: 1 / -1;
+		max-width: 12rem;
+	}
+}
+
+@media (max-width: 40rem) {
+	.fields,
+	.breakdown {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.resultHeader {
+		flex-direction: column;
+	}
+
+	.download {
+		justify-items: start;
+		width: 100%;
+	}
+
+	.downloadError {
+		text-align: start;
+	}
+
+	.submit {
+		max-width: none;
+	}
+}
