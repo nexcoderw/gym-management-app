@@ -3,6 +3,7 @@ import 'server-only';
 import { z, ZodError } from 'zod';
 
 import {
+	databaseIdSchema,
 	paymentListSchema,
 	paymentMethodSchema,
 	paymentOrderSchema,
@@ -13,10 +14,10 @@ import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 export const paymentFiltersSchema = z.strictObject({
 	status: paymentStatusSchema.optional(),
 	method: paymentMethodSchema.optional(),
-	memberId: z.uuid().optional(),
+	memberId: databaseIdSchema.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
 	limit: z.number().int().min(1).max(50).default(50),
-	cursor: z.uuid().optional(),
+	cursor: databaseIdSchema.optional(),
 });
 
 export async function listPayments(filters: z.input<typeof paymentFiltersSchema> = {}) {
