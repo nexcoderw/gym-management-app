@@ -7,7 +7,7 @@ import {
 	PackageAdd01Icon,
 	RefreshIcon,
 } from '@hugeicons/core-free-icons';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
 	ArchiveMembershipDialog,
@@ -60,29 +60,17 @@ export function MembershipsWorkspace({
 	const [notice, setNotice] = useState<ToastNotice | null>(
 		initialError === undefined ? null : { id: 1, message: initialError, tone: 'error' },
 	);
-
-	const visiblePlans = useMemo(() => {
-		const query = term.trim().toLocaleLowerCase('en-US');
-		return plans
-			.filter(
-				(plan) => plan.status === filter && plan.name.toLocaleLowerCase('en-US').includes(query),
-			)
-			.sort((left, right) => {
-				const nameOrder = left.name.localeCompare(right.name, 'en', { numeric: true });
-				switch (order) {
-					case 'price-asc':
-						return left.price - right.price || nameOrder;
-					case 'price-desc':
-						return right.price - left.price || nameOrder;
-					case 'name-asc':
-						return nameOrder;
-					case 'newest':
-						return right.createdAt.localeCompare(left.createdAt) || nameOrder;
-				}
-			});
-	}, [filter, plans, term, order]);
+	const visiblePlans = plans;
+	const activeController = useRef<AbortController | null>(null);
+	const requestNumber = useRef(0);
+	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	useEffect(() => () => {
+		activeController.current?.abort();
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+	}, []);
 	const dismissToast = useCallback(() => setNotice(null), []);
-	const showToolbar = plans.length >= 2 || plans.some((plan) => plan.status === 'ARCHIVED');
+	// Archived plans may exist even when the active page is empty.
+	const showToolbar = true;
 	const emptyAction =
 		filter === 'ARCHIVED'
 			? { label: 'Show active', icon: RefreshIcon, primary: false }
@@ -93,6 +81,66 @@ export function MembershipsWorkspace({
 	function notify(message: string, tone: ToastNotice['tone']) {
 		noticeIdRef.current += 1;
 		setNotice({ id: noticeIdRef.current, message, tone });
+	}
+
+	async function loadPage(
+		status: MembershipFilter,
+		selectedOrder: MembershipOrder,
+		search: string,
+		append = false,
+	) {
+		if (append && (nextCursor === null || loadingAction !== '')) return;
+		activeController.current?.abort();
+		const controller = new AbortController();
+		activeController.current = controller;
+		const request = ++requestNumber.current;
+		setLoadingAction(append ? 'load-more' : 'refresh');
+		if (!append) {
+			setPlans([]);
+			setNextCursor(null);
+		}
+		const query = new URLSearchParams({
+			status,
+			order: selectedOrder.replace('-', '_').toUpperCase(),
+			limit: '24',
+		});
+		if (search.trim()) query.set('search', search.trim());
+		if (append && nextCursor) query.set('cursor', nextCursor);
+		try {
+			const response = await fetch(`${routes.membershipPlansApi}?${query}`, {
+				cache: 'no-store',
+				signal: controller.signal,
+			});
+			const page = membershipPlanListSchema.parse(await readJsonResponse(response));
+			if (request !== requestNumber.current) return;
+			setPlans((current) =>
+				append
+					? [
+							...current,
+							...page.items.filter((plan) => !current.some((known) => known.id === plan.id)),
+						]
+					: page.items,
+			);
+			setNextCursor(page.nextCursor);
+			setLoadFailed(false);
+		} catch (error: unknown) {
+			if (controller.signal.aborted || request !== requestNumber.current) return;
+			setLoadFailed(true);
+			notify(errorMessage(error), 'error');
+		} finally {
+			if (request === requestNumber.current) {
+				setLoadingAction('');
+				activeController.current = null;
+			}
+		}
+	}
+
+	function changeTerm(value: string) {
+		setTerm(value);
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+		searchTimer.current = setTimeout(() => {
+			void loadPage(filter, order, value);
+		}, 300);
 	}
 
 	async function openPlan(kind: 'details' | 'edit' | 'archive', plan: MembershipPlan) {
@@ -119,10 +167,12 @@ export function MembershipsWorkspace({
 				method: 'POST',
 				body: JSON.stringify(input),
 			});
-			setPlans((current) => [created, ...current.filter((plan) => plan.id !== created.id)]);
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			setLoadFailed(false);
 			setFilter('ACTIVE');
+			setTerm('');
 			setDialog(null);
+			void loadPage('ACTIVE', order, '');
 			notify(`${created.name} was created.`, 'success');
 		} catch (error: unknown) {
 			notify(errorMessage(error), 'error');
@@ -132,25 +182,7 @@ export function MembershipsWorkspace({
 	}
 
 	async function reload() {
-		if (loadingAction !== '') return;
-		setLoadingAction('refresh');
-		try {
-			const response = await fetch(`${routes.membershipPlansApi}?status=ALL&limit=50`, {
-				cache: 'no-store',
-			});
-			const page = membershipPlanListSchema.parse(await readJsonResponse(response));
-			setPlans(page.items);
-			setNextCursor(page.nextCursor);
-			setFilter('ACTIVE');
-			setTerm('');
-			setLoadFailed(false);
-			notify('Memberships refreshed.', 'success');
-		} catch (error: unknown) {
-			setLoadFailed(true);
-			notify(errorMessage(error), 'error');
-		} finally {
-			setLoadingAction('');
-		}
+		await loadPage(filter, order, term);
 	}
 
 	async function update(input: MembershipPlanInput) {
@@ -161,7 +193,7 @@ export function MembershipsWorkspace({
 				method: 'PATCH',
 				body: JSON.stringify({ ...input, updatedAt: dialog.plan.updatedAt }),
 			});
-			setPlans((current) => current.map((plan) => (plan.id === updated.id ? updated : plan)));
+			void loadPage(filter, order, term);
 			setDialog(null);
 			notify(`${updated.name} was updated.`, 'success');
 		} catch (error: unknown) {
@@ -179,14 +211,7 @@ export function MembershipsWorkspace({
 				method: 'DELETE',
 				body: JSON.stringify({ updatedAt: dialog.plan.updatedAt }),
 			});
-			const archivedAt = new Date().toISOString();
-			setPlans((current) =>
-				current.map((plan) =>
-					plan.id === dialog.plan.id
-						? { ...plan, status: 'ARCHIVED', archivedAt, updatedAt: archivedAt }
-						: plan,
-				),
-			);
+			void loadPage(filter, order, term);
 			setDialog(null);
 			notify(`${dialog.plan.name} was archived.`, 'success');
 		} catch (error: unknown) {
@@ -197,24 +222,7 @@ export function MembershipsWorkspace({
 	}
 
 	async function loadMore() {
-		if (nextCursor === null || loadingAction !== '') return;
-		setLoadingAction('load-more');
-		try {
-			const response = await fetch(
-				`${routes.membershipPlansApi}?status=ALL&limit=50&cursor=${encodeURIComponent(nextCursor)}`,
-				{ cache: 'no-store' },
-			);
-			const page = membershipPlanListSchema.parse(await readJsonResponse(response));
-			setPlans((current) => {
-				const known = new Set(current.map((plan) => plan.id));
-				return [...current, ...page.items.filter((plan) => !known.has(plan.id))];
-			});
-			setNextCursor(page.nextCursor);
-		} catch (error: unknown) {
-			notify(errorMessage(error), 'error');
-		} finally {
-			setLoadingAction('');
-		}
+		await loadPage(filter, order, term, true);
 	}
 
 	return (
@@ -244,34 +252,46 @@ export function MembershipsWorkspace({
 						term={term}
 						status={filter}
 						order={order}
-						onTermChange={setTerm}
-						onStatusChange={setFilter}
-						onOrderChange={setOrder}
+						onTermChange={changeTerm}
+						onStatusChange={(value) => {
+							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+							setFilter(value);
+							void loadPage(value, order, term);
+						}}
+						onOrderChange={(value) => {
+							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+							setOrder(value);
+							void loadPage(filter, value, term);
+						}}
 					/>
 				) : null}
 
-				{visiblePlans.length === 0 ? (
+				{loadingAction === 'refresh' && visiblePlans.length === 0 ? (
+					<p className={styles.loading} role="status">
+						Loading memberships…
+					</p>
+				) : visiblePlans.length === 0 ? (
 					<EmptyState
 						icon={PackageAdd01Icon}
 						role={loadFailed ? 'alert' : undefined}
 						title={
 							loadFailed
 								? 'Memberships unavailable'
-								: plans.length === 0
-									? 'Create your first membership'
+								: term.trim() !== ''
+									? 'No matching memberships'
 									: filter === 'ARCHIVED'
 										? 'No archived memberships found'
-										: 'No active memberships found'
+										: 'Create your first membership'
 						}
 						description={
 							loadFailed
 								? 'The latest memberships could not be loaded. Refresh to try again.'
-								: plans.length === 0
+								: plans.length === 0 && filter === 'ACTIVE' && term === ''
 									? 'Start with a simple name and price. Activities can be added now or later.'
 									: 'Try a different name or clear the filters to see your plans.'
 						}
 						action={
-							plans.length === 0 ? (
+							loadFailed || (plans.length === 0 && filter === 'ACTIVE' && term === '') ? (
 								<Button
 									icon={loadFailed ? RefreshIcon : Add01Icon}
 									width="medium"
@@ -289,8 +309,10 @@ export function MembershipsWorkspace({
 										if (emptyAction.primary) {
 											setDialog({ kind: 'create' });
 										} else {
+											if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 											setFilter('ACTIVE');
 											setTerm('');
+											void loadPage('ACTIVE', order, '');
 										}
 									}}
 								>
