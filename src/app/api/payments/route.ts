@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+	databaseIdSchema,
 	paymentInputSchema,
 	paymentMethodSchema,
 	paymentOrderSchema,
@@ -17,10 +18,10 @@ export const runtime = 'nodejs';
 const querySchema = z.strictObject({
 	status: paymentStatusSchema.optional(),
 	method: paymentMethodSchema.optional(),
-	memberId: z.uuid().optional(),
+	memberId: databaseIdSchema.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
 	limit: z.coerce.number<number>().int().min(1).max(50).default(50),
-	cursor: z.uuid().optional(),
+	cursor: databaseIdSchema.optional(),
 });
 
 export async function GET(request: Request): Promise<Response> {
