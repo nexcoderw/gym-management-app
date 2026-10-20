@@ -41,7 +41,6 @@ class MembersRequestError extends Error {
 async function readMembers(
 	status: MemberStatus,
 	order: MemberOrder,
-	term: string,
 	fromDate: string,
 	toDate: string,
 	cursor: string | null,
@@ -52,7 +51,6 @@ async function readMembers(
 		limit: '24',
 		order: order.replace('-', '_').toUpperCase(),
 	});
-	if (term.trim()) query.set('search', term.trim());
 	if (fromDate) query.set('fromDate', fromDate);
 	if (toDate) query.set('toDate', toDate);
 
@@ -130,34 +128,23 @@ export function MembersWorkspace({
 
 	function saved() {
 		setDialog(null);
-		void loadMembers(view.status, false, order, term, fromDate, toDate);
+		void loadMembers(view.status, false, order, fromDate, toDate);
 	}
 
 	const activeController = useRef<AbortController | null>(null);
 	const requestNumber = useRef(0);
-	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		return () => {
 			requestNumber.current += 1;
 			activeController.current?.abort();
-			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 		};
 	}, []);
-
-	function changeTerm(value: string) {
-		setTerm(value);
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-		searchTimer.current = setTimeout(() => {
-			void loadMembers(view.status, false, order, value, fromDate, toDate);
-		}, 300);
-	}
 
 	async function loadMembers(
 		status: MemberStatus,
 		append = false,
 		selectedOrder = order,
-		search = term,
 		from = fromDate,
 		to = toDate,
 	) {
@@ -185,7 +172,6 @@ export function MembersWorkspace({
 			const result = await readMembers(
 				status,
 				selectedOrder,
-				search,
 				from,
 				to,
 				cursor,
@@ -230,7 +216,14 @@ export function MembersWorkspace({
 		}
 	}
 
-	const visibleMembers = view.items;
+	const needle = term.trim().toLocaleLowerCase('en');
+	const visibleMembers = view.items.filter(
+		(member) =>
+			!needle ||
+			[member.name, member.phoneNumber, member.email ?? ''].some((value) =>
+				value.toLocaleLowerCase('en').includes(needle),
+			),
+	);
 
 	const busy = view.loading !== 'idle';
 	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
@@ -257,26 +250,22 @@ export function MembersWorkspace({
 					toDate={toDate}
 					pending={busy}
 					error={failure !== null}
-					onTermChange={changeTerm}
+					onTermChange={setTerm}
 					onStatusChange={(status) => {
-					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-					void loadMembers(status);
-				}}
+						void loadMembers(status);
+					}}
 					onOrderChange={(value) => {
-					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-					setOrder(value);
-					void loadMembers(view.status, false, value);
-				}}
+						setOrder(value);
+						void loadMembers(view.status, false, value);
+					}}
 					onFromDateChange={(value) => {
-					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-					setFromDate(value);
-					void loadMembers(view.status, false, order, term, value);
-				}}
+						setFromDate(value);
+						void loadMembers(view.status, false, order, value);
+					}}
 					onToDateChange={(value) => {
-					if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-					setToDate(value);
-					void loadMembers(view.status, false, order, term, fromDate, value);
-				}}
+						setToDate(value);
+						void loadMembers(view.status, false, order, fromDate, value);
+					}}
 				/>
 
 				{failure !== null ? (
@@ -307,7 +296,7 @@ export function MembersWorkspace({
 					</div>
 				) : null}
 
-				{view.loading !== 'page' && failure === null && view.items.length === 0 ? (
+				{view.loading !== 'page' && failure === null && visibleMembers.length === 0 ? (
 					<EmptyState
 						icon={UserGroupIcon}
 						title={
@@ -319,7 +308,9 @@ export function MembersWorkspace({
 						}
 						description={
 							filtered
-								? 'Try another search or date range.'
+								? searching && canLoadMore
+									? 'No loaded profiles match. Load more profiles or try another search.'
+									: 'Try another search or date range.'
 								: view.status === 'ACTIVE'
 									? 'Add their contact details and choose the membership plan they are joining.'
 									: 'Archived member profiles will appear here.'
@@ -330,11 +321,10 @@ export function MembersWorkspace({
 									icon={Cancel01Icon}
 									variant="secondary"
 									onClick={() => {
-										if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 										setTerm('');
 										setFromDate('');
 										setToDate('');
-										void loadMembers(view.status, false, order, '', '', '');
+										if (fromDate || toDate) void loadMembers(view.status, false, order, '', '');
 									}}
 								>
 									Clear filters
