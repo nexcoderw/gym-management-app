@@ -255,6 +255,9 @@ export const paymentStatusSchema = z.enum([
 	'REFUNDED',
 ]);
 export const paymentOrderSchema = z.enum(['NEWEST', 'OLDEST', 'AMOUNT_HIGH', 'AMOUNT_LOW']);
+export const memberOrderSchema = z.enum(['NEWEST', 'OLDEST', 'NAME_ASC', 'NAME_DESC']);
+export const membershipPlanOrderSchema = z.enum(['PRICE_ASC', 'PRICE_DESC', 'NAME_ASC', 'NEWEST']);
+export const listDateSchema = z.iso.date();
 
 export const paymentSchema = z.strictObject({
 	id: databaseIdSchema,
