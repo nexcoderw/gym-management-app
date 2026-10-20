@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { memberListSchema, memberSchema } from '@/lib/contracts';
+import { databaseIdSchema, memberListSchema, memberSchema } from '@/lib/contracts';
+
+const syntheticMemberId = '11ab9b64-19b3-ee0d-19c8-e2c69b0722da';
 
 const member = {
 	id: '11111111-1111-4111-8111-111111111111',
@@ -16,6 +18,17 @@ const member = {
 describe('member listing contracts', () => {
 	it('accepts a valid active member', () => {
 		expect(memberSchema.parse(member)).toEqual(member);
+	});
+
+	it('accepts PostgreSQL UUIDs without RFC version and variant bits', () => {
+		expect(databaseIdSchema.parse(syntheticMemberId)).toBe(syntheticMemberId);
+		expect(memberSchema.parse({ ...member, id: syntheticMemberId }).id).toBe(syntheticMemberId);
+		expect(
+			memberListSchema.parse({
+				items: [{ ...member, id: syntheticMemberId }],
+				nextCursor: syntheticMemberId,
+			}).nextCursor,
+		).toBe(syntheticMemberId);
 	});
 
 	it('accepts a valid archived member', () => {
