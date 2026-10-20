@@ -344,8 +344,6 @@ export function MembersWorkspace({
 						label="Members"
 						page={view.page}
 						totalPages={view.totalPages}
-						totalItems={view.totalItems}
-						pageSize={20}
 						pending={busy}
 						onPageChange={(page) => void loadMembers(view.status, page)}
 					/>
