@@ -15,14 +15,19 @@ import { errorResponse } from '@/lib/server/upstream';
 
 export const runtime = 'nodejs';
 
-const querySchema = z.strictObject({
-	status: memberStatusSchema.default('ACTIVE'),
-	order: memberOrderSchema.default('NEWEST'),
-	fromDate: listDateSchema.optional(),
-	toDate: listDateSchema.optional(),
-	limit: z.coerce.number<number>().int().min(1).max(24).default(24),
-	cursor: databaseIdSchema.optional(),
-});
+const querySchema = z
+	.strictObject({
+		status: memberStatusSchema.default('ACTIVE'),
+		order: memberOrderSchema.default('NEWEST'),
+		fromDate: listDateSchema.optional(),
+		toDate: listDateSchema.optional(),
+		limit: z.coerce.number<number>().int().min(1).max(20).default(20),
+		cursor: databaseIdSchema.optional(),
+		page: z.coerce.number<number>().int().min(1).max(100_000).optional(),
+	})
+	.refine((value) => value.cursor === undefined || value.page === undefined, {
+		message: 'Choose either page or cursor pagination.',
+	});
 
 export async function GET(request: Request): Promise<Response> {
 	try {
