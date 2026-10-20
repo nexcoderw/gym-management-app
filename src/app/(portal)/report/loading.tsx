@@ -1,17 +1,5 @@
-import { PageHeader } from '@/components/shared/page-header';
-
-import styles from './page.module.css';
+import { RouteLoadingState } from '@/components/shared/route-loading-state';
 
 export default function Loading() {
-	return (
-		<div className={styles.page}>
-			<PageHeader
-				title="Payment report"
-				description="Choose a date range to review payments recorded for your gym."
-			/>
-			<div className={styles.loading} role="status">
-				Preparing payment report…
-			</div>
-		</div>
-	);
+	return <RouteLoadingState title="Payment report" subject="your payment report" />;
 }
