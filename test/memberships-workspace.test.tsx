@@ -87,8 +87,9 @@ describe('membership pricing workspace', () => {
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
 	});
 
-	it('stages status and order in the sheet, applies both once, and keeps search local', async () => {
+	it('stages status and order in the sheet and searches plans through the backend', async () => {
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [plans[2]], nextCursor: null }));
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
 		fetchMock.mockResolvedValueOnce(
 			Response.json({ items: [plans[1], plans[0]], nextCursor: null }),
 		);
@@ -111,11 +112,15 @@ describe('membership pricing workspace', () => {
 		expect(screen.queryByRole('button', { name: 'Edit Legacy' })).toBeNull();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Search memberships' }));
+		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'no' } });
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'not a plan' } });
 		expect(await screen.findByRole('heading', { name: 'No matching memberships' })).toBeTruthy();
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(String(fetchMock.mock.calls[1]?.[0])).toContain('search=not+a+plan');
 		fireEvent.click(screen.getByRole('button', { name: 'Show active' }));
 		await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(2));
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 		expect(screen.queryByRole('heading', { name: 'Legacy' })).toBeNull();
 	});
 
