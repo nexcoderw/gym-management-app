@@ -1,32 +1,22 @@
 'use client';
 
-import {
-	ArrowRight01Icon,
-	Cancel01Icon,
-	Mail01Icon,
-	RefreshIcon,
-} from '@hugeicons/core-free-icons';
+import { ArrowRight01Icon, Cancel01Icon, Mail01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+import { useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
 
 import { Button, ButtonLink } from '@/components/shared/button';
+import { Dialog } from '@/components/shared/dialog';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
+import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
-import type { ReminderActivityItem } from '@/lib/contracts';
+import { queuedReminderSchema, upcomingReminderSchema, type ReminderActivityItem, type UpcomingReminderItem } from '@/lib/contracts';
 
-import {
-	RemindersToolbar,
-	type ReminderOrder,
-	type ReminderStatusFilter,
-} from './reminders-toolbar';
+import { RemindersToolbar, type ReminderOrder, type ReminderStatusFilter } from './reminders-toolbar';
 import styles from './reminders-workspace.module.css';
 
 const dateFormatter = new Intl.DateTimeFormat('en-RW', {
-	day: 'numeric',
-	month: 'short',
-	year: 'numeric',
-	timeZone: 'Africa/Kigali',
+	day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Kigali',
 });
 
 function formattedDate(value: string): string {
@@ -34,195 +24,133 @@ function formattedDate(value: string): string {
 }
 
 function occasionLabel(kind: ReminderActivityItem['kind']): string {
-	return kind === 'THREE_DAYS_BEFORE' ? 'Three days before' : 'Expiry day';
+	if (kind === 'THREE_DAYS_BEFORE') return 'Three days before';
+	if (kind === 'EXPIRY_DAY') return 'Expiry day';
+	return 'Sent by owner';
 }
 
 function statusLabel(status: ReminderActivityItem['status']): string {
 	switch (status) {
-		case 'ACCEPTED':
-			return 'Submitted to email provider';
-		case 'DELIVERED':
-			return 'Delivered';
-		case 'BOUNCED':
-			return 'Bounced';
-		case 'FAILED':
-			return 'Delivery failed';
-		case 'UNCERTAIN':
-			return 'Needs review';
+		case 'ACCEPTED': return 'Submitted to email provider';
+		case 'DELIVERED': return 'Delivered';
+		case 'BOUNCED': return 'Bounced';
+		case 'FAILED': return 'Delivery failed';
+		case 'UNCERTAIN': return 'Needs review';
 	}
+}
+
+function matchesStatus(item: UpcomingReminderItem, status: ReminderStatusFilter): boolean {
+	if (status === 'ALL') return true;
+	if (status === 'READY') return item.canSend;
+	if (status === 'QUEUED') return item.manualStatus === 'QUEUED' || item.manualStatus === 'PROCESSING';
+	if (status === 'SENT') return item.manualStatus === 'ACCEPTED' || item.manualStatus === 'DELIVERED';
+	return !item.canSend && (item.manualStatus === null || ['BOUNCED', 'FAILED', 'UNCERTAIN', 'SKIPPED'].includes(item.manualStatus));
+}
+
+async function readError(response: Response): Promise<string> {
+	try {
+		const body = (await response.json()) as { message?: unknown };
+		if (typeof body.message === 'string' && body.message.trim() !== '') return body.message;
+	} catch { /* Keep the safe fallback. */ }
+	return response.status === 409
+		? 'A reminder already exists or this membership is no longer eligible. Refresh to see its latest status.'
+		: 'The reminder could not be queued. Please try again.';
 }
 
 export function RemindersWorkspace({
 	items,
 	errorStatus,
+	upcoming: initialUpcoming = [],
+	nextCursor: initialNextCursor = null,
+	upcomingErrorStatus = null,
 }: {
 	readonly items: readonly ReminderActivityItem[];
 	readonly errorStatus: number | null;
+	readonly upcoming?: readonly UpcomingReminderItem[];
+	readonly nextCursor?: string | null;
+	readonly upcomingErrorStatus?: number | null;
 }) {
 	const router = useRouter();
 	const [refreshing, startRefresh] = useTransition();
+	const [upcoming, setUpcoming] = useState<readonly UpcomingReminderItem[]>(initialUpcoming);
+	const [nextCursor, setNextCursor] = useState(initialNextCursor);
+	const [loadingMore, setLoadingMore] = useState(false);
 	const [search, setSearch] = useState('');
 	const [status, setStatus] = useState<ReminderStatusFilter>('ALL');
-	const [order, setOrder] = useState<ReminderOrder>('NEWEST');
+	const [order, setOrder] = useState<ReminderOrder>('SOONEST');
+	const [selected, setSelected] = useState<UpcomingReminderItem | null>(null);
+	const [sending, setSending] = useState(false);
+	const [notice, setNotice] = useState<ToastNotice | null>(null);
+	const dismissNotice = useCallback(() => setNotice(null), []);
 	const query = search.trim().toLocaleLowerCase('en');
-	const visible = items
-		.filter(
-			(item) =>
-				(status === 'ALL' || item.status === status) &&
-				(query === '' ||
-					[item.memberName, item.planName].some((value) =>
-						value.toLocaleLowerCase('en').includes(query),
-					)),
-		)
-		.sort((left, right) =>
-			order === 'NEWEST'
-				? right.dueDate.localeCompare(left.dueDate)
-				: left.dueDate.localeCompare(right.dueDate),
-		);
+	const visible = [...upcoming]
+		.filter((item) => matchesStatus(item, status) && (query === '' || [item.memberName, item.planName].some((value) => value.toLocaleLowerCase('en').includes(query))))
+		.sort((left, right) => order === 'SOONEST'
+			? left.endDate.localeCompare(right.endDate) || left.subscriptionId.localeCompare(right.subscriptionId)
+			: right.endDate.localeCompare(left.endDate) || right.subscriptionId.localeCompare(left.subscriptionId));
 
-	function refresh() {
-		startRefresh(() => router.refresh());
+	function refresh() { startRefresh(() => router.refresh()); }
+
+	async function loadMore() {
+		if (nextCursor === null || loadingMore) return;
+		setLoadingMore(true);
+		try {
+			const response = await fetch(`/api/reminders/upcoming?cursor=${encodeURIComponent(nextCursor)}`, { credentials: 'same-origin', cache: 'no-store' });
+			if (!response.ok) throw new Error(await readError(response));
+			const parsed = upcomingReminderSchema.safeParse(await response.json());
+			if (!parsed.success) throw new Error('The reminder list could not be verified.');
+			const page = parsed.data;
+			setUpcoming((current) => [...current, ...page.items.filter((item) => !current.some((existing) => existing.subscriptionId === item.subscriptionId))]);
+			setNextCursor(page.nextCursor);
+		} catch (error: unknown) {
+			setNotice({ id: Date.now(), tone: 'error', message: error instanceof Error ? error.message : 'Could not load more members.' });
+		} finally { setLoadingMore(false); }
+	}
+
+	async function sendReminder() {
+		if (selected === null || sending) return;
+		const subscriptionId = selected.subscriptionId;
+		setSending(true);
+		try {
+			const response = await fetch(`/api/reminders/subscriptions/${encodeURIComponent(subscriptionId)}/deliveries`, { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
+			if (!response.ok) throw new Error(await readError(response));
+			if (!queuedReminderSchema.safeParse(await response.json()).success) {
+				throw new Error('The reminder response could not be verified. Refresh before retrying.');
+			}
+			setUpcoming((current) => current.map((item) => item.subscriptionId === subscriptionId ? { ...item, canSend: false, manualStatus: 'QUEUED' } : item));
+			setSelected(null);
+			setNotice({ id: Date.now(), tone: 'success', message: 'Email reminder queued. Delivery status will appear in recent activity.' });
+		} catch (error: unknown) {
+			setNotice({ id: Date.now(), tone: 'error', message: error instanceof Error ? error.message : 'Could not queue the reminder.' });
+		} finally { setSending(false); }
 	}
 
 	return (
 		<div className={styles.page}>
-			<PageHeader
-				title="Reminders"
-				description="Review automatic membership-expiry email activity for this gym."
-				actions={
-					errorStatus === null && items.length > 0 ? (
-						<Button icon={RefreshIcon} variant="secondary" pending={refreshing} onClick={refresh}>
-							Refresh
-						</Button>
-					) : undefined
-				}
-			/>
-			{errorStatus !== null ? (
-				<EmptyState
-					icon={Mail01Icon}
-					role="alert"
-					title={
-						errorStatus === 401
-							? 'Your session has expired'
-							: errorStatus === 403
-								? 'Reminder activity is restricted'
-								: 'Reminder activity unavailable'
-					}
-					description={
-						errorStatus === 401
-							? 'Sign in again to view reminder activity.'
-							: errorStatus === 403
-								? 'An active gym owner account is required to view this activity.'
-								: errorStatus === 429
-									? 'Too many requests. Wait a moment before refreshing.'
-									: 'We could not load reminder activity. Please try again.'
-					}
-					action={
-						errorStatus === 401 ? (
-							<ButtonLink href={routes.login} icon={ArrowRight01Icon} variant="primary">
-								Open sign in
-							</ButtonLink>
-						) : errorStatus === 403 || errorStatus === 429 ? undefined : (
-							<Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>
-								Refresh activity
-							</Button>
-						)
-					}
-				/>
-			) : (
-				<section className={styles.workspace} aria-label="Email reminder activity">
-					{items.length > 0 ? (
-						<RemindersToolbar
-							count={visible.length}
-							total={items.length}
-							term={search}
-							status={status}
-							order={order}
-							onTermChange={setSearch}
-							onFiltersApply={(nextStatus, nextOrder) => {
-								setStatus(nextStatus);
-								setOrder(nextOrder);
-							}}
-						/>
-					) : null}
-					{visible.length === 0 ? (
-						<EmptyState
-							icon={Mail01Icon}
-							title={items.length === 0 ? 'No reminder activity yet' : 'No matching reminders'}
-							description={
-								items.length === 0
-									? 'Automatic email reminders will appear here after the scheduler and sender run.'
-									: 'Try a different search or status.'
-							}
-							action={
-								items.length === 0 ? (
-									<Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>
-										Refresh activity
-									</Button>
-								) : (
-									<Button
-										icon={Cancel01Icon}
-										variant="secondary"
-										onClick={() => {
-											setSearch('');
-											setStatus('ALL');
-											setOrder('NEWEST');
-										}}
-									>
-										Clear filters
-									</Button>
-								)
-							}
-						/>
-					) : (
-						<div className={styles.tableScroll}>
-							<table className={styles.table}>
-								<caption className={styles.srOnly}>
-									Recent automatic email reminder delivery activity
-								</caption>
-								<thead>
-									<tr>
-										<th scope="col">Member</th>
-										<th scope="col">Membership</th>
-										<th scope="col">Occasion</th>
-										<th scope="col">Expires</th>
-										<th scope="col">Due</th>
-										<th scope="col">Delivery status</th>
-									</tr>
-								</thead>
-								<tbody>
-									{visible.map((item) => (
-										<tr key={item.id}>
-											<td>
-												<strong>{item.memberName}</strong>
-											</td>
-											<td>{item.planName}</td>
-											<td>{occasionLabel(item.kind)}</td>
-											<td>
-												<time dateTime={item.endDate}>{formattedDate(item.endDate)}</time>
-											</td>
-											<td>
-												<time dateTime={item.dueDate}>{formattedDate(item.dueDate)}</time>
-											</td>
-											<td>
-												<span className={styles.status} data-status={item.status}>
-													{statusLabel(item.status)}
-												</span>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					)}
-					{items.length > 0 ? (
-						<p className={styles.note}>
-							Submitted means the email provider accepted the message; it does not confirm inbox
-							delivery. Showing the 50 most recent reminder occasions.
-						</p>
-					) : null}
-				</section>
-			)}
+			<PageHeader title="Reminders" description="Review memberships expiring in the next 14 days and email delivery activity." actions={upcomingErrorStatus === null && upcoming.length > 0 ? <Button icon={RefreshIcon} variant="secondary" pending={refreshing} onClick={refresh}>Refresh</Button> : undefined} />
+			<section className={styles.workspace} aria-label="Expiring memberships">
+				{upcomingErrorStatus !== null ? (
+					<EmptyState icon={Mail01Icon} role="alert" title={upcomingErrorStatus === 401 ? 'Your session has expired' : 'Expiring memberships unavailable'} description={upcomingErrorStatus === 401 ? 'Sign in again to view upcoming expiries.' : 'We could not load upcoming expiries. Please try again.'} action={upcomingErrorStatus === 401 ? <ButtonLink href={routes.login} icon={ArrowRight01Icon}>Open sign in</ButtonLink> : <Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>Refresh</Button>} />
+				) : (
+					<>
+						{upcoming.length > 0 ? <RemindersToolbar count={visible.length} total={upcoming.length} term={search} status={status} order={order} onTermChange={setSearch} onFiltersApply={(nextStatus, nextOrder) => { setStatus(nextStatus); setOrder(nextOrder); }} /> : null}
+						{visible.length === 0 ? <EmptyState icon={Mail01Icon} title={upcoming.length === 0 ? 'No memberships nearing expiry' : 'No matching members'} description={upcoming.length === 0 ? 'Memberships ending within the next 14 days will appear here.' : 'Try another search or filter.'} action={upcoming.length === 0 ? <Button icon={RefreshIcon} pending={refreshing} onClick={refresh}>Refresh reminders</Button> : <Button icon={Cancel01Icon} variant="secondary" onClick={() => { setSearch(''); setStatus('ALL'); setOrder('SOONEST'); }}>Clear filters</Button>} /> : (
+							<div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Memberships ending in the next 14 days</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Expires</th><th scope="col">Time left</th><th scope="col">Reminder</th><th scope="col">Action</th></tr></thead><tbody>{visible.map((item) => <tr key={item.subscriptionId}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td>{item.daysRemaining === 0 ? 'Today' : `${item.daysRemaining} day${item.daysRemaining === 1 ? '' : 's'}`}</td><td><span className={styles.status} data-status={item.manualStatus ?? 'NONE'}>{item.manualStatus === null ? item.canSend ? 'Ready' : 'Email unavailable' : item.manualStatus === 'QUEUED' || item.manualStatus === 'PROCESSING' ? 'Queued' : item.manualStatus === 'ACCEPTED' || item.manualStatus === 'DELIVERED' ? 'Submitted' : 'Review activity'}</span></td><td>{item.canSend ? <Button icon={Mail01Icon} width="small" onClick={() => setSelected(item)}>Send reminder</Button> : <span className={styles.muted}>—</span>}</td></tr>)}</tbody></table></div>
+						)}
+						{nextCursor !== null ? <div className={styles.loadMore}><Button icon={ArrowRight01Icon} variant="secondary" pending={loadingMore} onClick={() => void loadMore()}>Load more</Button></div> : null}
+					</>
+				)}
+			</section>
+			<section className={styles.workspace} aria-label="Recent email reminder activity">
+				<h2 className={styles.sectionTitle}>Recent email activity</h2>
+				{errorStatus !== null ? <p className={styles.note} role="alert">Recent delivery activity could not be loaded. Refresh to try again.</p> : items.length === 0 ? <p className={styles.note}>No reminders have been submitted to the email provider yet.</p> : (
+					<><div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Recent reminder delivery activity</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Occasion</th><th scope="col">Expires</th><th scope="col">Due</th><th scope="col">Delivery status</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td>{occasionLabel(item.kind)}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td><time dateTime={item.dueDate}>{formattedDate(item.dueDate)}</time></td><td><span className={styles.status} data-status={item.status}>{statusLabel(item.status)}</span></td></tr>)}</tbody></table></div><p className={styles.note}>Submitted means the email provider accepted the message; it does not confirm inbox delivery. Showing the 50 most recent occasions.</p></>
+				)}
+			</section>
+			<Dialog open={selected !== null} title="Send email reminder" description="One manual reminder is allowed for each membership registration. Automatic three-day and expiry-day reminders remain separate." onClose={() => { if (!sending) setSelected(null); }} footer={<><Button icon={Cancel01Icon} variant="secondary" disabled={sending} onClick={() => setSelected(null)}>Cancel</Button><Button icon={Mail01Icon} pending={sending} onClick={() => void sendReminder()}>Queue reminder</Button></>}>
+				<p>{selected === null ? '' : `Queue a membership-expiry email for ${selected.memberName}? Their ${selected.planName} membership ends ${formattedDate(selected.endDate)}.`}</p>
+			</Dialog>
+			{notice ? <Toast key={notice.id} notice={notice} onDismiss={dismissNotice} /> : null}
 		</div>
 	);
 }
