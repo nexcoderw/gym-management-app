@@ -173,7 +173,7 @@ function MemberSearch({
 						className={styles.searchInput}
 						value={term}
 						placeholder="Search members…"
-						aria-label="Search all members"
+						aria-label="Search loaded members"
 						autoComplete="off"
 						spellCheck={false}
 						autoFocus
