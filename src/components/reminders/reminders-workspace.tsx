@@ -5,9 +5,7 @@ import {
 	Cancel01Icon,
 	Mail01Icon,
 	RefreshIcon,
-	Search01Icon,
 } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -17,9 +15,12 @@ import { PageHeader } from '@/components/shared/page-header';
 import { routes } from '@/constants/routes';
 import type { ReminderActivityItem } from '@/lib/contracts';
 
+import {
+	RemindersToolbar,
+	type ReminderOrder,
+	type ReminderStatusFilter,
+} from './reminders-toolbar';
 import styles from './reminders-workspace.module.css';
-
-type StatusFilter = 'ALL' | ReminderActivityItem['status'];
 
 const dateFormatter = new Intl.DateTimeFormat('en-RW', {
 	day: 'numeric',
@@ -51,17 +52,6 @@ function statusLabel(status: ReminderActivityItem['status']): string {
 	}
 }
 
-function isStatusFilter(value: string): value is StatusFilter {
-	return (
-		value === 'ALL' ||
-		value === 'ACCEPTED' ||
-		value === 'DELIVERED' ||
-		value === 'BOUNCED' ||
-		value === 'FAILED' ||
-		value === 'UNCERTAIN'
-	);
-}
-
 export function RemindersWorkspace({
 	items,
 	errorStatus,
@@ -72,16 +62,23 @@ export function RemindersWorkspace({
 	const router = useRouter();
 	const [refreshing, startRefresh] = useTransition();
 	const [search, setSearch] = useState('');
-	const [status, setStatus] = useState<StatusFilter>('ALL');
+	const [status, setStatus] = useState<ReminderStatusFilter>('ALL');
+	const [order, setOrder] = useState<ReminderOrder>('NEWEST');
 	const query = search.trim().toLocaleLowerCase('en');
-	const visible = items.filter(
-		(item) =>
-			(status === 'ALL' || item.status === status) &&
-			(query === '' ||
-				[item.memberName, item.planName].some((value) =>
-					value.toLocaleLowerCase('en').includes(query),
-				)),
-	);
+	const visible = items
+		.filter(
+			(item) =>
+				(status === 'ALL' || item.status === status) &&
+				(query === '' ||
+					[item.memberName, item.planName].some((value) =>
+						value.toLocaleLowerCase('en').includes(query),
+					)),
+		)
+		.sort((left, right) =>
+			order === 'NEWEST'
+				? right.dueDate.localeCompare(left.dueDate)
+				: left.dueDate.localeCompare(right.dueDate),
+		);
 
 	function refresh() {
 		startRefresh(() => router.refresh());
@@ -135,39 +132,18 @@ export function RemindersWorkspace({
 			) : (
 				<section className={styles.workspace} aria-label="Email reminder activity">
 					{items.length > 0 ? (
-						<div className={styles.toolbar}>
-							<div className={styles.searchField}>
-								<HugeiconsIcon icon={Search01Icon} size={18} aria-hidden="true" />
-								<label htmlFor="reminder-search" className={styles.srOnly}>
-									Search reminder activity
-								</label>
-								<input
-									id="reminder-search"
-									type="search"
-									value={search}
-									onChange={(event) => setSearch(event.target.value)}
-									placeholder="Search members or plans"
-								/>
-							</div>
-							<div className={styles.filterField}>
-								<label htmlFor="reminder-filter">Status</label>
-								<select
-									id="reminder-filter"
-									value={status}
-									onChange={(event) => {
-										const next = event.target.value;
-										if (isStatusFilter(next)) setStatus(next);
-									}}
-								>
-									<option value="ALL">All</option>
-									<option value="ACCEPTED">Submitted</option>
-									<option value="DELIVERED">Delivered</option>
-									<option value="BOUNCED">Bounced</option>
-									<option value="FAILED">Failed</option>
-									<option value="UNCERTAIN">Needs review</option>
-								</select>
-							</div>
-						</div>
+						<RemindersToolbar
+							count={visible.length}
+							total={items.length}
+							term={search}
+							status={status}
+							order={order}
+							onTermChange={setSearch}
+							onFiltersApply={(nextStatus, nextOrder) => {
+								setStatus(nextStatus);
+								setOrder(nextOrder);
+							}}
+						/>
 					) : null}
 					{visible.length === 0 ? (
 						<EmptyState
@@ -190,6 +166,7 @@ export function RemindersWorkspace({
 										onClick={() => {
 											setSearch('');
 											setStatus('ALL');
+											setOrder('NEWEST');
 										}}
 									>
 										Clear filters
