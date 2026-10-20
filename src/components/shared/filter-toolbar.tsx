@@ -76,6 +76,7 @@ export function FilterToolbar({
 								value={term}
 								aria-label={searchInputLabel}
 								placeholder={searchPlaceholder}
+								maxLength={80}
 								autoComplete="off"
 								spellCheck={false}
 								autoFocus
