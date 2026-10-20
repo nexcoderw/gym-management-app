@@ -1,0 +1,122 @@
+.sheet {
+	position: fixed;
+	inset: 0 0 0 auto;
+	width: min(32rem, 100%);
+	max-width: 100%;
+	max-height: 100dvh;
+	margin: 0 0 0 auto;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-panel) 0 0 var(--radius-panel);
+	background: var(--surface-primary);
+	box-shadow: var(--shadow-panel);
+	animation: sheet-enter 220ms var(--motion-ease) both;
+}
+
+.sheet::backdrop {
+	background: rgb(17 17 17 / 42%);
+}
+
+.panel {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	min-height: 100dvh;
+	max-height: 100dvh;
+}
+
+.header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--space-4);
+	padding: var(--space-8) var(--space-6) var(--space-6);
+	border-block-end: 1px solid var(--border);
+}
+
+.header > div {
+	min-width: 0;
+}
+
+.header h2,
+.header p {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.header h2 {
+	font-family: var(--font-heading), sans-serif;
+	font-size: 1.25rem;
+}
+
+.header p {
+	margin-block-start: var(--space-2);
+	color: var(--text-secondary);
+	font-size: var(--text-small);
+}
+
+.dismiss {
+	display: grid;
+	place-items: center;
+	flex: 0 0 2.75rem;
+	width: 2.75rem;
+	height: 2.75rem;
+	padding: 0;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-pill);
+	background: var(--surface-primary);
+	color: var(--text-secondary);
+	cursor: pointer;
+}
+
+.dismiss:hover {
+	background: var(--surface-hover);
+	color: var(--action-primary);
+}
+
+.content {
+	min-width: 0;
+	padding: var(--space-6);
+	overflow-y: auto;
+}
+
+.footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-3);
+	padding: var(--space-5) var(--space-6);
+	border-block-start: 1px solid var(--border);
+	background: var(--surface-subtle);
+}
+
+@keyframes sheet-enter {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+@media (max-width: 40rem) {
+	.sheet {
+		border-radius: 0;
+	}
+
+	.header,
+	.content,
+	.footer {
+		padding-inline: var(--space-4);
+	}
+
+	.footer > * {
+		flex: 1 1 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sheet {
+		animation: none;
+	}
+}
