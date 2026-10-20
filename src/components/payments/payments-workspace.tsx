@@ -26,6 +26,7 @@ import { PaymentForm } from './payment-form';
 import { paymentErrorMessage, paymentRequest, PaymentRequestError } from './payment-requests';
 import {
 	PaymentToolbar,
+	type PaymentFilterSelection,
 	type PaymentMethodFilter,
 	type PaymentStatusFilter,
 } from './payment-toolbar';
@@ -60,15 +61,18 @@ export function PaymentsWorkspace({
 	const requestId = useRef(0);
 	const controller = useRef<AbortController | null>(null);
 	const dismissToast = useCallback(() => setNotice(null), []);
-	useEffect(() => () => {
-		controller.current?.abort();
-	}, []);
+	useEffect(
+		() => () => {
+			controller.current?.abort();
+		},
+		[],
+	);
 	const needle = term.trim().toLocaleLowerCase('en');
 	const visible = items.filter(
 		(payment) =>
 			!needle ||
-			[payment.memberName, payment.receiptNumber, payment.providerReference ?? ''].some(
-				(value) => value.toLocaleLowerCase('en').includes(needle),
+			[payment.memberName, payment.receiptNumber, payment.providerReference ?? ''].some((value) =>
+				value.toLocaleLowerCase('en').includes(needle),
 			),
 	);
 
@@ -134,17 +138,13 @@ export function PaymentsWorkspace({
 		}
 	}
 
-	function changeStatus(value: PaymentStatusFilter) {
-		setStatus(value);
-		void load({ status: value, method, order, fromDate, toDate });
-	}
-	function changeMethod(value: PaymentMethodFilter) {
-		setMethod(value);
-		void load({ status, method: value, order, fromDate, toDate });
-	}
-	function changeOrder(value: PaymentOrder) {
-		setOrder(value);
-		void load({ status, method, order: value, fromDate, toDate });
+	function applyFilters(selection: PaymentFilterSelection) {
+		setStatus(selection.status);
+		setMethod(selection.method);
+		setOrder(selection.order);
+		setFromDate(selection.fromDate);
+		setToDate(selection.toDate);
+		void load(selection);
 	}
 	function changeTerm(value: string) {
 		setTerm(value);
@@ -206,11 +206,7 @@ export function PaymentsWorkspace({
 		fromDate !== '' ||
 		toDate !== '';
 	const filteredEmpty =
-		status !== 'ALL' ||
-		method !== 'ALL' ||
-		term.trim() !== '' ||
-		fromDate !== '' ||
-		toDate !== '';
+		status !== 'ALL' || method !== 'ALL' || term.trim() !== '' || fromDate !== '' || toDate !== '';
 	const failure = errorStatus !== null;
 	return (
 		<div className={styles.page}>
@@ -237,17 +233,7 @@ export function PaymentsWorkspace({
 						method={method}
 						order={order}
 						onTermChange={changeTerm}
-						onStatusChange={changeStatus}
-						onMethodChange={changeMethod}
-						onOrderChange={changeOrder}
-						onFromDateChange={(value) => {
-							setFromDate(value);
-							void load({ status, method, order, fromDate: value, toDate });
-						}}
-						onToDateChange={(value) => {
-							setToDate(value);
-							void load({ status, method, order, fromDate, toDate: value });
-						}}
+						onFiltersApply={applyFilters}
 					/>
 				) : null}
 				{loading === 'page' ? (
