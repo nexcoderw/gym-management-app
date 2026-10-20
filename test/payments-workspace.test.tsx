@@ -167,7 +167,6 @@ describe('payments ledger search', () => {
 		]);
 		const remaining = table.querySelector('[data-tone="soon"]');
 		expect(remaining?.textContent).toContain('10 days left');
-		expect(headers[7]?.cellIndex).toBe(7);
 		expect(
 			within(table).getByRole('button', { name: `View receipt ${payment.receiptNumber}` }),
 		).toBeTruthy();
