@@ -8,12 +8,12 @@ import { ResultsLoadingState } from '@/components/shared/results-loading-state';
 afterEach(cleanup);
 
 describe('shared results loading state', () => {
-	it('announces a search without exposing decorative record shapes', () => {
+	it('announces a search with only its essential status text', () => {
 		render(<ResultsLoadingState subject="members" searching />);
 
 		const status = screen.getByRole('status');
 		expect(screen.getByRole('heading', { name: 'Searching members' })).toBeTruthy();
-		expect(status.textContent).toContain('Checking matching records across this gym.');
+		expect(status.textContent).toBe('Searching members');
 		expect(status.querySelector('[aria-hidden="true"]')).toBeTruthy();
 	});
 
@@ -21,8 +21,6 @@ describe('shared results loading state', () => {
 		render(<ResultsLoadingState subject="payments" />);
 
 		expect(screen.getByRole('heading', { name: 'Loading payments' })).toBeTruthy();
-		expect(screen.getByRole('status').textContent).toContain(
-			'Getting the latest records for this gym.',
-		);
+		expect(screen.getByRole('status').textContent).toBe('Loading payments');
 	});
 });
