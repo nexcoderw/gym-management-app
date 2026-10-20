@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { kigaliCalendarDate } from '@/components/payments/payment-subscription-remaining';
 import { PaymentsWorkspace } from '@/components/payments/payments-workspace';
 import type { Payment } from '@/lib/contracts';
 import { listPayments } from '@/lib/server/endpoints/payments/list-payments';
@@ -25,6 +26,7 @@ export default async function PaymentsPage() {
 			initialItems={initialItems}
 			initialNextCursor={initialNextCursor}
 			initialErrorStatus={initialErrorStatus}
+			initialToday={kigaliCalendarDate(new Date())}
 		/>
 	);
 }
