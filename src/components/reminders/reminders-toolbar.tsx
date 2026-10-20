@@ -6,25 +6,23 @@ import { useState } from 'react';
 import { FilterSheet } from '@/components/shared/filter-sheet';
 import { FilterToolbar } from '@/components/shared/filter-toolbar';
 import { Select } from '@/components/shared/select';
-import type { ReminderActivityItem } from '@/lib/contracts';
 
 import styles from './reminders-toolbar.module.css';
 
-export type ReminderStatusFilter = 'ALL' | ReminderActivityItem['status'];
-export type ReminderOrder = 'NEWEST' | 'OLDEST';
+export type ReminderStatusFilter = 'ALL' | 'READY' | 'QUEUED' | 'SENT' | 'UNAVAILABLE';
+export type ReminderOrder = 'SOONEST' | 'LATEST';
 
 const statuses: readonly { value: ReminderStatusFilter; label: string }[] = [
-	{ value: 'ALL', label: 'All statuses' },
-	{ value: 'ACCEPTED', label: 'Submitted' },
-	{ value: 'DELIVERED', label: 'Delivered' },
-	{ value: 'BOUNCED', label: 'Bounced' },
-	{ value: 'FAILED', label: 'Failed' },
-	{ value: 'UNCERTAIN', label: 'Needs review' },
+	{ value: 'ALL', label: 'All members' },
+	{ value: 'READY', label: 'Ready to remind' },
+	{ value: 'QUEUED', label: 'Queued or processing' },
+	{ value: 'SENT', label: 'Previously submitted' },
+	{ value: 'UNAVAILABLE', label: 'Email unavailable' },
 ];
 
 const orders: readonly { value: ReminderOrder; label: string }[] = [
-	{ value: 'NEWEST', label: 'Latest due first' },
-	{ value: 'OLDEST', label: 'Earliest due first' },
+	{ value: 'SOONEST', label: 'Expiring soonest' },
+	{ value: 'LATEST', label: 'Expiring latest' },
 ];
 
 export function RemindersToolbar({
@@ -54,17 +52,12 @@ export function RemindersToolbar({
 		setFiltersOpen(true);
 	}
 
-	function applyFilters() {
-		onFiltersApply(draftStatus, draftOrder);
-		setFiltersOpen(false);
-	}
-
 	return (
 		<FilterToolbar
-			summary={`${count} of ${total} loaded reminder${total === 1 ? '' : 's'}`}
+			summary={`${count} of ${total} loaded expiring membership${total === 1 ? '' : 's'}`}
 			term={term}
 			searchLabel="Search reminders"
-			searchInputLabel="Search reminder activity"
+			searchInputLabel="Search expiring memberships"
 			searchPlaceholder="Search members or plans…"
 			onTermChange={onTermChange}
 			filtersOpen={filtersOpen}
@@ -73,10 +66,13 @@ export function RemindersToolbar({
 			<FilterSheet
 				open={filtersOpen}
 				title="Filter reminders"
-				description="Choose which reminder activity to show and how to order it."
+				description="Choose which expiring memberships to show and how to order them."
 				applyDisabled={draftStatus === status && draftOrder === order}
 				onClose={() => setFiltersOpen(false)}
-				onApply={applyFilters}
+				onApply={() => {
+					onFiltersApply(draftStatus, draftOrder);
+					setFiltersOpen(false);
+				}}
 			>
 				<div className={styles.filterFields}>
 					<Select
@@ -85,15 +81,11 @@ export function RemindersToolbar({
 						focusStyle="subtle"
 						value={draftStatus}
 						onChange={(event) => {
-							const selected = statuses.find((option) => option.value === event.target.value);
-							if (selected) setDraftStatus(selected.value);
+							const option = statuses.find((item) => item.value === event.target.value);
+							if (option) setDraftStatus(option.value);
 						}}
 					>
-						{statuses.map((option) => (
-							<option key={option.value} value={option.value}>
-								{option.label}
-							</option>
-						))}
+						{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
 					</Select>
 					<Select
 						label="Order"
@@ -101,15 +93,11 @@ export function RemindersToolbar({
 						focusStyle="subtle"
 						value={draftOrder}
 						onChange={(event) => {
-							const selected = orders.find((option) => option.value === event.target.value);
-							if (selected) setDraftOrder(selected.value);
+							const option = orders.find((item) => item.value === event.target.value);
+							if (option) setDraftOrder(option.value);
 						}}
 					>
-						{orders.map((option) => (
-							<option key={option.value} value={option.value}>
-								{option.label}
-							</option>
-						))}
+						{orders.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
 					</Select>
 				</div>
 			</FilterSheet>
