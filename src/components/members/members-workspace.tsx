@@ -1,11 +1,6 @@
 'use client';
 
-import {
-	Add01Icon,
-	Cancel01Icon,
-	RefreshIcon,
-	UserGroupIcon,
-} from '@hugeicons/core-free-icons';
+import { Add01Icon, Cancel01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
@@ -48,6 +43,7 @@ class MembersRequestError extends Error {
 async function readMembers(
 	status: MemberStatus,
 	order: MemberOrder,
+	search: string,
 	fromDate: string,
 	toDate: string,
 	page: number,
@@ -61,6 +57,7 @@ async function readMembers(
 	});
 	if (fromDate) query.set('fromDate', fromDate);
 	if (toDate) query.set('toDate', toDate);
+	if (search) query.set('search', search);
 
 	const response = await fetch(`${routes.membersApi}?${query.toString()}`, {
 		method: 'GET',
@@ -125,6 +122,8 @@ export function MembersWorkspace({
 	});
 
 	const [term, setTerm] = useState('');
+	const appliedSearch = useRef('');
+	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [order, setOrder] = useState<MemberOrder>('newest');
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
@@ -146,6 +145,7 @@ export function MembersWorkspace({
 
 	useEffect(() => {
 		return () => {
+			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			requestNumber.current += 1;
 			activeController.current?.abort();
 		};
@@ -157,6 +157,7 @@ export function MembersWorkspace({
 		selectedOrder = order,
 		from = fromDate,
 		to = toDate,
+		search = appliedSearch.current,
 	) {
 		const currentRequest = ++requestNumber.current;
 
@@ -174,7 +175,15 @@ export function MembersWorkspace({
 		}));
 
 		try {
-			const result = await readMembers(status, selectedOrder, from, to, page, controller.signal);
+			const result = await readMembers(
+				status,
+				selectedOrder,
+				search,
+				from,
+				to,
+				page,
+				controller.signal,
+			);
 
 			if (currentRequest !== requestNumber.current) return;
 
@@ -211,18 +220,22 @@ export function MembersWorkspace({
 		}
 	}
 
-	const needle = term.trim().toLocaleLowerCase('en');
-	const visibleMembers = view.items.filter(
-		(member) =>
-			!needle ||
-			[member.name, member.phoneNumber, member.email ?? ''].some((value) =>
-				value.toLocaleLowerCase('en').includes(needle),
-			),
-	);
+	function changeTerm(value: string) {
+		setTerm(value);
+		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+		const search = value.trim().length >= 3 ? value.trim() : '';
+		if (search === appliedSearch.current) return;
+		searchTimer.current = setTimeout(() => {
+			appliedSearch.current = search;
+			void loadMembers(view.status, 1, order, fromDate, toDate, search);
+		}, 250);
+	}
+
+	const visibleMembers = view.items;
 	const busy = view.loading !== 'idle';
 	const failure = view.errorStatus === null ? null : errorDetails(view.errorStatus);
 	const canLoadMore = view.page < view.totalPages;
-	const searching = term.trim() !== '';
+	const searching = appliedSearch.current !== '';
 	const filtered = searching || fromDate !== '' || toDate !== '';
 
 	return (
@@ -234,7 +247,6 @@ export function MembersWorkspace({
 
 			<section className={styles.registry} aria-label="Member registry" aria-busy={busy}>
 				<MembersToolbar
-					visibleCount={visibleMembers.length}
 					loadedCount={view.items.length}
 					totalCount={view.totalItems}
 					hasMore={canLoadMore}
@@ -245,12 +257,14 @@ export function MembersWorkspace({
 					toDate={toDate}
 					pending={busy}
 					error={failure !== null}
-					onTermChange={setTerm}
+					onTermChange={changeTerm}
 					onFiltersApply={(status, selectedOrder, from, to) => {
+						if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+						appliedSearch.current = term.trim().length >= 3 ? term.trim() : '';
 						setOrder(selectedOrder);
 						setFromDate(from);
 						setToDate(to);
-						void loadMembers(status, 1, selectedOrder, from, to);
+						void loadMembers(status, 1, selectedOrder, from, to, appliedSearch.current);
 					}}
 				/>
 
@@ -294,9 +308,7 @@ export function MembersWorkspace({
 						}
 						description={
 							filtered
-								? searching && canLoadMore
-									? 'No members on this page match. Open the next page or try another search.'
-									: 'Try another search or date range.'
+								? 'Try another search or date range.'
 								: view.status === 'ACTIVE'
 									? 'Add their contact details and choose the membership plan they are joining.'
 									: 'Archived member profiles will appear here.'
@@ -307,10 +319,12 @@ export function MembersWorkspace({
 									icon={Cancel01Icon}
 									variant="secondary"
 									onClick={() => {
+										if (searchTimer.current !== null) clearTimeout(searchTimer.current);
+										appliedSearch.current = '';
 										setTerm('');
 										setFromDate('');
 										setToDate('');
-										if (fromDate || toDate) void loadMembers(view.status, 1, order, '', '');
+										void loadMembers(view.status, 1, order, '', '', '');
 									}}
 								>
 									Clear filters
