@@ -13,6 +13,7 @@ import { Button, ButtonLink } from '@/components/shared/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Pagination } from '@/components/shared/pagination';
+import { ResultsLoadingState } from '@/components/shared/results-loading-state';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
@@ -82,6 +83,7 @@ export function RemindersWorkspace({
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [loadingMore, setLoadingMore] = useState(false);
+	const [replacing, setReplacing] = useState(false);
 	const [loadError, setLoadError] = useState(false);
 	const [search, setSearch] = useState('');
 	const appliedSearch = useRef('');
@@ -125,7 +127,10 @@ export function RemindersWorkspace({
 		activeController.current = controller;
 		const request = ++requestNumber.current;
 		setLoadingMore(true);
-		if (!append) setLoadError(false);
+		if (!append) {
+			setLoadError(false);
+			setReplacing(true);
+		}
 		try {
 			const query = new URLSearchParams();
 			if (search) query.set('search', search);
@@ -175,6 +180,7 @@ export function RemindersWorkspace({
 		} finally {
 			if (request === requestNumber.current) {
 				setLoadingMore(false);
+				setReplacing(false);
 				activeController.current = null;
 			}
 		}
@@ -300,11 +306,10 @@ export function RemindersWorkspace({
 								}}
 							/>
 						) : null}
-						{loadingMore && upcoming.length === 0 ? (
-							<EmptyState
-								icon={Mail01Icon}
-								title="Loading reminders"
-								description="Searching matching memberships…"
+						{replacing ? (
+							<ResultsLoadingState
+								subject="upcoming reminders"
+								searching={search.trim().length >= 3}
 							/>
 						) : loadError ? (
 							<EmptyState
@@ -423,14 +428,16 @@ export function RemindersWorkspace({
 								</table>
 							</div>
 						)}
-						<Pagination
-							label="Reminders"
-							page={displayedPage}
-							loadedPages={loadedPages}
-							hasNext={nextCursor !== null}
-							pending={loadingMore}
-							onPageChange={changePage}
-						/>
+						{!replacing ? (
+							<Pagination
+								label="Reminders"
+								page={displayedPage}
+								loadedPages={loadedPages}
+								hasNext={nextCursor !== null}
+								pending={loadingMore}
+								onPageChange={changePage}
+							/>
+						) : null}
 					</>
 				)}
 			</section>
