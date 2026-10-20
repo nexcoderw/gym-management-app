@@ -8,7 +8,6 @@ import { upstreamJson } from '@/lib/server/upstream';
 const filtersSchema = z.strictObject({
 	status: z.enum(['ACTIVE', 'ARCHIVED', 'ALL']).default('ACTIVE'),
 	order: membershipPlanOrderSchema.default('PRICE_ASC'),
-	search: z.string().max(80).optional(),
 	limit: z.number().int().min(1).max(24).default(24),
 	cursor: databaseIdSchema.optional(),
 });
@@ -18,7 +17,6 @@ export async function listMembershipPlans(
 		readonly status?: 'ACTIVE' | 'ARCHIVED' | 'ALL';
 		readonly limit?: number;
 		readonly order?: z.infer<typeof membershipPlanOrderSchema>;
-		readonly search?: string;
 		readonly cursor?: string;
 	} = {},
 ) {
@@ -28,7 +26,6 @@ export async function listMembershipPlans(
 		order: parsed.order,
 		limit: String(parsed.limit),
 	});
-	if (parsed.search) query.set('search', parsed.search);
 	if (parsed.cursor !== undefined) query.set('cursor', parsed.cursor);
 	return (
 		await upstreamJson(`/owner/membership-plans?${query.toString()}`, {}, membershipPlanListSchema)
