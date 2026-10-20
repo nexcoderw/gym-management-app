@@ -2,7 +2,6 @@
 
 import {
 	Add01Icon,
-	ArrowDown01Icon,
 	Cancel01Icon,
 	PackageAdd01Icon,
 	RefreshIcon,
@@ -17,6 +16,7 @@ import {
 import { Button } from '@/components/shared/button';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
+import { Pagination } from '@/components/shared/pagination';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
@@ -49,6 +49,7 @@ export function MembershipsWorkspace({
 }) {
 	const [plans, setPlans] = useState(initialItems);
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
+	const [currentPage, setCurrentPage] = useState(1);
 	const [filter, setFilter] = useState<MembershipFilter>('ACTIVE');
 	const [term, setTerm] = useState('');
 	const [order, setOrder] = useState<MembershipOrder>('price-asc');
@@ -61,14 +62,18 @@ export function MembershipsWorkspace({
 		initialError === undefined ? null : { id: 1, message: initialError, tone: 'error' },
 	);
 	const needle = term.trim().toLocaleLowerCase('en');
-	const visiblePlans = plans.filter((plan) =>
-		plan.name.toLocaleLowerCase('en').includes(needle),
-	);
+	const visiblePlans = plans.filter((plan) => plan.name.toLocaleLowerCase('en').includes(needle));
+	const loadedPages = Math.max(1, Math.ceil(visiblePlans.length / 24));
+	const displayedPage = Math.min(currentPage, loadedPages);
+	const pagePlans = visiblePlans.slice((displayedPage - 1) * 24, displayedPage * 24);
 	const activeController = useRef<AbortController | null>(null);
 	const requestNumber = useRef(0);
-	useEffect(() => () => {
-		activeController.current?.abort();
-	}, []);
+	useEffect(
+		() => () => {
+			activeController.current?.abort();
+		},
+		[],
+	);
 	const dismissToast = useCallback(() => setNotice(null), []);
 	// Archived plans may exist even when the active page is empty.
 	const showToolbar = true;
@@ -112,15 +117,16 @@ export function MembershipsWorkspace({
 			});
 			const page = membershipPlanListSchema.parse(await readJsonResponse(response));
 			if (request !== requestNumber.current) return;
-			setPlans((current) =>
-				append
-					? [
-							...current,
-							...page.items.filter((plan) => !current.some((known) => known.id === plan.id)),
-						]
-					: page.items,
-			);
+			const nextPlans = append
+				? [...plans, ...page.items.filter((plan) => !plans.some((known) => known.id === plan.id))]
+				: page.items;
+			setPlans(nextPlans);
 			setNextCursor(page.nextCursor);
+			setCurrentPage(
+				append
+					? Math.max(1, Math.ceil(nextPlans.filter((plan) => plan.name.toLocaleLowerCase('en').includes(needle)).length / 24))
+					: 1,
+			);
 			setLoadFailed(false);
 		} catch (error: unknown) {
 			if (controller.signal.aborted || request !== requestNumber.current) return;
@@ -136,6 +142,7 @@ export function MembershipsWorkspace({
 
 	function changeTerm(value: string) {
 		setTerm(value);
+		setCurrentPage(1);
 	}
 
 	async function openPlan(kind: 'details' | 'edit' | 'archive', plan: MembershipPlan) {
@@ -215,8 +222,12 @@ export function MembershipsWorkspace({
 		}
 	}
 
-	async function loadMore() {
-		await loadPage(filter, order, true);
+	function changePage(page: number) {
+		if (page <= loadedPages) {
+			setCurrentPage(page);
+		} else if (page === loadedPages + 1 && nextCursor !== null) {
+			void loadPage(filter, order, true);
+		}
 	}
 
 	return (
@@ -278,7 +289,7 @@ export function MembershipsWorkspace({
 								: plans.length === 0 && filter === 'ACTIVE' && term === ''
 									? 'Start with a simple name and price. Activities can be added now or later.'
 									: nextCursor !== null && term.trim() !== ''
-										? 'No loaded plans match. Load more plans or try another name.'
+										? 'No loaded plans match. Open the next page or try another name.'
 										: 'Try a different name or clear the filters to see your plans.'
 						}
 						action={
@@ -313,7 +324,7 @@ export function MembershipsWorkspace({
 					/>
 				) : (
 					<div className={styles.list}>
-						{visiblePlans.map((plan) => (
+						{pagePlans.map((plan) => (
 							<MembershipCard
 								key={plan.id}
 								plan={plan}
@@ -332,19 +343,14 @@ export function MembershipsWorkspace({
 						))}
 					</div>
 				)}
-				{nextCursor !== null ? (
-					<div className={styles.more}>
-						<Button
-							variant="secondary"
-							width="medium"
-							icon={ArrowDown01Icon}
-							pending={loadingAction === 'load-more'}
-							onClick={loadMore}
-						>
-							Load more
-						</Button>
-					</div>
-				) : null}
+				<Pagination
+					label="Memberships"
+					page={displayedPage}
+					loadedPages={loadedPages}
+					hasNext={nextCursor !== null}
+					pending={loadingAction !== ''}
+					onPageChange={changePage}
+				/>
 			</section>
 
 			{dialog?.kind === 'create' ? (
