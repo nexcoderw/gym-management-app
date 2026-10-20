@@ -30,7 +30,21 @@
 	box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+.control[data-focus-style='subtle']:focus-within {
+	border-color: var(--border-strong);
+	box-shadow: inset 0 -3px 0 var(--action-primary);
+	background: var(--surface-subtle);
+}
+
+.control[data-focus-style='subtle'] input:focus-visible {
+	outline: none;
+}
+
 .control[data-invalid='true'] {
+	border-color: var(--text-danger);
+}
+
+.control[data-focus-style='subtle'][data-invalid='true']:focus-within {
 	border-color: var(--text-danger);
 }
 
@@ -98,5 +112,12 @@
 @media (max-width: 40rem) {
 	.control input {
 		font-size: 1rem;
+	}
+}
+
+@media (forced-colors: active) {
+	.control[data-focus-style='subtle']:focus-within {
+		outline: 2px solid Highlight;
+		outline-offset: 2px;
 	}
 }
