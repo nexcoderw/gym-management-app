@@ -2,12 +2,16 @@ import 'server-only';
 
 import { z, ZodError } from 'zod';
 
-import { databaseIdSchema, memberListSchema, memberStatusSchema } from '@/lib/contracts';
+import { databaseIdSchema, listDateSchema, memberListSchema, memberOrderSchema, memberStatusSchema } from '@/lib/contracts';
 import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 
 const filtersSchema = z.strictObject({
 	status: memberStatusSchema.default('ACTIVE'),
-	limit: z.number().int().min(1).max(50).default(20),
+	order: memberOrderSchema.default('NEWEST'),
+	search: z.string().max(80).optional(),
+	fromDate: listDateSchema.optional(),
+	toDate: listDateSchema.optional(),
+	limit: z.number().int().min(1).max(24).default(24),
 	cursor: databaseIdSchema.optional(),
 });
 
@@ -18,8 +22,12 @@ export async function listMembers(filters: MemberListFilters = {}) {
 
 	const query = new URLSearchParams({
 		status: parsed.status,
+		order: parsed.order,
 		limit: String(parsed.limit),
 	});
+	if (parsed.search) query.set('search', parsed.search);
+	if (parsed.fromDate) query.set('fromDate', parsed.fromDate);
+	if (parsed.toDate) query.set('toDate', parsed.toDate);
 
 	if (parsed.cursor !== undefined) {
 		query.set('cursor', parsed.cursor);
