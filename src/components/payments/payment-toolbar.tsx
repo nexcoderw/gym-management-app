@@ -27,6 +27,8 @@ export function PaymentToolbar({
 	count,
 	hasMore,
 	term,
+	fromDate,
+	toDate,
 	status,
 	method,
 	order,
@@ -34,10 +36,14 @@ export function PaymentToolbar({
 	onStatusChange,
 	onMethodChange,
 	onOrderChange,
+	onFromDateChange,
+	onToDateChange,
 }: {
 	readonly count: number;
 	readonly hasMore: boolean;
 	readonly term: string;
+	readonly fromDate: string;
+	readonly toDate: string;
 	readonly status: PaymentStatusFilter;
 	readonly method: PaymentMethodFilter;
 	readonly order: PaymentOrder;
@@ -45,6 +51,8 @@ export function PaymentToolbar({
 	readonly onStatusChange: (value: PaymentStatusFilter) => void;
 	readonly onMethodChange: (value: PaymentMethodFilter) => void;
 	readonly onOrderChange: (value: PaymentOrder) => void;
+	readonly onFromDateChange: (value: string) => void;
+	readonly onToDateChange: (value: string) => void;
 }) {
 	const [searchOpen, setSearchOpen] = useState(false);
 	const searchId = useId();
@@ -61,7 +69,7 @@ export function PaymentToolbar({
 		<header className={styles.toolbar}>
 			<p className={styles.summary} role="status">
 				{count} loaded payment{count === 1 ? '' : 's'}
-				{hasMore ? ' · Load more to search all payments' : ''}
+				{hasMore ? ' · More payments available' : ''}
 			</p>
 			<div className={styles.tools}>
 				<div
@@ -73,7 +81,7 @@ export function PaymentToolbar({
 						ref={toggle}
 						type="button"
 						className={styles.searchToggle}
-						aria-label="Search loaded payments"
+						aria-label="Search all payments"
 						aria-expanded={searchOpen}
 						aria-controls={searchOpen ? searchId : undefined}
 						onClick={() => (searchOpen ? input.current?.focus() : setSearchOpen(true))}
@@ -87,7 +95,7 @@ export function PaymentToolbar({
 								id={searchId}
 								type="search"
 								value={term}
-								aria-label="Search loaded payments by member, receipt or reference"
+								aria-label="Search all payments by member, receipt or reference"
 								placeholder="Search payments…"
 								autoComplete="off"
 								autoFocus
@@ -105,6 +113,26 @@ export function PaymentToolbar({
 						</>
 					) : null}
 				</div>
+				<label className={styles.dateFilter}>
+					<span>From</span>
+					<input
+						type="date"
+						value={fromDate}
+						max={toDate || undefined}
+						aria-label="Payments from date"
+						onChange={(event) => onFromDateChange(event.target.value)}
+					/>
+				</label>
+				<label className={styles.dateFilter}>
+					<span>To</span>
+					<input
+						type="date"
+						value={toDate}
+						min={fromDate || undefined}
+						aria-label="Payments through date"
+						onChange={(event) => onToDateChange(event.target.value)}
+					/>
+				</label>
 				<label className={styles.filter}>
 					<HugeiconsIcon icon={FilterIcon} size={18} aria-hidden="true" />
 					<span className={styles.srOnly}>Payment status</span>
