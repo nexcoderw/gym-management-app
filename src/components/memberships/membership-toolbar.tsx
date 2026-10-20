@@ -1,16 +1,10 @@
 'use client';
 
-import {
-	ArrowDown01Icon,
-	Cancel01Icon,
-	FilterIcon,
-	Search01Icon,
-} from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { useId, useRef, useState } from 'react';
+import { ArrowDown01Icon, FilterIcon } from '@hugeicons/core-free-icons';
+import { useState } from 'react';
 
-import { Button } from '@/components/shared/button';
 import { FilterSheet } from '@/components/shared/filter-sheet';
+import { FilterToolbar } from '@/components/shared/filter-toolbar';
 import { Select } from '@/components/shared/select';
 import styles from './membership-toolbar.module.css';
 
@@ -47,19 +41,9 @@ export function MembershipToolbar({
 	readonly onTermChange: (value: string) => void;
 	readonly onFiltersApply: (status: MembershipFilter, order: MembershipOrder) => void;
 }) {
-	const [searchOpen, setSearchOpen] = useState(false);
 	const [filtersOpen, setFiltersOpen] = useState(false);
 	const [draftStatus, setDraftStatus] = useState(status);
 	const [draftOrder, setDraftOrder] = useState(order);
-	const searchId = useId();
-	const toggle = useRef<HTMLButtonElement>(null);
-	const input = useRef<HTMLInputElement>(null);
-
-	function closeSearch() {
-		onTermChange('');
-		setSearchOpen(false);
-		toggle.current?.focus();
-	}
 
 	function openFilters() {
 		setDraftStatus(status);
@@ -73,68 +57,16 @@ export function MembershipToolbar({
 	}
 
 	return (
-		<header className={styles.toolbar}>
-			<p className={styles.summary} role="status">
-				{count} of {total} loaded memberships
-				{hasMore ? ' · Load more to search and order all plans' : ''}
-			</p>
-			<div className={styles.tools}>
-				<div
-					className={styles.search}
-					data-open={searchOpen}
-					role={searchOpen ? 'search' : undefined}
-				>
-					<button
-						ref={toggle}
-						type="button"
-						className={styles.searchToggle}
-						aria-label="Search memberships"
-						title="Search memberships"
-						aria-expanded={searchOpen}
-						aria-controls={searchOpen ? searchId : undefined}
-						onClick={() => {
-							if (searchOpen) input.current?.focus();
-							else setSearchOpen(true);
-						}}
-					>
-						<HugeiconsIcon icon={Search01Icon} size={18} aria-hidden="true" />
-					</button>
-					{searchOpen ? (
-						<>
-							<input
-								ref={input}
-								id={searchId}
-								type="search"
-								value={term}
-								aria-label="Search loaded memberships by name"
-								placeholder="Search memberships…"
-								autoComplete="off"
-								autoFocus
-								onChange={(event) => onTermChange(event.target.value)}
-								onKeyDown={(event) => {
-									if (event.key !== 'Escape') return;
-									event.preventDefault();
-									if (term) onTermChange('');
-									else closeSearch();
-								}}
-							/>
-							<Button iconOnly icon={Cancel01Icon} variant="secondary" onClick={closeSearch}>
-								Close search
-							</Button>
-						</>
-					) : null}
-				</div>
-				<Button
-					iconOnly
-					icon={FilterIcon}
-					variant="secondary"
-					aria-haspopup="dialog"
-					aria-expanded={filtersOpen}
-					onClick={openFilters}
-				>
-					Filters
-				</Button>
-			</div>
+		<FilterToolbar
+			summary={`${count} of ${total} loaded memberships${hasMore ? ' · Load more to search and order all plans' : ''}`}
+			term={term}
+			searchLabel="Search memberships"
+			searchInputLabel="Search loaded memberships by name"
+			searchPlaceholder="Search memberships…"
+			onTermChange={onTermChange}
+			filtersOpen={filtersOpen}
+			onOpenFilters={openFilters}
+		>
 			<FilterSheet
 				open={filtersOpen}
 				title="Filter memberships"
@@ -147,6 +79,7 @@ export function MembershipToolbar({
 					<Select
 						label="Status"
 						icon={FilterIcon}
+						focusStyle="subtle"
 						value={draftStatus}
 						onChange={(event) => {
 							const selected = statuses.find((option) => option.value === event.target.value);
@@ -162,6 +95,7 @@ export function MembershipToolbar({
 					<Select
 						label="Order"
 						icon={ArrowDown01Icon}
+						focusStyle="subtle"
 						value={draftOrder}
 						onChange={(event) => {
 							const selected = orders.find((option) => option.value === event.target.value);
@@ -176,6 +110,6 @@ export function MembershipToolbar({
 					</Select>
 				</div>
 			</FilterSheet>
-		</header>
+		</FilterToolbar>
 	);
 }
