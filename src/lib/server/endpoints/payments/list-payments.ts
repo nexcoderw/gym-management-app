@@ -4,6 +4,7 @@ import { z, ZodError } from 'zod';
 
 import {
 	databaseIdSchema,
+	listDateSchema,
 	paymentListSchema,
 	paymentMethodSchema,
 	paymentOrderSchema,
@@ -16,7 +17,10 @@ export const paymentFiltersSchema = z.strictObject({
 	method: paymentMethodSchema.optional(),
 	memberId: databaseIdSchema.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
-	limit: z.number().int().min(1).max(50).default(50),
+	search: z.string().max(80).optional(),
+	fromDate: listDateSchema.optional(),
+	toDate: listDateSchema.optional(),
+	limit: z.number().int().min(1).max(24).default(24),
 	cursor: databaseIdSchema.optional(),
 });
 
@@ -26,6 +30,9 @@ export async function listPayments(filters: z.input<typeof paymentFiltersSchema>
 	if (parsed.status !== undefined) query.set('status', parsed.status);
 	if (parsed.method !== undefined) query.set('method', parsed.method);
 	if (parsed.memberId !== undefined) query.set('memberId', parsed.memberId);
+	if (parsed.search) query.set('search', parsed.search);
+	if (parsed.fromDate) query.set('fromDate', parsed.fromDate);
+	if (parsed.toDate) query.set('toDate', parsed.toDate);
 	if (parsed.cursor !== undefined) query.set('cursor', parsed.cursor);
 	try {
 		const result = await upstreamJson(`/owner/payments?${query}`, {}, paymentListSchema);
