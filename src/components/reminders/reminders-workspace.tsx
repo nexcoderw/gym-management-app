@@ -5,13 +5,19 @@ import { useCallback, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button, ButtonLink } from '@/components/shared/button';
-import { Dialog } from '@/components/shared/dialog';
 import { EmptyState } from '@/components/shared/empty-state';
 import { PageHeader } from '@/components/shared/page-header';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
-import { queuedReminderSchema, upcomingReminderSchema, type ReminderActivityItem, type UpcomingReminderItem } from '@/lib/contracts';
+import {
+	queuedReminderSchema,
+	upcomingReminderSchema,
+	type ManualReminderInput,
+	type ReminderActivityItem,
+	type UpcomingReminderItem,
+} from '@/lib/contracts';
 
+import { ReminderComposeDialog } from './reminder-compose-dialog';
 import { RemindersToolbar, type ReminderOrder, type ReminderStatusFilter } from './reminders-toolbar';
 import styles from './reminders-workspace.module.css';
 
@@ -54,7 +60,7 @@ async function readError(response: Response): Promise<string> {
 	} catch { /* Keep the safe fallback. */ }
 	return response.status === 409
 		? 'A reminder already exists or this membership is no longer eligible. Refresh to see its latest status.'
-		: 'The reminder could not be queued. Please try again.';
+		: 'The email could not be submitted. Please try again.';
 }
 
 export function RemindersWorkspace({
@@ -107,21 +113,27 @@ export function RemindersWorkspace({
 		} finally { setLoadingMore(false); }
 	}
 
-	async function sendReminder() {
+	async function sendReminder(input: ManualReminderInput) {
 		if (selected === null || sending) return;
 		const subscriptionId = selected.subscriptionId;
 		setSending(true);
 		try {
-			const response = await fetch(`/api/reminders/subscriptions/${encodeURIComponent(subscriptionId)}/deliveries`, { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
+			const response = await fetch(`/api/reminders/subscriptions/${encodeURIComponent(subscriptionId)}/deliveries`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(input),
+				credentials: 'same-origin',
+				cache: 'no-store',
+			});
 			if (!response.ok) throw new Error(await readError(response));
 			if (!queuedReminderSchema.safeParse(await response.json()).success) {
 				throw new Error('The reminder response could not be verified. Refresh before retrying.');
 			}
 			setUpcoming((current) => current.map((item) => item.subscriptionId === subscriptionId ? { ...item, canSend: false, manualStatus: 'QUEUED' } : item));
 			setSelected(null);
-			setNotice({ id: Date.now(), tone: 'success', message: 'Email reminder queued. Delivery status will appear in recent activity.' });
+			setNotice({ id: Date.now(), tone: 'success', message: 'Email reminder queued for delivery. Check recent activity for its status.' });
 		} catch (error: unknown) {
-			setNotice({ id: Date.now(), tone: 'error', message: error instanceof Error ? error.message : 'Could not queue the reminder.' });
+			setNotice({ id: Date.now(), tone: 'error', message: error instanceof Error ? error.message : 'Could not submit the email.' });
 		} finally { setSending(false); }
 	}
 
@@ -147,9 +159,15 @@ export function RemindersWorkspace({
 					<><div className={styles.tableScroll}><table className={styles.table}><caption className={styles.srOnly}>Recent reminder delivery activity</caption><thead><tr><th scope="col">Member</th><th scope="col">Membership</th><th scope="col">Occasion</th><th scope="col">Expires</th><th scope="col">Due</th><th scope="col">Delivery status</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.memberName}</strong></td><td>{item.planName}</td><td>{occasionLabel(item.kind)}</td><td><time dateTime={item.endDate}>{formattedDate(item.endDate)}</time></td><td><time dateTime={item.dueDate}>{formattedDate(item.dueDate)}</time></td><td><span className={styles.status} data-status={item.status}>{statusLabel(item.status)}</span></td></tr>)}</tbody></table></div><p className={styles.note}>Submitted means the email provider accepted the message; it does not confirm inbox delivery. Showing the 50 most recent occasions.</p></>
 				)}
 			</section>
-			<Dialog open={selected !== null} title="Send email reminder" description="One manual reminder is allowed for each membership registration. Automatic three-day and expiry-day reminders remain separate." onClose={() => { if (!sending) setSelected(null); }} footer={<><Button icon={Cancel01Icon} variant="secondary" disabled={sending} onClick={() => setSelected(null)}>Cancel</Button><Button icon={Mail01Icon} pending={sending} onClick={() => void sendReminder()}>Queue reminder</Button></>}>
-				<p>{selected === null ? '' : `Queue a membership-expiry email for ${selected.memberName}? Their ${selected.planName} membership ends ${formattedDate(selected.endDate)}.`}</p>
-			</Dialog>
+			{selected !== null ? (
+				<ReminderComposeDialog
+					key={selected.subscriptionId}
+					member={selected}
+					pending={sending}
+					onClose={() => setSelected(null)}
+					onSend={sendReminder}
+				/>
+			) : null}
 			{notice ? <Toast key={notice.id} notice={notice} onDismiss={dismissNotice} /> : null}
 		</div>
 	);
