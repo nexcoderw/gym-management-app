@@ -8,6 +8,7 @@ import styles from './input.module.css';
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
 	readonly error?: string;
+	readonly focusStyle?: 'subtle';
 	readonly hint?: string;
 	readonly icon: IconSvgElement;
 	readonly label: string;
@@ -16,6 +17,7 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>
 export function Input({
 	className,
 	error,
+	focusStyle,
 	hint,
 	icon,
 	id,
@@ -32,7 +34,11 @@ export function Input({
 	return (
 		<div className={styles.field}>
 			<label htmlFor={inputId}>{label}</label>
-			<div className={styles.control} data-invalid={error ? 'true' : undefined}>
+			<div
+				className={styles.control}
+				data-invalid={error ? 'true' : undefined}
+				data-focus-style={focusStyle}
+			>
 				<span className={styles.leadingIcon} aria-hidden="true">
 					<HugeiconsIcon icon={icon} size={18} strokeWidth={1.7} />
 				</span>
