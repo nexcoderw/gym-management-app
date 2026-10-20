@@ -1,29 +1,41 @@
 import { z } from 'zod';
 
-import { membershipPlanInputSchema } from '@/lib/contracts';
+import {
+	databaseIdSchema,
+	membershipPlanInputSchema,
+	membershipPlanOrderSchema,
+} from '@/lib/contracts';
 import { createMembershipPlan } from '@/lib/server/endpoints/membership-plans/create-membership-plan';
 import { listMembershipPlans } from '@/lib/server/endpoints/membership-plans/list-membership-plans';
 import { requireOwnerCsrfToken } from '@/lib/server/owner-csrf';
 import { readJson, RequestError, requireSameOrigin } from '@/lib/server/request';
 import { errorResponse } from '@/lib/server/upstream';
 
-const querySchema = z.object({
-	status: z.enum(['ACTIVE', 'ARCHIVED', 'ALL']).default('ALL'),
-	limit: z.coerce.number().int().min(1).max(50).default(50),
-	cursor: z.uuid().optional(),
+const querySchema = z.strictObject({
+	status: z.enum(['ACTIVE', 'ARCHIVED', 'ALL']).default('ACTIVE'),
+	order: membershipPlanOrderSchema.default('PRICE_ASC'),
+	search: z.string().max(80).optional(),
+	limit: z.coerce.number<number>().int().min(1).max(24).default(24),
+	cursor: databaseIdSchema.optional(),
 });
 
 export async function GET(request: Request): Promise<Response> {
 	try {
-		const url = new URL(request.url);
-		const filters = querySchema.parse({
-			status: url.searchParams.get('status') ?? undefined,
-			limit: url.searchParams.get('limit') ?? undefined,
-			cursor: url.searchParams.get('cursor') ?? undefined,
-		});
+		const params = new URL(request.url).searchParams;
+		const keys = [...params.keys()];
+		if (new Set(keys).size !== keys.length) {
+			throw new RequestError(400, 'Duplicate query parameters are not allowed.');
+		}
+		const filters = querySchema.parse(Object.fromEntries(params));
 		const data = await listMembershipPlans(filters);
 		return Response.json(data, { headers: { 'Cache-Control': 'no-store' } });
 	} catch (error: unknown) {
+		if (error instanceof RequestError) {
+			return Response.json(
+				{ message: error.message },
+				{ status: error.status, headers: { 'Cache-Control': 'no-store' } },
+			);
+		}
 		return errorResponse(error);
 	}
 }
