@@ -251,20 +251,11 @@ export function MembersWorkspace({
 					pending={busy}
 					error={failure !== null}
 					onTermChange={setTerm}
-					onStatusChange={(status) => {
-						void loadMembers(status);
-					}}
-					onOrderChange={(value) => {
-						setOrder(value);
-						void loadMembers(view.status, false, value);
-					}}
-					onFromDateChange={(value) => {
-						setFromDate(value);
-						void loadMembers(view.status, false, order, value);
-					}}
-					onToDateChange={(value) => {
-						setToDate(value);
-						void loadMembers(view.status, false, order, fromDate, value);
+					onFiltersApply={(status, selectedOrder, from, to) => {
+						setOrder(selectedOrder);
+						setFromDate(from);
+						setToDate(to);
+						void loadMembers(status, false, selectedOrder, from, to);
 					}}
 				/>
 
