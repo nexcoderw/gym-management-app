@@ -60,13 +60,14 @@ export function MembershipsWorkspace({
 	const [notice, setNotice] = useState<ToastNotice | null>(
 		initialError === undefined ? null : { id: 1, message: initialError, tone: 'error' },
 	);
-	const visiblePlans = plans;
+	const needle = term.trim().toLocaleLowerCase('en');
+	const visiblePlans = plans.filter((plan) =>
+		plan.name.toLocaleLowerCase('en').includes(needle),
+	);
 	const activeController = useRef<AbortController | null>(null);
 	const requestNumber = useRef(0);
-	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	useEffect(() => () => {
 		activeController.current?.abort();
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 	}, []);
 	const dismissToast = useCallback(() => setNotice(null), []);
 	// Archived plans may exist even when the active page is empty.
@@ -86,7 +87,6 @@ export function MembershipsWorkspace({
 	async function loadPage(
 		status: MembershipFilter,
 		selectedOrder: MembershipOrder,
-		search: string,
 		append = false,
 	) {
 		if (append && (nextCursor === null || loadingAction !== '')) return;
@@ -104,7 +104,6 @@ export function MembershipsWorkspace({
 			order: selectedOrder.replace('-', '_').toUpperCase(),
 			limit: '24',
 		});
-		if (search.trim()) query.set('search', search.trim());
 		if (append && nextCursor) query.set('cursor', nextCursor);
 		try {
 			const response = await fetch(`${routes.membershipPlansApi}?${query}`, {
@@ -137,10 +136,6 @@ export function MembershipsWorkspace({
 
 	function changeTerm(value: string) {
 		setTerm(value);
-		if (searchTimer.current !== null) clearTimeout(searchTimer.current);
-		searchTimer.current = setTimeout(() => {
-			void loadPage(filter, order, value);
-		}, 300);
 	}
 
 	async function openPlan(kind: 'details' | 'edit' | 'archive', plan: MembershipPlan) {
@@ -167,12 +162,11 @@ export function MembershipsWorkspace({
 				method: 'POST',
 				body: JSON.stringify(input),
 			});
-			if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 			setLoadFailed(false);
 			setFilter('ACTIVE');
 			setTerm('');
 			setDialog(null);
-			void loadPage('ACTIVE', order, '');
+			void loadPage('ACTIVE', order);
 			notify(`${created.name} was created.`, 'success');
 		} catch (error: unknown) {
 			notify(errorMessage(error), 'error');
@@ -182,7 +176,7 @@ export function MembershipsWorkspace({
 	}
 
 	async function reload() {
-		await loadPage(filter, order, term);
+		await loadPage(filter, order);
 	}
 
 	async function update(input: MembershipPlanInput) {
@@ -193,7 +187,7 @@ export function MembershipsWorkspace({
 				method: 'PATCH',
 				body: JSON.stringify({ ...input, updatedAt: dialog.plan.updatedAt }),
 			});
-			void loadPage(filter, order, term);
+			void loadPage(filter, order);
 			setDialog(null);
 			notify(`${updated.name} was updated.`, 'success');
 		} catch (error: unknown) {
@@ -211,7 +205,7 @@ export function MembershipsWorkspace({
 				method: 'DELETE',
 				body: JSON.stringify({ updatedAt: dialog.plan.updatedAt }),
 			});
-			void loadPage(filter, order, term);
+			void loadPage(filter, order);
 			setDialog(null);
 			notify(`${dialog.plan.name} was archived.`, 'success');
 		} catch (error: unknown) {
@@ -222,7 +216,7 @@ export function MembershipsWorkspace({
 	}
 
 	async function loadMore() {
-		await loadPage(filter, order, term, true);
+		await loadPage(filter, order, true);
 	}
 
 	return (
@@ -254,14 +248,12 @@ export function MembershipsWorkspace({
 						order={order}
 						onTermChange={changeTerm}
 						onStatusChange={(value) => {
-							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 							setFilter(value);
-							void loadPage(value, order, term);
+							void loadPage(value, order);
 						}}
 						onOrderChange={(value) => {
-							if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 							setOrder(value);
-							void loadPage(filter, value, term);
+							void loadPage(filter, value);
 						}}
 					/>
 				) : null}
@@ -288,7 +280,9 @@ export function MembershipsWorkspace({
 								? 'The latest memberships could not be loaded. Refresh to try again.'
 								: plans.length === 0 && filter === 'ACTIVE' && term === ''
 									? 'Start with a simple name and price. Activities can be added now or later.'
-									: 'Try a different name or clear the filters to see your plans.'
+									: nextCursor !== null && term.trim() !== ''
+										? 'No loaded plans match. Load more plans or try another name.'
+										: 'Try a different name or clear the filters to see your plans.'
 						}
 						action={
 							loadFailed || (plans.length === 0 && filter === 'ACTIVE' && term === '') ? (
@@ -309,10 +303,9 @@ export function MembershipsWorkspace({
 										if (emptyAction.primary) {
 											setDialog({ kind: 'create' });
 										} else {
-											if (searchTimer.current !== null) clearTimeout(searchTimer.current);
 											setFilter('ACTIVE');
 											setTerm('');
-											void loadPage('ACTIVE', order, '');
+											if (filter !== 'ACTIVE') void loadPage('ACTIVE', order);
 										}
 									}}
 								>
