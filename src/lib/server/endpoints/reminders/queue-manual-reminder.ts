@@ -2,14 +2,19 @@ import 'server-only';
 
 import { ZodError } from 'zod';
 
-import { queuedReminderSchema } from '@/lib/contracts';
+import { queuedReminderSchema, type ManualReminderInput } from '@/lib/contracts';
 import { UpstreamError, upstreamJson } from '@/lib/server/upstream';
 
-export async function queueManualReminder(subscriptionId: string, csrfToken: string, origin: string) {
+export async function queueManualReminder(
+	subscriptionId: string,
+	input: ManualReminderInput,
+	csrfToken: string,
+	origin: string,
+) {
 	try {
 		const result = await upstreamJson(
 			`/owner/reminders/subscriptions/${encodeURIComponent(subscriptionId)}/deliveries`,
-			{ method: 'POST', csrfToken, origin },
+			{ method: 'POST', body: input, csrfToken, origin },
 			queuedReminderSchema,
 		);
 		if (result.response.status !== 202) {
