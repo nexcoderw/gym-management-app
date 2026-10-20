@@ -14,7 +14,6 @@ import { errorResponse } from '@/lib/server/upstream';
 const querySchema = z.strictObject({
 	status: z.enum(['ACTIVE', 'ARCHIVED', 'ALL']).default('ACTIVE'),
 	order: membershipPlanOrderSchema.default('PRICE_ASC'),
-	search: z.string().max(80).optional(),
 	limit: z.coerce.number<number>().int().min(1).max(24).default(24),
 	cursor: databaseIdSchema.optional(),
 });
