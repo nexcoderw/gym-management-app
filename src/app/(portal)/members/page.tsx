@@ -20,7 +20,7 @@ export default async function MembersPage() {
 	try {
 		const page = await listMembers({
 			status: 'ACTIVE',
-			limit: 20,
+			limit: 24,
 		});
 
 		initialItems = page.items;
