@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
 	databaseIdSchema,
 	listDateSchema,
+	listSearchSchema,
 	memberOrderSchema,
 	memberRegistrationInputSchema,
 	memberStatusSchema,
@@ -18,6 +19,7 @@ export const runtime = 'nodejs';
 const querySchema = z
 	.strictObject({
 		status: memberStatusSchema.default('ACTIVE'),
+		search: listSearchSchema.optional(),
 		order: memberOrderSchema.default('NEWEST'),
 		fromDate: listDateSchema.optional(),
 		toDate: listDateSchema.optional(),
