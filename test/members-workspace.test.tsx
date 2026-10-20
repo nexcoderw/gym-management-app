@@ -317,7 +317,7 @@ describe('members registry UI', () => {
 		);
 
 		expect(screen.getAllByRole('article')).toHaveLength(20);
-		expect(screen.getByRole('button', { name: 'Page 17' })).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Last page' }).textContent).toBe('17');
 		fireEvent.click(screen.getByRole('button', { name: 'Last page' }));
 
 		expect(await screen.findByRole('heading', { name: 'Zoe Member' })).toBeTruthy();
