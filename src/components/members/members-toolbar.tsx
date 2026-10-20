@@ -41,11 +41,15 @@ export function MembersToolbar({
 	status,
 	order,
 	term,
+	fromDate,
+	toDate,
 	pending,
 	error,
 	onTermChange,
 	onStatusChange,
 	onOrderChange,
+	onFromDateChange,
+	onToDateChange,
 }: {
 	readonly visibleCount: number;
 	readonly loadedCount: number;
@@ -53,11 +57,15 @@ export function MembersToolbar({
 	readonly status: MemberStatus;
 	readonly order: MemberOrder;
 	readonly term: string;
+	readonly fromDate: string;
+	readonly toDate: string;
 	readonly pending: boolean;
 	readonly error: boolean;
 	readonly onTermChange: (term: string) => void;
 	readonly onStatusChange: (status: MemberStatus) => void;
 	readonly onOrderChange: (order: MemberOrder) => void;
+	readonly onFromDateChange: (value: string) => void;
+	readonly onToDateChange: (value: string) => void;
 }) {
 	const needle = term.trim();
 
@@ -67,7 +75,7 @@ export function MembersToolbar({
 			: error && loadedCount === 0
 				? 'Member profiles unavailable'
 				: needle
-					? `${visibleCount} of ${loadedCount} loaded profiles match “${needle}”`
+					? `${visibleCount} matching profile${visibleCount === 1 ? '' : 's'} loaded for “${needle}”`
 					: `${loadedCount} loaded ${status.toLowerCase()} profile${loadedCount === 1 ? '' : 's'}`;
 
 	return (
@@ -79,6 +87,26 @@ export function MembersToolbar({
 
 			<div className={styles.tools}>
 				<MemberSearch term={term} onTermChange={onTermChange} />
+				<label className={styles.dateFilter}>
+					<span>From</span>
+					<input
+						type="date"
+						value={fromDate}
+						max={toDate || undefined}
+						aria-label="Members registered from"
+						onChange={(event) => onFromDateChange(event.target.value)}
+					/>
+				</label>
+				<label className={styles.dateFilter}>
+					<span>To</span>
+					<input
+						type="date"
+						value={toDate}
+						min={fromDate || undefined}
+						aria-label="Members registered through"
+						onChange={(event) => onToDateChange(event.target.value)}
+					/>
+				</label>
 
 				<ToolbarMenu
 					label="Filter by status"
@@ -145,7 +173,7 @@ function MemberSearch({
 						className={styles.searchInput}
 						value={term}
 						placeholder="Search members…"
-						aria-label="Search loaded members"
+						aria-label="Search all members"
 						autoComplete="off"
 						spellCheck={false}
 						autoFocus
