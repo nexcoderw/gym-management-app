@@ -23,8 +23,13 @@ history are snapshots, not payment receipts or period-multiplied charges.
 The browser talks only to same-origin BFF routes; it never receives the
 upstream API origin or stores invitation/session tokens in Web Storage.
 
-The Payments workspace lists gym-scoped ledger entries with status, method and order filters,
-searches the loaded rows by member, receipt or provider reference, and opens read-only details.
+Membership plans, members and payments now use tenant-scoped server-side search, status filters,
+ordering and cursor pagination with a maximum of 24 results per request. Member registration dates
+and payment transaction dates can be filtered by inclusive Africa/Kigali calendar days. Search and
+ordering apply to the full matching gym dataset before a page is returned, not just loaded rows.
+
+The Payments workspace lists gym-scoped ledger entries with status, method, date and order filters,
+searches by member, receipt or provider reference, and opens read-only details.
 The New payment form accepts a new or existing member, active plan, start date, duration, method,
 provider reference when required and optional note. Nest calculates the inclusive end date and
 snapshots the plan's full price. `POST /api/payments/registrations` validates exact Origin, owner
