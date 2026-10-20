@@ -13,11 +13,11 @@ beforeEach(() => {
 });
 
 describe('membership plan listing BFF', () => {
-	it('forwards bounded search, status and ordering', async () => {
+	it('forwards bounded status and ordering without search', async () => {
 		listPlans.mockResolvedValueOnce({ items: [], nextCursor: null });
 		const response = await GET(
 			new Request(
-				'https://manager.test/api/membership-plans?status=ARCHIVED&order=PRICE_DESC&search=bronze&limit=24',
+				'https://manager.test/api/membership-plans?status=ARCHIVED&order=PRICE_DESC&limit=24',
 			),
 		);
 		expect(response.status).toBe(200);
@@ -25,12 +25,11 @@ describe('membership plan listing BFF', () => {
 		expect(listPlans).toHaveBeenCalledWith({
 			status: 'ARCHIVED',
 			order: 'PRICE_DESC',
-			search: 'bronze',
 			limit: 24,
 		});
 	});
 
-	it.each(['?limit=25', '?order=UNKNOWN', '?search=x&search=y', '?organizationId=other'])(
+	it.each(['?limit=25', '?order=UNKNOWN', '?search=bronze', '?organizationId=other'])(
 		'rejects invalid query %s',
 		async (query) => {
 			const response = await GET(
