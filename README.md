@@ -54,8 +54,9 @@ The report BFF exposes `GET /api/reports/payments/summary` and
 Africa/Kigali calendar dates and forward only those dates to the fixed Nest owner-report endpoints.
 Nest authorizes the live owner session and gym scope. The summary validates whole-RWF totals;
 the PDF adapter checks the content type and signature, caps the response at 32 MiB, and returns a
-safe attachment filename. Both responses are private and `no-store`. The report-page form and
-download controls are a separate frontend task; these BFF routes do not yet add them.
+safe attachment filename. Both responses are private and `no-store`. The report page accepts an
+inclusive date range, server-renders validated payment totals, and offers a full, unpaginated PDF
+download. An empty range makes no report request; an unavailable summary is never shown as zero.
 
 ## Local ports
 
