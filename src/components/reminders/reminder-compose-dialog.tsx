@@ -89,8 +89,8 @@ export function ReminderComposeDialog({
 					) : null}
 				</div>
 				<p className={styles.note}>
-					Sending queues this email for delivery from your gym via Mucyora. Provider acceptance
-					 does not confirm inbox delivery.
+					Sending queues this email for delivery from your gym via Mucyora. Provider acceptance does
+					not confirm inbox delivery.
 				</p>
 				<div className={styles.actions}>
 					<Button icon={Cancel01Icon} variant="secondary" disabled={pending} onClick={onClose}>
