@@ -114,8 +114,8 @@ export function MemberDialogs({
 
 	if (selection.kind === 'details' && member !== null)
 		return (
-			<MemberPreview member={member} onClose={close}>
-				<MemberHistory key={member.id} memberId={member.id} />
+			<MemberPreview key={member.id} member={member} onClose={close}>
+				<MemberHistory memberId={member.id} />
 			</MemberPreview>
 		);
 
