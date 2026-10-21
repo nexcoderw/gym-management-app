@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 
 import { RemindersWorkspace } from '@/components/reminders/reminders-workspace';
@@ -23,7 +22,10 @@ export default async function RemindersPage() {
 	}
 	return (
 		<RemindersWorkspace
-			key={[...upcoming.map((item) => `${item.subscriptionId}:${item.manualStatus ?? ''}`), nextCursor ?? ''].join('|')}
+			key={[
+				...upcoming.map((item) => `${item.subscriptionId}:${item.manualStatus ?? ''}`),
+				nextCursor ?? '',
+			].join('|')}
 			upcoming={upcoming}
 			nextCursor={nextCursor}
 			upcomingErrorStatus={upcomingErrorStatus}
