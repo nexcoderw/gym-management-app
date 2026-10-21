@@ -330,9 +330,10 @@ describe('members registry UI', () => {
 		fireEvent.click(within(dialog).getByRole('tab', { name: 'Memberships' }));
 
 		expect(await within(dialog).findByRole('heading', { name: 'Gold Plan' })).toBeTruthy();
-		expect(within(dialog).getByText('15,000 RWF')).toBeTruthy();
-		expect(within(dialog).getByText('3 Jan 2030')).toBeTruthy();
-		expect(within(dialog).getByText('2 Feb 2030')).toBeTruthy();
+		const membershipPanel = within(dialog).getByRole('tabpanel', { name: 'Memberships' });
+		expect(within(membershipPanel).getByText('15,000 RWF')).toBeTruthy();
+		expect(within(membershipPanel).getByText('3 Jan 2030')).toBeTruthy();
+		expect(within(membershipPanel).getByText('2 Feb 2030')).toBeTruthy();
 	});
 
 	it('confirms archival and refreshes the registry only after success', async () => {
