@@ -26,7 +26,10 @@ export async function POST(
 		});
 	} catch (error: unknown) {
 		if (error instanceof RequestError) {
-			return Response.json({ message: error.message }, { status: error.status, headers: { 'Cache-Control': 'no-store' } });
+			return Response.json(
+				{ message: error.message },
+				{ status: error.status, headers: { 'Cache-Control': 'no-store' } },
+			);
 		}
 		return errorResponse(error);
 	}
