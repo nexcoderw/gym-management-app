@@ -269,13 +269,70 @@ describe('members registry UI', () => {
 			name: 'Example Active Member',
 		});
 
+		expect(within(dialog).getByRole('tab', { name: 'Profile' }).getAttribute('aria-selected')).toBe(
+			'true',
+		);
 		expect(within(dialog).getByText('Not provided')).toBeTruthy();
 		expect(within(dialog).getByText('+250 700 000 001')).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		fireEvent.click(within(dialog).getByRole('tab', { name: 'Memberships' }));
 		expect(await within(dialog).findByText('No plan registrations recorded.')).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+
+		fireEvent.keyDown(within(dialog).getByRole('tab', { name: 'Memberships' }), {
+			key: 'ArrowLeft',
+		});
+		expect(within(dialog).getByRole('tab', { name: 'Profile' }).getAttribute('aria-selected')).toBe(
+			'true',
+		);
+		fireEvent.keyDown(within(dialog).getByRole('tab', { name: 'Profile' }), {
+			key: 'ArrowRight',
+		});
+		expect(within(dialog).getByRole('tab', { name: 'Memberships' }).getAttribute('aria-selected')).toBe(
+			'true',
+		);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Close details' }));
 
 		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('shows actual plan terms in membership history', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json(secondMember));
+		fetchMock.mockResolvedValueOnce(
+			Response.json({
+				items: [
+					{
+						id: '44444444-4444-4444-8444-444444444444',
+						memberId: secondMember.id,
+						membershipPlanId: '55555555-5555-4555-8555-555555555555',
+						planName: 'Gold Plan',
+						price: 15000,
+						currency: 'RWF',
+						periodUnit: 'MONTHS',
+						periodCount: 1,
+						startDate: '2030-01-03',
+						endDate: '2030-02-02',
+						status: 'ACTIVE',
+						createdAt: '2030-01-03T08:00:00.000Z',
+						cancelledAt: null,
+					},
+				],
+				nextCursor: null,
+			}),
+		);
+		render(<MembersWorkspace initialItems={[secondMember]} initialNextCursor={null} />);
+
+		fireEvent.click(screen.getByRole('button', { name: 'Zoe Member' }));
+		const dialog = await screen.findByRole('dialog', { name: 'Zoe Member' });
+		fireEvent.click(within(dialog).getByRole('tab', { name: 'Memberships' }));
+
+		expect(await within(dialog).findByRole('heading', { name: 'Gold Plan' })).toBeTruthy();
+		expect(within(dialog).getByText('15,000 RWF')).toBeTruthy();
+		expect(within(dialog).getByText('3 Jan 2030')).toBeTruthy();
+		expect(within(dialog).getByText('2 Feb 2030')).toBeTruthy();
 	});
 
 	it('confirms archival and refreshes the registry only after success', async () => {
