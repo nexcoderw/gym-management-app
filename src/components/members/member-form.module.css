@@ -1,6 +1,5 @@
 .form,
-.field,
-.history {
+.field {
 	display: grid;
 	gap: var(--space-4);
 	min-width: 0;
@@ -101,16 +100,6 @@
 	color: var(--text-secondary);
 	margin: 0;
 	font-size: var(--text-small);
-}
-.registration {
-	padding: var(--space-4);
-	border: 1px solid var(--border);
-	border-radius: var(--radius-control);
-	overflow-wrap: anywhere;
-}
-.registration h3,
-.registration p {
-	margin: 0 0 var(--space-2);
 }
 @media (max-width: 30rem) {
 	.steps li {
