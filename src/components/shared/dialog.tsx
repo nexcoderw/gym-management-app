@@ -12,6 +12,7 @@ export function Dialog({
 	footer,
 	onClose,
 	open,
+	size = 'default',
 	title,
 }: {
 	readonly children: ReactNode;
@@ -19,6 +20,7 @@ export function Dialog({
 	readonly footer?: ReactNode;
 	readonly onClose: () => void;
 	readonly open: boolean;
+	readonly size?: 'default' | 'wide';
 	readonly title: string;
 }) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
@@ -40,7 +42,7 @@ export function Dialog({
 	return (
 		<dialog
 			ref={dialogRef}
-			className={styles.dialog}
+			className={`${styles.dialog} ${size === 'wide' ? styles.wide : ''}`}
 			aria-labelledby={titleId}
 			aria-describedby={description ? descriptionId : undefined}
 			onCancel={(event) => {
