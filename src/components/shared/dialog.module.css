@@ -9,6 +9,10 @@
 	overflow: hidden;
 }
 
+.wide {
+	width: min(46rem, calc(100% - 2rem));
+}
+
 .dialog::backdrop {
 	background: rgba(17, 24, 39, 0.58);
 }
@@ -92,6 +96,10 @@
 	.dialog {
 		width: calc(100% - 1rem);
 		max-height: calc(100svh - 1rem);
+	}
+
+	.wide {
+		width: calc(100% - 1rem);
 	}
 
 	.panel {
