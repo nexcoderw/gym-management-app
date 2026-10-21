@@ -27,7 +27,11 @@ export function Pagination({
 	for (let number = Math.max(1, availablePages - 2); number <= availablePages; number += 1) {
 		numbers.add(number);
 	}
-	for (let number = Math.max(1, page - 1); number <= Math.min(availablePages, page + 1); number += 1) {
+	for (
+		let number = Math.max(1, page - 1);
+		number <= Math.min(availablePages, page + 1);
+		number += 1
+	) {
 		numbers.add(number);
 	}
 	const visiblePages = [...numbers].sort((left, right) => left - right);
