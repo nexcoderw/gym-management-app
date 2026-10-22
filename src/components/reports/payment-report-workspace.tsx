@@ -61,10 +61,11 @@ export function PaymentReportWorkspace({
 		? new URLSearchParams({ fromDate: summary.fromDate, toDate: summary.toDate })
 		: null;
 	const downloadHref = reportQuery ? `${routes.paymentReportPdfApi}?${reportQuery}` : null;
-	const highestPlanTotal = summary?.planTotals.reduce((highest, plan) => {
-		const amount = BigInt(plan.grossRwf);
-		return amount > highest ? amount : highest;
-	}, BigInt(0)) ?? BigInt(0);
+	const highestPlanTotal =
+		summary?.planTotals.reduce((highest, plan) => {
+			const amount = BigInt(plan.grossRwf);
+			return amount > highest ? amount : highest;
+		}, BigInt(0)) ?? BigInt(0);
 
 	return (
 		<div className={styles.workspace}>
@@ -171,7 +172,9 @@ export function PaymentReportWorkspace({
 										<div className={styles.barTrack} aria-hidden="true">
 											<span
 												className={styles.barFill}
-												style={{ inlineSize: barWidth(plan.grossRwf, highestPlanTotal) }}
+												style={{
+													inlineSize: barWidth(plan.grossRwf, highestPlanTotal),
+												}}
 											/>
 										</div>
 									</li>
