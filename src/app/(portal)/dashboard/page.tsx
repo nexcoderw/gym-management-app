@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { RevenueLineChart } from '@/components/dashboard/revenue-line-chart';
+import { RevenueBarChart } from '@/components/dashboard/revenue-bar-chart';
 import { routes } from '@/constants/routes';
 import { dashboardQuerySchema, type DashboardAnalytics } from '@/lib/contracts';
 import { getDashboardAnalytics } from '@/lib/server/endpoints/dashboard/get-dashboard-analytics';
@@ -120,39 +120,44 @@ export default async function DashboardPage({
 						</span>
 						<span>All dates in Africa/Kigali</span>
 					</div>
-					<section className={styles.hero} aria-labelledby="revenue-heading">
-						<div className={styles.heroMain}>
-							<p className={styles.kicker}>Net collected</p>
-							<h2 id="revenue-heading">
-								<span>RWF</span> {money(metrics.netCollected.currentRwf)}
-							</h2>
-							<p className={styles.heroFoot}>
-								Gross payments less completed refunds in this period.
-							</p>
-						</div>
-						<div className={styles.heroComparison}>
-							<span className={styles.delta} data-direction={metrics.netCollected.change.direction}>
-								{changeLabel(metrics.netCollected.change)}
-							</span>
-							<p>Previous period</p>
-							<strong>RWF {money(metrics.netCollected.previousRwf)}</strong>
-						</div>
-					</section>
-					<section className={styles.metricGrid} aria-label="Key metrics">
-						{(
-							[
-								['Settled payments', metrics.settledPayments],
-								['New members', metrics.newMembers],
-								['Active subscribers', metrics.activeSubscribers],
-							] as const
-						).map(([label, metric]) => (
-							<article className={styles.metric} key={label}>
-								<p>{label}</p>
-								<strong>{numberFormatter.format(metric.current)}</strong>
-								<span data-direction={metric.change.direction}>{changeLabel(metric.change)}</span>
-							</article>
-						))}
-					</section>
+					<div className={styles.overview}>
+						<section className={styles.hero} aria-labelledby="revenue-heading">
+							<div>
+								<p className={styles.kicker}>Net collected</p>
+								<h2 id="revenue-heading">
+									<span>RWF</span> {money(metrics.netCollected.currentRwf)}
+								</h2>
+								<p className={styles.heroFoot}>
+									Gross payments less completed refunds in this period.
+								</p>
+							</div>
+							<div className={styles.heroComparison}>
+								<span
+									className={styles.delta}
+									data-direction={metrics.netCollected.change.direction}
+								>
+									{changeLabel(metrics.netCollected.change)}
+								</span>
+								<p>Previous period</p>
+								<strong>RWF {money(metrics.netCollected.previousRwf)}</strong>
+							</div>
+						</section>
+						<section className={styles.metricGrid} aria-label="Key metrics">
+							{(
+								[
+									['Settled payments', metrics.settledPayments],
+									['New members', metrics.newMembers],
+									['Active subscribers', metrics.activeSubscribers],
+								] as const
+							).map(([label, metric]) => (
+								<div className={styles.metric} key={label}>
+									<p>{label}</p>
+									<strong>{numberFormatter.format(metric.current)}</strong>
+									<span data-direction={metric.change.direction}>{changeLabel(metric.change)}</span>
+								</div>
+							))}
+						</section>
+					</div>
 					<section className={styles.chartPanel} aria-labelledby="trend-heading">
 						<div className={styles.sectionHead}>
 							<div>
@@ -170,7 +175,7 @@ export default async function DashboardPage({
 							</span>
 						</div>
 						{series.length ? (
-							<RevenueLineChart points={series} />
+							<RevenueBarChart points={series} />
 						) : (
 							<p className={styles.quiet}>No revenue was recorded in this period.</p>
 						)}
