@@ -19,9 +19,6 @@ jobs:
     name: Verify manager application
     runs-on: ubuntu-24.04
     timeout-minutes: 40
-    env:
-      GYM_API_BASE_URL: https://api.example.com
-      MANAGER_BASE_DOMAIN: example.com
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -42,12 +39,18 @@ jobs:
         run: npm run lint
 
       - name: Type-check
+        env:
+          GYM_API_BASE_URL: https://api.manager.test
+          MANAGER_ORIGIN: https://manager.test
         run: npm run typecheck
 
       - name: Run tests
         run: npm test
 
       - name: Build production application
+        env:
+          GYM_API_BASE_URL: https://api.example.com
+          MANAGER_BASE_DOMAIN: example.com
         run: npm run build
 
   deploy:
