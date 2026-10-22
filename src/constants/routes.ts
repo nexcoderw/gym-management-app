@@ -2,6 +2,7 @@ export const routes = {
 	home: '/',
 	login: '/login',
 	dashboard: '/dashboard',
+	dashboardAnalyticsApi: '/api/dashboard/analytics',
 	memberships: '/memberships',
 	members: '/members',
 	payments: '/payments',
