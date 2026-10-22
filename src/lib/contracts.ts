@@ -9,6 +9,85 @@ export const listSearchSchema = z
 	.max(80)
 	.regex(/^[^\p{Cc}\p{Cf}]+$/u);
 
+export const dashboardQuerySchema = z
+	.strictObject({
+		fromDate: z.iso.date().optional(),
+		toDate: z.iso.date().optional(),
+	})
+	.refine(({ fromDate, toDate }) => (fromDate === undefined) === (toDate === undefined), {
+		message: 'Choose both a start and an end date.',
+		path: ['toDate'],
+	})
+	.refine(({ fromDate, toDate }) => !fromDate || !toDate || fromDate <= toDate, {
+		message: 'End date must be on or after start date.',
+		path: ['toDate'],
+	});
+
+const dashboardChangeSchema = z.strictObject({
+	direction: z.enum(['UP', 'DOWN', 'UNCHANGED', 'NEW']),
+	percent: z.number().finite().nullable(),
+});
+const dashboardCountMetricSchema = z.strictObject({
+	current: z.number().int().nonnegative(),
+	previous: z.number().int().nonnegative(),
+	change: dashboardChangeSchema,
+});
+const dashboardRwfSchema = z.string().regex(/^\d+$/u);
+
+export const dashboardAnalyticsSchema = z.strictObject({
+	period: z.strictObject({
+		fromDate: z.iso.date(),
+		toDate: z.iso.date(),
+		comparisonFromDate: z.iso.date(),
+		comparisonToDate: z.iso.date(),
+		timeZone: z.literal('Africa/Kigali'),
+		revenueBucket: z.enum(['DAY', 'SEVEN_DAY', 'MONTH']),
+	}),
+	currency: z.literal('RWF'),
+	metrics: z.strictObject({
+		netCollected: z.strictObject({
+			currentRwf: dashboardRwfSchema,
+			previousRwf: dashboardRwfSchema,
+			change: dashboardChangeSchema,
+		}),
+		settledPayments: dashboardCountMetricSchema,
+		newMembers: dashboardCountMetricSchema,
+		activeSubscribers: dashboardCountMetricSchema,
+	}),
+	revenueSeries: z
+		.array(
+			z.strictObject({
+				fromDate: z.iso.date(),
+				toDate: z.iso.date(),
+				grossRwf: dashboardRwfSchema,
+				refundedRwf: dashboardRwfSchema,
+				netRwf: dashboardRwfSchema,
+			}),
+		)
+		.max(366),
+	planTotals: z
+		.array(
+			z.strictObject({
+				planId: databaseIdSchema.nullable(),
+				planName: z.string().min(1).max(120),
+				grossRwf: dashboardRwfSchema,
+			}),
+		)
+		.max(6),
+	methodTotals: z
+		.array(
+			z.strictObject({
+				method: z.enum(['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CARD', 'OTHER']),
+				settledPaymentCount: z.number().int().nonnegative(),
+				grossRwf: dashboardRwfSchema,
+			}),
+		)
+		.max(5),
+	generatedAt: z.iso.datetime(),
+});
+
+export type DashboardAnalytics = z.infer<typeof dashboardAnalyticsSchema>;
+
 export const paymentReportQuerySchema = z
 	.strictObject({
 		fromDate: z.iso.date(),
@@ -28,13 +107,15 @@ export const paymentReportSummarySchema = z.strictObject({
 	grossRwf: z.string().regex(/^\d+$/u),
 	refundedRwf: z.string().regex(/^\d+$/u),
 	netRwf: z.string().regex(/^\d+$/u),
-	planTotals: z.array(
-		z.strictObject({
-			planId: databaseIdSchema.nullable(),
-			planName: z.string().min(1).max(120),
-			grossRwf: z.string().regex(/^\d+$/u),
-		}),
-	).max(25),
+	planTotals: z
+		.array(
+			z.strictObject({
+				planId: databaseIdSchema.nullable(),
+				planName: z.string().min(1).max(120),
+				grossRwf: z.string().regex(/^\d+$/u),
+			}),
+		)
+		.max(25),
 	generatedAt: z.iso.datetime(),
 });
 
