@@ -69,6 +69,9 @@ describe('owner dashboard page', () => {
 		expect(getAnalytics).toHaveBeenCalledWith({});
 		expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeTruthy();
 		expect(screen.getByRole('heading', { name: /15,000/u })).toBeTruthy();
+		expect(
+			screen.getByRole('img', { name: 'Net revenue trend across the selected dates' }),
+		).toBeTruthy();
 		expect(screen.getByText('Gold')).toBeTruthy();
 		expect(screen.queryByText('DEMO DATA')).toBeNull();
 	});
@@ -93,6 +96,6 @@ describe('owner dashboard page', () => {
 		getAnalytics.mockRejectedValueOnce(new UpstreamError(503, 'Unavailable'));
 		render(await DashboardPage({ searchParams: Promise.resolve({}) }));
 		expect(screen.getByRole('alert').textContent).toContain('could not be loaded');
-		expect(screen.queryByText('NET COLLECTED')).toBeNull();
+		expect(screen.queryByText('Net collected')).toBeNull();
 	});
 });
