@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { RevenueLineChart } from '@/components/dashboard/revenue-line-chart';
 import { routes } from '@/constants/routes';
 import { dashboardQuerySchema, type DashboardAnalytics } from '@/lib/contracts';
 import { getDashboardAnalytics } from '@/lib/server/endpoints/dashboard/get-dashboard-analytics';
@@ -37,12 +38,6 @@ function changeLabel(change: Change): string {
 	return `${change.direction === 'UP' ? '+' : '−'}${numberFormatter.format(Math.abs(change.percent))}% vs prior period`;
 }
 
-function barHeight(value: string, maximum: bigint): string {
-	if (maximum === BigInt(0)) return '0%';
-	const percent = (BigInt(value) * BigInt(100)) / maximum;
-	return `${Math.max(2, Number(percent))}%`;
-}
-
 export default async function DashboardPage({
 	searchParams,
 }: {
@@ -76,16 +71,12 @@ export default async function DashboardPage({
 	const period = analytics?.period;
 	const metrics = analytics?.metrics;
 	const series = analytics?.revenueSeries ?? [];
-	const maximum = series.reduce((max, point) => {
-		const value = BigInt(point.netRwf);
-		return value > max ? value : max;
-	}, BigInt(0));
 
 	return (
 		<main className={styles.page}>
 			<header className={styles.header}>
 				<div>
-					<p className={styles.eyebrow}>GYM INTELLIGENCE / {organization.name}</p>
+					<p className={styles.eyebrow}>Overview for {organization.name}</p>
 					<h1>Dashboard</h1>
 					<p className={styles.lead}>
 						A clear view of the people and payments moving your gym forward.
@@ -131,7 +122,7 @@ export default async function DashboardPage({
 					</div>
 					<section className={styles.hero} aria-labelledby="revenue-heading">
 						<div className={styles.heroMain}>
-							<p className={styles.kicker}>NET COLLECTED</p>
+							<p className={styles.kicker}>Net collected</p>
 							<h2 id="revenue-heading">
 								<span>RWF</span> {money(metrics.netCollected.currentRwf)}
 							</h2>
@@ -165,8 +156,8 @@ export default async function DashboardPage({
 					<section className={styles.chartPanel} aria-labelledby="trend-heading">
 						<div className={styles.sectionHead}>
 							<div>
-								<p className={styles.kicker}>PERFORMANCE OVER TIME</p>
-								<h2 id="trend-heading">Revenue rhythm</h2>
+								<p className={styles.kicker}>Performance over time</p>
+								<h2 id="trend-heading">Revenue trend</h2>
 							</div>
 							<span>
 								Net RWF ·{' '}
@@ -179,22 +170,7 @@ export default async function DashboardPage({
 							</span>
 						</div>
 						{series.length ? (
-							<div className={styles.chartScroll}>
-								<div className={styles.chart} role="list" aria-label="Net revenue by period">
-									{series.map((point) => (
-										<div className={styles.barGroup} role="listitem" key={point.fromDate}>
-											<span className={styles.barValue}>RWF {money(point.netRwf)}</span>
-											<div className={styles.barTrack}>
-												<div
-													className={styles.bar}
-													style={{ height: barHeight(point.netRwf, maximum) }}
-												/>
-											</div>
-											<span className={styles.barLabel}>{date(point.fromDate)}</span>
-										</div>
-									))}
-								</div>
-							</div>
+							<RevenueLineChart points={series} />
 						) : (
 							<p className={styles.quiet}>No revenue was recorded in this period.</p>
 						)}
@@ -203,7 +179,7 @@ export default async function DashboardPage({
 						<section className={styles.breakdown} aria-labelledby="plans-heading">
 							<div className={styles.sectionHead}>
 								<div>
-									<p className={styles.kicker}>WHAT SELLS</p>
+									<p className={styles.kicker}>Membership plans</p>
 									<h2 id="plans-heading">By membership</h2>
 								</div>
 							</div>
@@ -223,7 +199,7 @@ export default async function DashboardPage({
 						<section className={styles.breakdown} aria-labelledby="methods-heading">
 							<div className={styles.sectionHead}>
 								<div>
-									<p className={styles.kicker}>HOW MEMBERS PAY</p>
+									<p className={styles.kicker}>Payment methods</p>
 									<h2 id="methods-heading">By payment method</h2>
 								</div>
 							</div>
