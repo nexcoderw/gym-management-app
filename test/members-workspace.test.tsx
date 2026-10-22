@@ -289,9 +289,9 @@ describe('members registry UI', () => {
 		fireEvent.keyDown(within(dialog).getByRole('tab', { name: 'Profile' }), {
 			key: 'ArrowRight',
 		});
-		expect(within(dialog).getByRole('tab', { name: 'Memberships' }).getAttribute('aria-selected')).toBe(
-			'true',
-		);
+		expect(
+			within(dialog).getByRole('tab', { name: 'Memberships' }).getAttribute('aria-selected'),
+		).toBe('true');
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 
 		fireEvent.click(within(dialog).getByRole('button', { name: 'Close details' }));
