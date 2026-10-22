@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PaymentsWorkspace } from '@/components/payments/payments-workspace';
@@ -60,6 +61,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	cleanup();
+	vi.useRealTimers();
 	vi.unstubAllGlobals();
 	if (showModalDescriptor)
 		Object.defineProperty(HTMLDialogElement.prototype, 'showModal', showModalDescriptor);
@@ -70,6 +72,7 @@ afterEach(() => {
 
 describe('payments ledger search', () => {
 	it('searches payments through the backend after three characters', async () => {
+		vi.useFakeTimers();
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
 		fetchMock.mockResolvedValueOnce(Response.json({ items: [payment], nextCursor: null }));
 		render(
@@ -85,12 +88,18 @@ describe('payments ledger search', () => {
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'un' } });
 		expect(fetchMock).not.toHaveBeenCalled();
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'unknown' } });
-		expect(await screen.findByRole('heading', { name: 'No matching payments' })).toBeTruthy();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(250);
+		});
+		expect(screen.getByRole('heading', { name: 'No matching payments' })).toBeTruthy();
 		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('search=unknown');
 
 		fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'example member' } });
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(250);
+		});
 		expect(
-			await screen.findByRole('button', { name: `View receipt ${payment.receiptNumber}` }),
+			screen.getByRole('button', { name: `View receipt ${payment.receiptNumber}` }),
 		).toBeTruthy();
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(String(fetchMock.mock.calls[1]?.[0])).toContain('search=example+member');
