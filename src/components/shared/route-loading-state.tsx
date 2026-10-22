@@ -8,7 +8,12 @@ interface RouteLoadingStateProps {
 
 export function RouteLoadingState({ title, subject, compact = false }: RouteLoadingStateProps) {
 	return (
-		<section className={styles.root} data-compact={compact || undefined} role="status" aria-live="polite">
+		<section
+			className={styles.root}
+			data-compact={compact || undefined}
+			role="status"
+			aria-live="polite"
+		>
 			<h1>{title}</h1>
 			<p>Loading {subject}…</p>
 			<span className={styles.track} aria-hidden="true" />
