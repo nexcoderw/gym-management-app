@@ -1,9 +1,7 @@
 .page {
 	min-height: 100%;
 	padding: clamp(1.25rem, 3vw, 2.5rem);
-	background:
-		radial-gradient(ellipse at 82% 4%, rgb(0 156 222 / 12%), transparent 34%),
-		radial-gradient(ellipse at 12% 42%, rgb(0 48 135 / 7%), transparent 42%), var(--canvas);
+	background: var(--canvas);
 	color: var(--text-primary);
 }
 
@@ -25,14 +23,13 @@
 .kicker {
 	margin: 0 0 0.5rem;
 	color: var(--action-primary);
-	font-size: 0.7rem;
-	font-weight: 800;
-	letter-spacing: 0.14em;
+	font-size: var(--text-small);
+	font-weight: 700;
 }
 .header h1 {
 	margin: 0;
-	font-size: clamp(2rem, 4vw, 3rem);
-	letter-spacing: -0.055em;
+	font-size: clamp(1.5rem, 2.5vw, 2rem);
+	letter-spacing: -0.035em;
 	line-height: 1.12;
 }
 .lead {
@@ -41,23 +38,23 @@
 }
 .dateForm {
 	align-items: end;
-	gap: 0.65rem;
+	gap: var(--space-2);
 	flex-wrap: wrap;
 }
 .dateForm label {
 	display: grid;
-	gap: 0.3rem;
-	font-size: 0.75rem;
+	gap: var(--space-1);
+	font-size: var(--text-caption);
 	font-weight: 700;
 	color: var(--text-secondary);
 }
 .dateForm input {
 	min-height: 44px;
 	min-width: 9.5rem;
-	padding: 0.55rem 0.7rem;
-	border: 1px solid rgb(203 212 225 / 82%);
-	border-radius: 0.75rem;
-	background: rgb(255 255 255 / 68%);
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-control);
+	background: var(--surface-primary);
 	color: var(--text-primary);
 }
 .dateForm button,
@@ -67,136 +64,110 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0.65rem 1rem;
-	border-radius: 0.75rem;
+	padding: var(--space-2) var(--space-4);
+	border-radius: var(--radius-control);
 	text-decoration: none;
-	font-weight: 750;
+	font-weight: 700;
 	cursor: pointer;
 }
 .dateForm button {
 	border: 1px solid var(--action-primary);
 	background: var(--action-primary);
-	color: white;
+	color: var(--text-on-action);
 }
 .dateForm a {
 	border: 1px solid var(--border-strong);
-	background: rgb(255 255 255 / 68%);
+	background: var(--surface-primary);
 	color: var(--action-primary);
 }
 .period {
-	gap: 0.65rem 1.5rem;
+	gap: var(--space-2) var(--space-6);
 	align-items: center;
 	flex-wrap: wrap;
-	margin: 2rem 0 1rem;
+	margin: var(--space-8) 0 var(--space-4);
+	padding-block-end: var(--space-3);
+	border-block-end: 1px solid var(--border-strong);
 	color: var(--text-secondary);
-	font-size: 0.8rem;
+	font-size: var(--text-small);
 }
 .period span:first-child {
-	color: var(--action-primary);
-	font-weight: 800;
-	font-size: 1rem;
+	color: var(--text-primary);
+	font-weight: 700;
+	font-size: var(--text-body);
 }
 .hero,
 .chartPanel,
 .breakdown,
 .metric,
 .error {
-	border: 1px solid rgb(255 255 255 / 72%);
-	box-shadow:
-		0 16px 45px rgb(25 48 86 / 7%),
-		inset 0 1px rgb(255 255 255 / 75%);
-	background: rgb(255 255 255 / 64%);
-	backdrop-filter: blur(18px);
-	-webkit-backdrop-filter: blur(18px);
+	border: 1px solid var(--border);
+	background: var(--surface-primary);
 }
 .hero {
-	position: relative;
-	overflow: hidden;
 	align-items: end;
 	justify-content: space-between;
-	gap: 2rem;
-	padding: clamp(1.5rem, 3.5vw, 3rem);
-	border-radius: 1.65rem;
-	background: linear-gradient(128deg, rgb(0 48 135 / 92%), rgb(0 101 174 / 86%));
-	color: white;
-}
-.hero::after {
-	content: '';
-	position: absolute;
-	width: 25rem;
-	height: 25rem;
-	right: -7rem;
-	top: -16rem;
-	border: 1px solid rgb(255 255 255 / 20%);
-	border-radius: 50%;
-	box-shadow:
-		0 0 0 3rem rgb(255 255 255 / 5%),
-		0 0 0 6rem rgb(255 255 255 / 4%);
-	pointer-events: none;
-}
-.heroMain,
-.heroComparison {
-	position: relative;
-	z-index: 1;
-}
-.hero .kicker {
-	color: #c5edff;
+	gap: var(--space-8);
+	padding: clamp(var(--space-5), 3vw, var(--space-8));
+	border-inline-start: 4px solid var(--action-primary);
+	border-radius: var(--radius-panel);
 }
 .hero h2 {
 	margin: 0;
-	font-size: clamp(2.7rem, 6vw, 5.4rem);
-	letter-spacing: -0.07em;
+	font-size: clamp(2rem, 4vw, 3rem);
+	letter-spacing: -0.05em;
 	line-height: 1.1;
 	overflow-wrap: anywhere;
+	font-variant-numeric: tabular-nums;
 }
 .hero h2 span {
-	font-size: clamp(0.9rem, 1.8vw, 1.35rem);
-	letter-spacing: 0.03em;
-	vertical-align: 35%;
+	font-size: var(--text-body);
+	letter-spacing: 0;
+	vertical-align: 25%;
 	font-weight: 600;
+	color: var(--text-secondary);
 }
 .heroFoot {
-	margin: 1rem 0 0;
-	color: #e4f3ff;
+	margin: var(--space-3) 0 0;
+	color: var(--text-secondary);
 }
 .heroComparison {
 	min-width: 12rem;
-	padding: 1rem 1.1rem;
-	border: 1px solid rgb(255 255 255 / 25%);
-	border-radius: 1rem;
-	background: rgb(255 255 255 / 13%);
-	backdrop-filter: blur(14px);
+	padding: var(--space-4);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	background: var(--surface-subtle);
 }
 .heroComparison p {
-	margin: 1rem 0 0.15rem;
-	color: #d5e9ff;
-	font-size: 0.75rem;
+	margin: var(--space-3) 0 var(--space-1);
+	color: var(--text-secondary);
+	font-size: var(--text-caption);
 }
 .heroComparison strong {
-	font-size: 1.15rem;
+	font-size: 1.1rem;
+	font-variant-numeric: tabular-nums;
 }
 .delta {
-	font-size: 0.8rem;
-	font-weight: 800;
-	color: #bcf7de;
+	font-size: var(--text-small);
+	font-weight: 700;
+	color: var(--text-success);
 }
 .delta[data-direction='DOWN'] {
-	color: #ffe0c4;
+	color: var(--text-danger);
 }
 .metricGrid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 1rem;
-	margin-top: 1rem;
+	gap: var(--space-4);
+	margin-top: var(--space-4);
 }
 .metric {
 	display: flex;
 	flex-direction: column;
 	align-items: start;
-	gap: 0.7rem;
+	gap: var(--space-3);
 	min-width: 0;
-	padding: 1.35rem 1.5rem;
-	border-radius: 1.15rem;
+	padding: var(--space-5) var(--space-6);
+	border-radius: var(--radius-panel);
 }
 .metric p {
 	margin: 0;
@@ -204,13 +175,14 @@
 	font-weight: 700;
 }
 .metric strong {
-	font-size: clamp(1.9rem, 3vw, 2.6rem);
-	letter-spacing: -0.06em;
+	font-size: clamp(1.5rem, 2.5vw, 1.75rem);
+	letter-spacing: -0.04em;
 	line-height: 1;
+	font-variant-numeric: tabular-nums;
 }
 .metric span {
 	color: var(--text-success);
-	font-size: 0.77rem;
+	font-size: var(--text-small);
 	font-weight: 700;
 }
 .metric span[data-direction='DOWN'] {
@@ -218,79 +190,30 @@
 }
 .chartPanel,
 .breakdown {
-	border-radius: 1.4rem;
-	padding: clamp(1.2rem, 2.5vw, 2rem);
+	border-radius: var(--radius-panel);
+	padding: clamp(var(--space-5), 2.5vw, var(--space-8));
 }
 .chartPanel {
-	margin-top: 1rem;
+	margin-top: var(--space-4);
 }
 .sectionHead {
 	align-items: end;
 	justify-content: space-between;
-	gap: 1rem;
-	margin-bottom: 1.3rem;
+	gap: var(--space-4);
+	margin-bottom: var(--space-5);
 }
 .sectionHead h2 {
 	margin: 0;
-	font-size: 1.35rem;
-	letter-spacing: -0.035em;
+	font-size: 1.25rem;
+	letter-spacing: -0.025em;
 }
 .sectionHead > span {
 	color: var(--text-secondary);
-	font-size: 0.78rem;
-}
-.chartScroll {
-	overflow-x: auto;
-	padding-bottom: 0.5rem;
-}
-.chart {
-	display: flex;
-	align-items: stretch;
-	gap: 0.65rem;
-	min-width: max-content;
-	height: 17rem;
-	padding-top: 1.2rem;
-}
-.barGroup {
-	width: 4.2rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.3rem;
-}
-.barValue {
-	min-height: 1rem;
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	font-size: 0.66rem;
-	color: var(--text-secondary);
-}
-.barTrack {
-	position: relative;
-	flex: 1;
-	width: 100%;
-	background: linear-gradient(to top, rgb(0 48 135 / 5%), transparent);
-	border-bottom: 1px solid var(--border-strong);
-}
-.bar {
-	position: absolute;
-	bottom: 0;
-	left: 17%;
-	width: 66%;
-	border-radius: 0.45rem 0.45rem 0 0;
-	background: linear-gradient(180deg, var(--accent), var(--action-primary));
-	box-shadow: 0 6px 14px rgb(0 94 178 / 16%);
-}
-.barLabel {
-	font-size: 0.72rem;
-	color: var(--text-secondary);
-	white-space: nowrap;
+	font-size: var(--text-small);
 }
 .breakdowns {
-	gap: 1rem;
-	margin-top: 1rem;
+	gap: var(--space-4);
+	margin-top: var(--space-4);
 }
 .breakdown {
 	flex: 1;
@@ -305,27 +228,28 @@
 	display: flex;
 	align-items: baseline;
 	justify-content: space-between;
-	gap: 1rem;
-	padding: 0.8rem 0;
+	gap: var(--space-4);
+	padding: var(--space-3) 0;
 	border-top: 1px solid var(--border);
 	text-transform: capitalize;
 }
 .breakdown li strong {
 	white-space: nowrap;
 	color: var(--action-primary);
+	font-variant-numeric: tabular-nums;
 }
 .breakdown li small {
 	color: var(--text-secondary);
 	text-transform: none;
 }
 .quiet {
-	margin: 1rem 0 0.3rem;
+	margin: var(--space-4) 0 var(--space-1);
 	color: var(--text-secondary);
 }
 .error {
-	margin-top: 2rem;
-	padding: 2rem;
-	border-radius: 1.3rem;
+	margin-top: var(--space-8);
+	padding: var(--space-8);
+	border-radius: var(--radius-panel);
 }
 .error h2 {
 	margin: 0;
@@ -336,12 +260,15 @@
 .error a {
 	width: fit-content;
 	background: var(--action-primary);
-	color: white;
+	color: var(--text-on-action);
 }
 @media (max-width: 900px) {
 	.hero {
 		align-items: start;
 		flex-direction: column;
+	}
+	.heroComparison {
+		width: 100%;
 	}
 	.breakdowns {
 		flex-direction: column;
@@ -384,21 +311,5 @@
 @media (max-width: 370px) {
 	.dateForm {
 		grid-template-columns: 1fr;
-	}
-}
-@media (prefers-reduced-transparency: reduce) {
-	.hero,
-	.chartPanel,
-	.breakdown,
-	.metric,
-	.error {
-		backdrop-filter: none;
-		-webkit-backdrop-filter: none;
-	}
-	.chartPanel,
-	.breakdown,
-	.metric,
-	.error {
-		background: white;
 	}
 }
