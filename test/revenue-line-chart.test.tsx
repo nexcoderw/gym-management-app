@@ -3,14 +3,14 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { RevenueLineChart } from '@/components/dashboard/revenue-line-chart';
+import { RevenueBarChart } from '@/components/dashboard/revenue-bar-chart';
 
 afterEach(() => cleanup());
 
-describe('dashboard revenue line chart', () => {
-	it('plots server values as a line and exposes exact values accessibly', () => {
+describe('dashboard revenue chart', () => {
+	it('renders revenue bars and exposes exact values accessibly', () => {
 		const { container } = render(
-			<RevenueLineChart
+			<RevenueBarChart
 				points={[
 					{
 						fromDate: '2026-10-01',
@@ -36,21 +36,24 @@ describe('dashboard revenue line chart', () => {
 				]}
 			/>,
 		);
+
 		expect(
 			screen.getByRole('img', { name: 'Net revenue trend across the selected dates' }),
 		).toBeTruthy();
 		expect(screen.getByRole('list', { name: 'Revenue data points' }).textContent).toContain(
 			'15,000',
 		);
-		const path = container.querySelector('path');
-		expect(path?.getAttribute('d')).toMatch(/^M .+ L .+ L /u);
-		expect(path?.getAttribute('d')).not.toMatch(/NaN|Infinity/u);
-		expect(container.querySelectorAll('rect')).toHaveLength(0);
+		const bars = container.querySelectorAll('[style*="height"]');
+		expect(bars).toHaveLength(3);
+		expect(bars[0]?.getAttribute('style')).toContain('0%');
+		expect(bars[1]?.getAttribute('style')).toContain('100%');
+		expect(bars[2]?.getAttribute('style')).toContain('66.66%');
+		expect(container.querySelector('svg')).toBeNull();
 	});
 
-	it('keeps an all-zero range and a single bucket finite', () => {
+	it('keeps all-zero and single-bucket periods finite', () => {
 		const { container } = render(
-			<RevenueLineChart
+			<RevenueBarChart
 				points={[
 					{
 						fromDate: '2026-10-01',
@@ -62,7 +65,8 @@ describe('dashboard revenue line chart', () => {
 				]}
 			/>,
 		);
-		expect(container.querySelector('path')?.getAttribute('d')).toMatch(/^M /u);
-		expect(container.querySelector('path')?.getAttribute('d')).not.toMatch(/NaN|Infinity/u);
+
+		expect(container.querySelector('[style*="height"]')?.getAttribute('style')).toContain('0%');
+		expect(container.textContent).not.toMatch(/NaN|Infinity/u);
 	});
 });
